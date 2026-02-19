@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { User } from "../types"; // We'll define this type
+import { User } from "@/types"; // We'll define this type
 import { api } from "../services/api";
 
 interface AuthContextType {
@@ -9,6 +9,7 @@ interface AuthContextType {
     login: () => void;
     logout: () => void;
     checkSession: () => Promise<boolean>;
+    isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -71,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, login, logout, checkSession }}>
+        <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, logout, checkSession }}>
             {children}
         </AuthContext.Provider>
     );
