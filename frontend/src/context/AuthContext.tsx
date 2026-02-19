@@ -1,31 +1,20 @@
-"use client";
-
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useRouter } from "next/navigation";
-
-// Define the User type based on backend response
-interface User {
-    id: string;
-    email: string;
-    name: string;
-    avatar?: string;
-    picture_url?: string; // Backend uses picture_url
-}
+import { User } from "../types"; // We'll define this type
+import { api } from "../services/api";
 
 interface AuthContextType {
     user: User | null;
-    isAuthenticated: boolean;
     isLoading: boolean;
-    login: () => void; // Redirects to Google
+    login: () => void;
     logout: () => void;
     checkSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// API URL: Empty string to use relative path (proxied by Next.js to Backend)
-// This ensures cookies are First-Party (Same-Origin).
-const API_URL = "";
+// API URL from env or default
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://sortmail-production.up.railway.app";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
@@ -35,12 +24,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Fetch user from backend using HttpOnly Cookie
     const checkSession = async () => {
         try {
+            // Using fetch explicitly here to debug, or use api.get('/auth/me')
             const res = await fetch(`${API_URL}/api/auth/me`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                credentials: "include", // Important: Send Cookies
+                // IMPORTANT: This tells the browser to send cookies cross-origin
+                credentials: "include"
             });
 
             if (res.ok) {
@@ -48,43 +39,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setUser(userData);
                 return true;
             } else {
-                console.log("No active session (401)");
                 setUser(null);
                 return false;
             }
         } catch (error) {
-            console.error("Auth check error", error);
+            console.error("Session check failed", error);
             setUser(null);
             return false;
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    // Initial Session Check
     useEffect(() => {
-        const initAuth = async () => {
-            await checkSession();
-            setIsLoading(false);
-        };
-        initAuth();
+        checkSession();
     }, []);
 
-    // Redirect to Backend OAuth endpoint
     const login = () => {
+        // Redirect to Backend Google Auth Endpoint
         window.location.href = `${API_URL}/api/auth/google`;
     };
 
     const logout = async () => {
         try {
-            await fetch(`${API_URL}/api/auth/logout`, { method: "POST", credentials: "include" });
-        } catch (e) {
-            console.error("Logout failed", e);
+            await api.post('/api/auth/logout');
+            setUser(null);
+            router.push('/login');
+        } catch (error) {
+            console.error("Logout failed", error);
         }
-        setUser(null);
-        router.push("/login");
     };
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout, checkSession }}>
+        <AuthContext.Provider value={{ user, isLoading, login, logout, checkSession }}>
             {children}
         </AuthContext.Provider>
     );

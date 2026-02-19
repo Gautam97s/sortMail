@@ -11,16 +11,6 @@ const nextConfig = {
     images: {
         domains: ["lh3.googleusercontent.com", "graph.microsoft.com"],
     },
-
-    // Rewrite /api requests to the backend (Solves CORS & Cookie issues)
-    async rewrites() {
-        return [
-            {
-                source: '/api/:path*',
-                destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/:path*`,
-            },
-        ]
-    },
 };
 
 module.exports = nextConfig;
