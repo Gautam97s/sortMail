@@ -10,19 +10,12 @@ export const api = axios.create({
     },
 });
 
-// Response Interceptor: Handle Errors (401)
+// Response Interceptor: Handle Errors
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
-            // Token expired or invalid
-            if (typeof window !== 'undefined') {
-                // Redirect to login if not already there
-                if (!window.location.pathname.startsWith('/login')) {
-                    window.location.href = '/login';
-                }
-            }
-        }
+        // We removed the auto-redirect here to prevent race conditions.
+        // AuthContext handles the global auth state.
         return Promise.reject(error);
     }
 );

@@ -38,9 +38,15 @@ app = FastAPI(
 )
 
 # CORS
+# Enhanced CORS to support Vercel deployments
+origins = settings.CORS_ORIGINS
+if isinstance(origins, str):
+    origins = [o.strip() for o in origins.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=origins,
+    allow_origin_regex=r"https://sortmail.*\.vercel\.app", # Allow all Vercel previews
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
