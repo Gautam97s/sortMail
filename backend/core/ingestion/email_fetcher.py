@@ -2,18 +2,23 @@
 Email Fetcher
 -------------
 Fetches emails from Gmail/Outlook and converts to EmailThreadV1 contracts.
+Production-grade: Robust MIME parsing, Size limits, Rate limiting integration.
 
 This is the main entry point for the Ingestion layer.
 Output: EmailThreadV1 (Boundary Contract)
 """
 
-from typing import List
+from typing import List, Optional, Tuple
 from datetime import datetime
+import logging
 
 from contracts import EmailThreadV1, EmailMessage, AttachmentRef
+from .gmail_client import GmailClient, TokenRevokedError
 
+logger = logging.getLogger(__name__)
 
-from typing import List, Optional
+# Constants
+MAX_ATTACHMENT_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB
 
 async def fetch_threads(
     user_id: str,
@@ -24,19 +29,9 @@ async def fetch_threads(
 ) -> List[EmailThreadV1]:
     """
     Fetch email threads from provider.
-    
-    Args:
-        user_id: Internal user ID
-        provider: 'gmail' or 'outlook'
-        access_token: OAuth access token
-        max_results: Maximum threads to fetch
-        client: Optional pre-initialized client instance
-        
-    Returns:
-        List of EmailThreadV1 contracts
     """
     if provider == "gmail":
-        return await _fetch_gmail_threads(access_token, max_results, client)
+        return await _fetch_gmail_threads(user_id, access_token, max_results, client)
     elif provider == "outlook":
         return await _fetch_outlook_threads(access_token, max_results)
     else:
@@ -52,30 +47,21 @@ async def fetch_incremental_changes(
 ) -> List[EmailThreadV1]:
     """
     Fetch changes since a specific history ID.
-    Returns full thread contracts for threads that have new messages.
     """
     if provider != "gmail":
-         # Fallback to full sync for others
          return await fetch_threads(user_id, provider, access_token, max_results=20, client=client)
 
     if not client:
-        from .gmail_client import GmailClient
-        client = GmailClient(access_token)
+        client = GmailClient(access_token, user_id)
         await client.initialize()
 
     try:
         history_data = await client.get_history(start_history_id)
     except Exception as e:
-        # History ID might be too old (404) or invalid
-        print(f"Incremental sync failed (historyId {start_history_id}): {e}")
+        logger.warning(f"Incremental sync failed for user {user_id} (historyId {start_history_id}): {e}")
         return []
 
-    # Extract thread IDs that have new messages
-    # We trigger a refetch of these threads to get the full context (simplest approach for MVP)
-    # Optimization: Only fetch the new messages and merge? 
-    # For robust threading, fetching full thread ensures we have the complete picture (subject updates, etc)
     changed_thread_ids = set()
-    
     for record in history_data.get('history', []):
         for msg in record.get('messagesAdded', []):
             if 'message' in msg:
@@ -85,116 +71,106 @@ async def fetch_incremental_changes(
         return []
         
     results = []
-    for thread_id in changed_thread_ids:
+    # Limit incremental batch size to prevent timeouts
+    thread_ids_list = list(changed_thread_ids)[:50] 
+    
+    for thread_id in thread_ids_list:
         try:
-            # We reuse the existing _fetch_gmail_thread logic by just calling get_thread directly here
-            # or refactoring _fetch_gmail_threads to accept a list of IDs.
-            # Let's direct call get_thread for now similarly to _fetch_gmail_threads loop
             thread_data = await client.get_thread(thread_id)
-            
-            # ... Copy-paste reuse of parsing logic? 
-            # Refactor _parse_and_normalize_thread would be better.
-            # For now, I'll essentially duplicate the loop body from _fetch_gmail_threads or extract it.
-            # To avoid code duplication in this tool call, I will extract it in a moment or inline it.
-            # Inline for now to keep it safe.
-            
-            messages_data = thread_data.get('messages', [])
-            if not messages_data:
+            if not thread_data.get('messages'):
                 continue
-            
-            parsed_messages = []
-            all_attachments = []
-            subject = ""
-            
-            for msg in messages_data:
-                parsed_msg, msg_attachments = _parse_gmail_message(msg)
-                parsed_messages.append(parsed_msg)
-                all_attachments.extend(msg_attachments)
-                if not subject and parsed_msg.get('subject'):
-                    subject = parsed_msg['subject']
-            
-            thread_contract = normalize_email_thread(
-                external_id=thread_data['id'],
-                subject=subject,
-                messages=parsed_messages,
-                attachments=all_attachments,
-                provider='gmail'
-            )
+                
+            thread_contract = _parse_and_normalize_thread(thread_data, 'gmail')
             results.append(thread_contract)
 
+        except TokenRevokedError:
+            raise # Propagate specific auth errors
         except Exception as e:
-            print(f"Error processing incremental thread {thread_id}: {e}")
+            logger.error(f"Error processing incremental thread {thread_id}: {e}")
             continue
 
     return results
 
 
-async def _fetch_gmail_threads(access_token: str, max_results: int, client: Optional[object] = None) -> List[EmailThreadV1]:
+async def _fetch_gmail_threads(
+    user_id: str,
+    access_token: str,
+    max_results: int,
+    client: Optional[object] = None
+) -> List[EmailThreadV1]:
     """Fetch threads from Gmail API."""
     if not client:
-        from .gmail_client import GmailClient
-        client = GmailClient(access_token)
+        client = GmailClient(access_token, user_id)
         await client.initialize()
     
     # 1. List threads
-    response = await client.list_threads(max_results=max_results, include_spam_trash=False)
+    try:
+        response = await client.list_threads(max_results=max_results, include_spam_trash=False)
+    except TokenRevokedError:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to list threads for user {user_id}: {e}")
+        return []
+        
     threads_list = response.get('threads', [])
-    
     results = []
     
     # 2. Get full thread details
     for thread_meta in threads_list:
         try:
             thread_data = await client.get_thread(thread_meta['id'])
-            
-            # 3. Parse messages
-            parsed_messages = []
-            all_attachments = []
-            
-            messages_data = thread_data.get('messages', [])
-            if not messages_data:
+            if not thread_data.get('messages'):
                 continue
                 
-            subject = ""
-            
-            for msg in messages_data:
-                parsed_msg, msg_attachments = _parse_gmail_message(msg)
-                parsed_messages.append(parsed_msg)
-                all_attachments.extend(msg_attachments)
-                
-                # Use the subject from the first message (or any that has it)
-                if not subject and parsed_msg.get('subject'):
-                    subject = parsed_msg['subject']
-            
-            # 4. Normalize
-            thread_contract = normalize_email_thread(
-                external_id=thread_data['id'],
-                subject=subject,
-                messages=parsed_messages,
-                attachments=all_attachments,
-                provider='gmail'
-            )
+            thread_contract = _parse_and_normalize_thread(thread_data, 'gmail')
             results.append(thread_contract)
             
+        except TokenRevokedError:
+            raise
         except Exception as e:
-            print(f"Error processing thread {thread_meta.get('id')}: {e}")
+            logger.error(f"Error processing thread {thread_meta.get('id')}: {e}")
             continue
             
     return results
 
+def _parse_and_normalize_thread(thread_data: dict, provider: str) -> EmailThreadV1:
+    """Shared logic for parsing a thread response."""
+    messages_data = thread_data.get('messages', [])
+    
+    parsed_messages = []
+    all_attachments = []
+    subject = ""
+    
+    for msg in messages_data:
+        parsed_msg, msg_attachments = _parse_gmail_message(msg)
+        parsed_messages.append(parsed_msg)
+        all_attachments.extend(msg_attachments)
+        
+        # Use simple heuristic for subject: first message or non-empty
+        if not subject and parsed_msg.get('subject'):
+            subject = parsed_msg['subject']
+            
+    return normalize_email_thread(
+        external_id=thread_data['id'],
+        subject=subject,
+        messages=parsed_messages,
+        attachments=all_attachments,
+        provider=provider
+    )
 
-def _parse_gmail_message(msg_resource: dict) -> tuple[dict, List[dict]]:
+
+def _parse_gmail_message(msg_resource: dict) -> Tuple[dict, List[dict]]:
     """Parse a raw Gmail message resource into a simplified dict and attachments list."""
     payload = msg_resource.get('payload', {})
     headers = payload.get('headers', [])
     
-    # Extract headers
+    # Extract headers efficiently
     header_map = {h['name'].lower(): h['value'] for h in headers}
     
-    # Extract body
+    # Extract body with enhanced MIME recursion
     body_text = _extract_body(payload)
     
-    # Extract attachments
+    # Extract attachments with size limits
     attachments = _extract_attachments_metadata(payload, msg_resource.get('id'))
     
     parsed_msg = {
@@ -205,7 +181,6 @@ def _parse_gmail_message(msg_resource: dict) -> tuple[dict, List[dict]]:
         'cc': [addr.strip() for addr in header_map.get('cc', '').split(',') if addr.strip()],
         'subject': header_map.get('subject', ''),
         'body_text': body_text,
-        'body_text': body_text,
         'sent_at': datetime.fromtimestamp(int(msg_resource.get('internalDate', 0)) / 1000),
         'is_from_user': 'SENT' in msg_resource.get('labelIds', []),
         'labels': msg_resource.get('labelIds', []),
@@ -215,41 +190,49 @@ def _parse_gmail_message(msg_resource: dict) -> tuple[dict, List[dict]]:
 
 
 def _extract_body(payload: dict) -> str:
-    """Extract text body from multipart payload."""
+    """Recursively extract text body from multipart payload."""
     import base64
+    from core.security.sanitization import sanitize_email_html
     
     body = ""
+    mime_type = payload.get('mimeType')
     
-    if payload.get('mimeType') == 'text/plain':
+    # Direct Key for plain text
+    if mime_type == 'text/plain':
         data = payload.get('body', {}).get('data')
         if data:
-            return base64.urlsafe_b64decode(data).decode('utf-8')
+            return base64.urlsafe_b64decode(data).decode('utf-8', errors='replace')
             
+    # Multipart handling
     parts = payload.get('parts', [])
+    
+    # First pass: Look for text/plain (preferred)
     for part in parts:
         if part.get('mimeType') == 'text/plain':
             data = part.get('body', {}).get('data')
             if data:
-                return base64.urlsafe_b64decode(data).decode('utf-8')
-        elif part.get('mimeType') == 'multipart/alternative':
-            # Recursive check for text/plain inside multipart/alternative
-            return _extract_body(part)
-            
-    # Fallback: if no text/plain found, look for text/html
-    if not body:
-        for part in parts:
-             if part.get('mimeType') == 'text/html':
-                data = part.get('body', {}).get('data')
-                if data:
-                    html_content = base64.urlsafe_b64decode(data).decode('utf-8')
-                    from core.security.sanitization import sanitize_email_html
-                    return sanitize_email_html(html_content)
+                return base64.urlsafe_b64decode(data).decode('utf-8', errors='replace')
     
+    # Second pass: Look for text/html (fallback)
+    for part in parts:
+        if part.get('mimeType') == 'text/html':
+            data = part.get('body', {}).get('data')
+            if data:
+                html = base64.urlsafe_b64decode(data).decode('utf-8', errors='replace')
+                return sanitize_email_html(html)
+                
+    # Third pass: Recursion (nested multipart/alternative, multipart/related)
+    for part in parts:
+        if part.get('mimeType', '').startswith('multipart/'):
+            text = _extract_body(part)
+            if text:
+                return text
+                
     return body
 
 
 def _extract_attachments_metadata(payload: dict, message_id: str) -> List[dict]:
-    """Extract metadata for attachments."""
+    """Extract metadata for attachments with size checks."""
     attachments = []
     parts = payload.get('parts', [])
     
@@ -258,17 +241,23 @@ def _extract_attachments_metadata(payload: dict, message_id: str) -> List[dict]:
         if filename:
             body = part.get('body', {})
             attachment_id = body.get('attachmentId')
+            size_bytes = body.get('size', 0)
+            
+            # Size Limit Check
+            if size_bytes > MAX_ATTACHMENT_SIZE_BYTES:
+                logger.warning(f"Skipping oversized attachment '{filename}' ({size_bytes} bytes)")
+                continue
+                
             if attachment_id:
                 attachments.append({
                     'id': attachment_id,
                     'message_id': message_id,
                     'filename': filename,
                     'mime_type': part.get('mimeType'),
-                    'size_bytes': body.get('size', 0),
-                    # data is NOT included here, fetched on demand
+                    'size_bytes': size_bytes,
                 })
         
-        # Recurse if multipart
+        # Recursion for nested parts
         if part.get('parts'):
             attachments.extend(_extract_attachments_metadata(part, message_id))
             
