@@ -25,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Fetch user from backend using HttpOnly Cookie
     const checkSession = async () => {
         try {
+            console.log("🔍 Checking Session... Cookies visible to JS:", document.cookie);
             // Using fetch explicitly here to debug, or use api.get('/auth/me')
             const res = await fetch(`${API_URL}/api/auth/me`, {
                 method: "GET",
@@ -37,9 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (res.ok) {
                 const userData = await res.json();
+                console.log("✅ Session Valid:", userData.email);
                 setUser(userData);
                 return true;
             } else {
+                console.warn("❌ Session Check Failed:", res.status, res.statusText);
                 setUser(null);
                 return false;
             }

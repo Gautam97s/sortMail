@@ -10,10 +10,20 @@ export const api = axios.create({
     },
 });
 
+// Request Interceptor: Debug Logs
+api.interceptors.request.use((config) => {
+    console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    return config;
+});
+
 // Response Interceptor: Handle Errors
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        console.log(`✅ API Success: ${response.config.url}`);
+        return response;
+    },
     (error: any) => {
+        console.error(`❌ API Error: ${error.config?.url}`, error.response?.status);
         // We removed the auto-redirect here to prevent race conditions.
         // AuthContext handles the global auth state.
         return Promise.reject(error);
