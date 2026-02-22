@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,10 +11,11 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import AppShell from '@/components/layout/AppShell';
+import { api, endpoints } from '@/lib/api';
 import { useThreads } from '@/hooks/useThreads';
 import {
     Search,
-    SlidersHorizontal,
+    RefreshCw,
     Inbox,
     AlertTriangle,
     Clock,
@@ -25,17 +27,41 @@ import { mockThreads } from '@/data/mockData';
 import { getSenderInfo } from '@/lib/utils';
 
 export default function InboxPage() {
+    const queryClient = useQueryClient();
     const [search, setSearch] = useState('');
     const [activeTab, setActiveTab] = useState<FilterTab>('all');
+    const [syncing, setSyncing] = useState(false);
+    const [syncMsg, setSyncMsg] = useState('');
 
-    // Pass activeTab to hook for filtering (even if we do some client-side refining for search)
-    const { data: threads, isLoading, error } = useThreads(activeTab === 'all' ? undefined : activeTab);
+    const { data: threads, isLoading, error, refetch } = useThreads(activeTab === 'all' ? undefined : activeTab);
+
+    // Auto-trigger sync when inbox first loads empty (new user or first visit)
+    const hasAutoSynced = React.useRef(false);
+    React.useEffect(() => {
+        if (!isLoading && threads?.length === 0 && !hasAutoSynced.current) {
+            hasAutoSynced.current = true;
+            triggerSync();
+        }
+    }, [isLoading, threads]);
+
+    const triggerSync = async () => {
+        setSyncing(true);
+        setSyncMsg('Syncing your emails...');
+        try {
+            await api.post(endpoints.emailSync);
+            setSyncMsg('Sync complete!');
+            await refetch();
+        } catch {
+            setSyncMsg('Sync failed. Check your connected account.');
+        } finally {
+            setSyncing(false);
+            setTimeout(() => setSyncMsg(''), 4000);
+        }
+    };
 
     const filtered = useMemo(() => {
         if (!threads) return [];
         let items = threads;
-
-        // Search filter (client-side for now)
         if (search) {
             const q = search.toLowerCase();
             items = items.filter((t: ThreadListItem) =>
@@ -43,7 +69,6 @@ export default function InboxPage() {
                 t.summary.toLowerCase().includes(q)
             );
         }
-
         return items;
     }, [search, threads]);
 
@@ -51,7 +76,7 @@ export default function InboxPage() {
         <AppShell title="Inbox" subtitle={`${threads?.length || 0} threads`}>
             <div className="max-w-4xl mx-auto space-y-4">
 
-                {/* ─── Search + Filters ───────────────── */}
+                {/* ─── Search + Sync ──────────────────── */}
                 <div className="flex items-center gap-3">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -62,10 +87,16 @@ export default function InboxPage() {
                             className="pl-10 bg-surface-card border-border-light"
                         />
                     </div>
-                    <Button variant="outline" size="icon" className="shrink-0">
-                        <SlidersHorizontal className="h-4 w-4" />
+                    <Button
+                        variant="outline" size="icon" className="shrink-0"
+                        onClick={triggerSync}
+                        disabled={syncing}
+                        title="Sync emails"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
                     </Button>
                 </div>
+                {syncMsg && <p className="text-xs text-muted-foreground text-center">{syncMsg}</p>}
 
                 {/* ─── Tabs ───────────────────────────── */}
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as FilterTab)}>
@@ -93,7 +124,7 @@ export default function InboxPage() {
                 <Card>
                     <CardContent className="p-0">
                         <ScrollArea className="h-[calc(100vh-280px)]">
-                            {isLoading ? (
+                            {isLoading || syncing ? (
                                 <div className="p-4 space-y-4">
                                     {[1, 2, 3, 4, 5].map((i) => (
                                         <div key={i} className="h-20 rounded-lg bg-paper-mid animate-pulse" />
@@ -104,9 +135,14 @@ export default function InboxPage() {
                                     Failed to load threads.
                                 </div>
                             ) : filtered.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                                    <Inbox className="h-10 w-10 mb-3 opacity-40" />
-                                    <p className="text-sm">No threads match your filters</p>
+                                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+                                    <Inbox className="h-10 w-10 opacity-40" />
+                                    <p className="text-sm font-medium">Your inbox is empty</p>
+                                    <p className="text-xs">Make sure your Gmail account is connected, then sync.</p>
+                                    <Button size="sm" variant="outline" onClick={triggerSync} disabled={syncing} className="gap-2 mt-1">
+                                        <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
+                                        Sync Emails
+                                    </Button>
                                 </div>
                             ) : (
                                 filtered.map((thread: ThreadListItem, i: number) => (
@@ -120,6 +156,7 @@ export default function InboxPage() {
         </AppShell>
     );
 }
+
 
 function ThreadRow({ thread, isLast }: { thread: ThreadListItem; isLast: boolean }) {
     const fullThread = mockThreads.find((t: EmailThreadV1) => t.thread_id === thread.thread_id);
