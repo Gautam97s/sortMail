@@ -35,8 +35,12 @@ app = FastAPI(
     description="AI Intelligence Layer for Gmail & Outlook",
     version=settings.VERSION,
     lifespan=lifespan,
-    redirect_slashes=False,  # Prevents 307 redirects with http:// Location (Railway SSL termination issue)
 )
+
+# Trust Railway's X-Forwarded-Proto header so FastAPI generates https:// redirect URLs
+# (Without this, 307 trailing-slash redirects use http:// because Railway terminates SSL)
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 # CORS
 # Enhanced CORS to support Vercel deployments
