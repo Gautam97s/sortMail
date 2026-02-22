@@ -22,9 +22,7 @@ import {
     FileText,
     ChevronRight
 } from 'lucide-react';
-import { FilterTab, ThreadListItem, EmailThreadV1 } from '@/types/dashboard';
-import { mockThreads } from '@/data/mockData';
-import { getSenderInfo } from '@/lib/utils';
+import { FilterTab, ThreadListItem } from '@/types/dashboard';
 
 export default function InboxPage() {
     const queryClient = useQueryClient();
@@ -159,9 +157,22 @@ export default function InboxPage() {
 
 
 function ThreadRow({ thread, isLast }: { thread: ThreadListItem; isLast: boolean }) {
-    const fullThread = mockThreads.find((t: EmailThreadV1) => t.thread_id === thread.thread_id);
-    const lastMsg = fullThread?.messages[fullThread.messages.length - 1];
-    const sender = lastMsg ? getSenderInfo(lastMsg.from_address) : { name: 'Unknown', initials: '??' };
+    // Parse sender from thread.participants (Gmail format: "Name <email>" or just "email")
+    const firstParticipant = (thread as any).participants?.[0] ?? '';
+    const sender = (() => {
+        if (!firstParticipant) return { name: 'Unknown', initials: '??' };
+        // "John Doe <john@example.com>" or "john@example.com"
+        const nameMatch = firstParticipant.match(/^"?([^"<]+)"?\s*</);
+        const name = nameMatch
+            ? nameMatch[1].trim()
+            : firstParticipant.split('@')[0].replace(/[._]/g, ' ');
+        const parts = name.trim().split(' ').filter(Boolean);
+        const initials = parts.length >= 2
+            ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+            : name.slice(0, 2).toUpperCase();
+        return { name, initials };
+    })();
+
     const isUrgent = thread.urgency_score >= 70;
     const isAction = thread.intent === 'action_required';
 
