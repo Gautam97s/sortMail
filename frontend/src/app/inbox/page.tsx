@@ -139,11 +139,10 @@ export default function InboxPage() {
 
 
 function ThreadRow({ thread, isLast }: { thread: ThreadListItem; isLast: boolean }) {
-    // Parse sender from thread.participants (Gmail format: "Name <email>" or just "email")
+    // Parse sender from thread.participants
     const firstParticipant = (thread as any).participants?.[0] ?? '';
     const sender = (() => {
-        if (!firstParticipant) return { name: 'Unknown', initials: '??' };
-        // "John Doe <john@example.com>" or "john@example.com"
+        if (!firstParticipant) return { name: 'Unknown', initials: '??', color: '#6b7280' };
         const nameMatch = firstParticipant.match(/^"?([^"<]+)"?\s*</);
         const name = nameMatch
             ? nameMatch[1].trim()
@@ -152,70 +151,103 @@ function ThreadRow({ thread, isLast }: { thread: ThreadListItem; isLast: boolean
         const initials = parts.length >= 2
             ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
             : name.slice(0, 2).toUpperCase();
-        return { name, initials };
+        // Deterministic color from name
+        const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#14b8a6'];
+        const color = colors[name.charCodeAt(0) % colors.length];
+        return { name, initials, color };
     })();
 
     const isUrgent = thread.urgency_score >= 70;
     const isAction = thread.intent === 'action_required';
+    const isFyi = thread.intent === 'fyi';
+    const isUnread = (thread as any).is_unread ?? false;
 
     return (
         <Link href={`/inbox/${thread.thread_id}`}>
-            <div className={`flex items-start gap-4 px-5 py-4 hover:bg-paper-mid transition-colors cursor-pointer group ${!isLast ? 'border-b border-border' : ''}`}>
-                {/* Avatar */}
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${isUrgent ? 'bg-red-100 text-red-600' : 'bg-paper-deep text-ink-light'}`}>
-                    {sender.initials}
-                </div>
+            <div className={`
+                relative flex items-stretch gap-0
+                hover:bg-white/5 transition-all duration-150 cursor-pointer group
+                ${!isLast ? 'border-b border-white/5' : ''}
+            `}>
+                {/* Priority left bar */}
+                {isUrgent && <div className="w-0.5 bg-red-500 shrink-0 rounded-r" />}
+                {isAction && !isUrgent && <div className="w-0.5 bg-amber-400 shrink-0 rounded-r" />}
+                {!isUrgent && !isAction && <div className="w-0.5 shrink-0" />}
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-semibold truncate">{sender.name}</span>
-                        <span className="text-xs text-muted-foreground font-mono shrink-0">
-                            {formatTime(thread.last_updated)}
-                        </span>
+                <div className="flex items-start gap-3 px-4 py-3.5 flex-1 min-w-0">
+                    {/* Avatar */}
+                    <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 ring-1 ring-white/10"
+                        style={{ backgroundColor: sender.color + '25', color: sender.color }}
+                    >
+                        {sender.initials}
                     </div>
-                    <p className="text-sm font-medium truncate">{thread.subject}</p>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">{thread.summary}</p>
 
-                    {/* Tags */}
-                    <div className="flex items-center gap-1.5 mt-2">
-                        {isUrgent && (
-                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
-                                Urgent
-                            </Badge>
-                        )}
-                        {isAction && !isUrgent && (
-                            <Badge variant="default" className="text-[10px] px-1.5 py-0">
-                                Action Required
-                            </Badge>
-                        )}
-                        {thread.intent === 'fyi' && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                FYI
-                            </Badge>
-                        )}
-                        {thread.has_attachments && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5">
-                                <FileText className="h-2.5 w-2.5" />
-                                Attachment
-                            </Badge>
-                        )}
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                        {/* Row 1: Name + Time */}
+                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                                {isUnread && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                                )}
+                                <span className={`text-sm truncate ${isUnread ? 'font-semibold text-white' : 'font-medium text-zinc-300'}`}>
+                                    {sender.name}
+                                </span>
+                            </div>
+                            <span className="text-[11px] text-zinc-500 shrink-0 tabular-nums">
+                                {formatTime(thread.last_updated)}
+                            </span>
+                        </div>
+
+                        {/* Row 2: Subject */}
+                        <p className={`text-[13px] truncate leading-snug ${isUnread ? 'font-medium text-zinc-100' : 'text-zinc-400'}`}>
+                            {thread.subject || '(No Subject)'}
+                        </p>
+
+                        {/* Row 3: Summary + Chips */}
+                        <div className="flex items-center gap-2 mt-1.5">
+                            <p className="text-[11px] text-zinc-600 truncate flex-1 leading-relaxed">
+                                {thread.summary || 'Pending analysis...'}
+                            </p>
+                            <div className="flex items-center gap-1 shrink-0">
+                                {isUrgent && (
+                                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/20">
+                                        🔥 Urgent
+                                    </span>
+                                )}
+                                {isAction && !isUrgent && (
+                                    <span className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                                        ⚡ Action
+                                    </span>
+                                )}
+                                {isFyi && (
+                                    <span className="inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-700/60 text-zinc-400 border border-zinc-700">
+                                        FYI
+                                    </span>
+                                )}
+                                {thread.has_attachments && (
+                                    <span className="inline-flex items-center gap-0.5 text-[10px] text-zinc-500 border border-zinc-700 px-1.5 py-0.5 rounded">
+                                        <FileText className="h-2.5 w-2.5" />
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {/* Hover arrow */}
+                    <ChevronRight className="h-3.5 w-3.5 text-zinc-600 shrink-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
             </div>
         </Link>
     );
 }
 
 function formatTime(isoDate: string): string {
-    // Backend sends UTC without 'Z' — append it so JS parses as UTC
     const normalized = isoDate.endsWith('Z') || isoDate.includes('+') ? isoDate : isoDate + 'Z';
     const date = new Date(normalized);
     const now = new Date();
     const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-
     const tz = 'Asia/Kolkata';
     if (diffHours < 24) {
         return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', timeZone: tz });
@@ -225,5 +257,3 @@ function formatTime(isoDate: string): string {
     }
     return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', timeZone: tz });
 }
-
-
