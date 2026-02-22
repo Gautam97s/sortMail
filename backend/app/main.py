@@ -69,6 +69,27 @@ app.add_middleware(RateLimitMiddleware)
 app.add_middleware(RequestIDMiddleware)
 
 
+# Global exception handler — ensures CORS headers are present even on 500 crashes.
+# Without this, CORSMiddleware doesn't run on unhandled exceptions and the browser
+# reports "CORS blocked" instead of the real error.
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    origin = request.headers.get("origin", "")
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": origin or "*",
+            "Access-Control-Allow-Credentials": "true",
+        },
+    )
+
+
+
 @app.get("/")
 async def root():
     """Root endpoint."""
