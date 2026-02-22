@@ -14,8 +14,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// API URL from env or default
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://sortmail-production.up.railway.app";
+// API URL from env — force HTTPS in production to prevent Mixed Content errors
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sortmail-production.up.railway.app';
+const API_URL =
+    typeof window !== 'undefined' && window.location.protocol === 'https:'
+        ? RAW_API_URL.replace(/^http:\/\//, 'https://')
+        : RAW_API_URL;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
