@@ -70,7 +70,7 @@ class IngestionService:
             # 2. Get Secure Token
             if account.provider == ProviderType.GMAIL:
                 access_token = await get_valid_google_token(account.user_id)
-                client = GmailClient(access_token)
+                client = GmailClient(access_token, account.user_id)
                 await client.initialize()
             else:
                 # TODO: Implement Outlook token manager
