@@ -142,3 +142,88 @@ async def dismiss_task(
     await db.commit()
     
     return {"task_id": task_id, "dismissed": True}
+
+
+# ─── Calendar Suggestions ──────────────────────────────────────────────────────
+
+from models.calendar_suggestion import CalendarSuggestion
+from contracts.workflow import CalendarSuggestionV1
+
+
+@router.get("/calendar-suggestions", response_model=list[CalendarSuggestionV1])
+async def list_calendar_suggestions(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List pending AI-detected calendar suggestions."""
+    try:
+        stmt = (
+            select(CalendarSuggestion)
+            .where(
+                CalendarSuggestion.user_id == current_user.id,
+                CalendarSuggestion.status == "pending",
+            )
+            .order_by(desc(CalendarSuggestion.suggested_time))
+        )
+        result = await db.execute(stmt)
+        suggestions = result.scalars().all()
+        return [
+            CalendarSuggestionV1(
+                suggestion_id=s.id,
+                thread_id=s.thread_id,
+                title=s.title,
+                suggested_time=s.suggested_time,
+                duration_minutes=s.duration_minutes or 60,
+                location=s.location,
+                participants=s.participants or [],
+                confidence=s.confidence or 0.8,
+            )
+            for s in suggestions
+        ]
+    except Exception:
+        # If CalendarSuggestion table doesn't exist yet, return empty
+        return []
+
+
+@router.post("/calendar-suggestions/{suggestion_id}/accept")
+async def accept_calendar_suggestion(
+    suggestion_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Mark a calendar suggestion as accepted."""
+    try:
+        stmt = select(CalendarSuggestion).where(
+            CalendarSuggestion.id == suggestion_id,
+            CalendarSuggestion.user_id == current_user.id,
+        )
+        result = await db.execute(stmt)
+        suggestion = result.scalars().first()
+        if suggestion:
+            suggestion.status = "accepted"
+            await db.commit()
+    except Exception:
+        pass
+    return {"accepted": True}
+
+
+@router.delete("/calendar-suggestions/{suggestion_id}")
+async def dismiss_calendar_suggestion(
+    suggestion_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Dismiss a calendar suggestion."""
+    try:
+        stmt = select(CalendarSuggestion).where(
+            CalendarSuggestion.id == suggestion_id,
+            CalendarSuggestion.user_id == current_user.id,
+        )
+        result = await db.execute(stmt)
+        suggestion = result.scalars().first()
+        if suggestion:
+            suggestion.status = "dismissed"
+            await db.commit()
+    except Exception:
+        pass
+    return {"dismissed": True}

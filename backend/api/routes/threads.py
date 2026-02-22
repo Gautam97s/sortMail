@@ -72,6 +72,68 @@ async def list_threads(
     ]
 
 
+class ContactItem(BaseModel):
+    email: str
+    name: str
+    total_threads: int
+    last_contact: Optional[datetime]
+
+
+@router.get("/contacts", response_model=List[ContactItem])
+async def list_contacts(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    List unique contacts derived from the user's email threads.
+    Aggregates participants across all threads.
+    """
+    stmt = (
+        select(Thread)
+        .where(Thread.user_id == current_user.id)
+        .order_by(desc(Thread.last_email_at))
+        .limit(200)
+    )
+    result = await db.execute(stmt)
+    threads = result.scalars().all()
+
+    # Aggregate contacts from participants
+    contact_map: dict = {}
+    for t in threads:
+        participants = t.participants or []
+        for p in participants:
+            if not p or current_user.email in p:
+                continue
+            email = p.strip().lower()
+            if email not in contact_map:
+                # Extract name from "Name <email>" format if present
+                if "<" in p:
+                    name = p.split("<")[0].strip().strip('"')
+                    clean_email = p.split("<")[1].rstrip(">").strip()
+                else:
+                    name = email.split("@")[0].replace(".", " ").title()
+                    clean_email = email
+                contact_map[clean_email] = {
+                    "email": clean_email,
+                    "name": name,
+                    "total_threads": 1,
+                    "last_contact": t.last_email_at,
+                }
+            else:
+                contact_map[email]["total_threads"] += 1
+                if t.last_email_at and (
+                    not contact_map[email]["last_contact"]
+                    or t.last_email_at > contact_map[email]["last_contact"]
+                ):
+                    contact_map[email]["last_contact"] = t.last_email_at
+
+    # Sort by most threads first
+    sorted_contacts = sorted(
+        contact_map.values(), key=lambda x: x["total_threads"], reverse=True
+    )
+    return [ContactItem(**c) for c in sorted_contacts[:100]]
+
+
 from typing import List, Optional, Dict, Any
 from contracts.ingestion import EmailThreadV1, EmailMessage, AttachmentRef
 from contracts.intelligence import ThreadIntelV1

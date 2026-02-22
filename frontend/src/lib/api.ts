@@ -1,27 +1,23 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const api = axios.create({
     baseURL: API_URL,
+    withCredentials: true, // Required: sends HttpOnly auth cookie cross-origin
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// Add auth interceptor if needed
-api.interceptors.request.use((config) => {
-    // const token = localStorage.getItem('sortmail_token');
-    // if (token) {
-    //     config.headers.Authorization = `Bearer ${token}`;
-    // }
-    return config;
-});
-
 export const endpoints = {
-    dashboard: '/dashboard',
-    threads: '/threads',
-    tasks: '/tasks',
-    drafts: '/drafts',
-    waitingFor: '/waiting-for',
+    dashboard: '/api/dashboard',
+    threads: '/api/threads',
+    tasks: '/api/tasks',
+    drafts: '/api/drafts',
+    waitingFor: '/api/reminders',
+    notifications: '/api/notifications',
+    contacts: '/api/threads/contacts',
+    calendarSuggestions: '/api/tasks/calendar-suggestions',
+    emailSync: '/api/emails/sync',
 };
