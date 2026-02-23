@@ -15,7 +15,7 @@ from models.user import User
 from models.connected_account import ConnectedAccount
 from core.ingestion import IngestionService
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 STALE_AFTER_MINUTES = 5  # Trigger background sync if last sync was > 5 min ago
 

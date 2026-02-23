@@ -12,7 +12,7 @@ from datetime import datetime
 from contracts import ThreadIntelV1
 from contracts.mocks import create_mock_thread_intel
 
-router = APIRouter()
+router = APIRouter(redirect_slashes=False)
 
 
 class ThreadListItem(BaseModel):
@@ -24,6 +24,8 @@ class ThreadListItem(BaseModel):
     urgency_score: int
     last_updated: datetime
     has_attachments: bool
+    participants: list = []   # needed by inbox ThreadRow for sender display
+    is_unread: int = 0        # 0 = read, 1 = unread
 
 
 from fastapi import APIRouter, HTTPException, Query, Depends
@@ -36,7 +38,8 @@ from models.user import User
 from models.thread import Thread
 from core.credits.credit_service import CreditService, InsufficientCreditsError, RateLimitExceededError
 
-@router.get("/", response_model=List[ThreadListItem])
+@router.get("", response_model=List[ThreadListItem])
+@router.get("/", response_model=List[ThreadListItem], include_in_schema=False)
 async def list_threads(
     limit: int = Query(default=20, le=50),
     offset: int = Query(default=0, ge=0),
@@ -67,6 +70,8 @@ async def list_threads(
             urgency_score=t.urgency_score or 0,
             last_updated=t.last_email_at or datetime.utcnow(),
             has_attachments=t.has_attachments or False,
+            participants=list(t.participants or []),
+            is_unread=t.is_unread or 0,
         )
         for t in threads
     ]
