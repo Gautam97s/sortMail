@@ -31,8 +31,9 @@ async def sync_emails(
     Returns immediately — sync runs without blocking the response.
     Uses Gmail history API so only NEW emails since last sync are fetched.
     """
-    service = IngestionService(db)
-    background_tasks.add_task(service.sync_user_emails, current_user.id)
+    from core.ingestion.sync_service import background_sync_user_emails
+    
+    background_tasks.add_task(background_sync_user_emails, current_user.id)
     return {"message": "Sync started in background", "status": "syncing"}
 
 

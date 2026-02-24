@@ -75,8 +75,8 @@ async def gmail_webhook(
             return {"status": "ignored", "reason": "unknown account"}
             
         # Trigger background sync for the user
-        service = IngestionService(db)
-        background_tasks.add_task(service.sync_user_emails, account.user_id)
+        from core.ingestion.sync_service import background_sync_user_emails
+        background_tasks.add_task(background_sync_user_emails, account.user_id)
         
         return {"status": "success", "message": "Sync triggered"}
         

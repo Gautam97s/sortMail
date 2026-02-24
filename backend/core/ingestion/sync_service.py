@@ -20,6 +20,24 @@ from core.ingestion.attachment_extractor import extract_attachments
 logger = logging.getLogger(__name__)
 
 
+async def background_sync_user_emails(user_id: str):
+    """
+    Independent background task entry-point for syncing emails.
+    Manages its own Database Session to prevent AsyncAdaptedQueuePool connection leaks 
+    that occur when FastAPI implicitly closes the HTTP request's session.
+    """
+    from core.storage.database import async_session_factory
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    try:
+        async with async_session_factory() as session:
+            service = IngestionService(session)
+            await service.sync_user_emails(user_id)
+    except Exception as e:
+        logger.error(f"Fatal error in background sync for user {user_id}: {e}")
+
+
 class IngestionService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -50,10 +68,10 @@ class IngestionService:
         logger.info(f"Syncing account {account.id} ({account.provider})")
         
         # 0. Check State
-        # If stuck in syncing for > 1 hour, assume failed and reset (simple recovery)
+        # If stuck in syncing for > 5 minutes, assume failed and reset (simple recovery)
         from models.connected_account import SyncStatus
         if account.sync_status == SyncStatus.SYNCING:
-             if account.last_sync_at and (datetime.utcnow() - account.last_sync_at).total_seconds() < 3600:
+             if account.last_sync_at and (datetime.utcnow() - account.last_sync_at).total_seconds() < 300:
                  logger.info(f"Account {account.id} is already syncing. Skipping.")
                  return
              logger.warning(f"Account {account.id} stuck in syncing. Resetting.")
