@@ -26,7 +26,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from models.thread import Thread, Message
+from models.thread import Thread
 from models.task import Task, TaskStatus, TaskType, PriorityLevel
 
 # Intelligence modules — each is a pure extractor, no extra LLM calls
@@ -139,13 +139,14 @@ async def _load_thread(thread_id: str, user_id: str, db: AsyncSession) -> Option
 
 
 async def _load_messages(thread_id: str, db: AsyncSession) -> list[dict]:
-    stmt = select(Message).where(Message.thread_id == thread_id).order_by(Message.sent_at)
+    from models.email import Email
+    stmt = select(Email).where(Email.thread_id == thread_id).order_by(Email.received_at)
     rows = (await db.execute(stmt)).scalars().all()
     return [
         {
-            "from": m.from_address,
-            "date": m.sent_at.isoformat() if m.sent_at else "",
-            "body": (m.body_text or "")[:2000],
+            "from": m.sender,
+            "date": m.sent_at.isoformat() if m.sent_at else m.received_at.isoformat() if m.received_at else "",
+            "body": (m.body_plain or m.body_html or "")[:2000],
         }
         for m in rows
     ]

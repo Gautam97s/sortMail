@@ -144,7 +144,6 @@ from contracts.ingestion import EmailThreadV1, EmailMessage, AttachmentRef
 from contracts.intelligence import ThreadIntelV1
 from contracts.workflow import TaskDTOv1, DraftDTOv1
 from models.attachment import Attachment
-from models.thread import Message
 
 # Helper to serialize ThreadIntel
 def _serialize_intel(t: Thread) -> Optional[ThreadIntelV1]:
@@ -201,7 +200,8 @@ async def get_thread(
         raise HTTPException(status_code=404, detail="Thread not found")
         
     # 2. Fetch Messages
-    msg_stmt = select(Message).where(Message.thread_id == thread_id).order_by(Message.sent_at)
+    from models.email import Email
+    msg_stmt = select(Email).where(Email.thread_id == thread_id).order_by(Email.received_at)
     msg_result = await db.execute(msg_stmt)
     messages = msg_result.scalars().all()
     
@@ -210,20 +210,25 @@ async def get_thread(
     attachments = []
     
     # 4. Construct Encapsulated Objects
-    normalized_messages = [
-        EmailMessage(
-            message_id=m.id,
-            from_address=m.from_address,
-            to_addresses=m.to_addresses or [],
-            cc_addresses=m.cc_addresses or [],
-            subject=m.subject or "",
-            body_text=m.body_text or "",
-            sent_at=m.sent_at,
-            is_from_user=(str(m.is_from_user).lower() == 'true'),
-            labels=[] # Messages table doesn't have labels yet
+    normalized_messages = []
+    for m in messages:
+        to_addrs = [r.get("email") for r in m.recipients if r.get("type") == "to"] if m.recipients else []
+        cc_addrs = [r.get("email") for r in m.recipients if r.get("type") == "cc"] if m.recipients else []
+        
+        normalized_messages.append(
+            EmailMessage(
+                message_id=m.id,
+                from_address=m.sender or "",
+                to_addresses=to_addrs,
+                cc_addresses=cc_addrs,
+                subject=m.subject or "",
+                body_text=m.body_plain or "",
+                sent_at=m.sent_at or m.received_at, # Fallback to received_at if sent_at is missing
+                received_at=m.received_at,
+                is_from_user=bool(m.is_from_user),
+                labels=[] # emails table doesn't have labels yet
+            )
         )
-        for m in messages
-    ]
     
     normalized_attachments = [
         AttachmentRef(
