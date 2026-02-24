@@ -123,8 +123,8 @@ export default function InboxPage() {
                                     <Inbox className="h-10 w-10 opacity-40" />
                                     <p className="text-sm font-medium">Your inbox is empty</p>
                                     <p className="text-xs">Make sure your Gmail account is connected, then sync.</p>
-                                    <Button size="sm" variant="outline" onClick={triggerSync} disabled={syncing} className="gap-2 mt-1">
-                                        <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
+                                    <Button size="sm" variant="outline" onClick={triggerSync} disabled={isSyncing} className="gap-2 mt-1">
+                                        <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
                                         Sync Emails
                                     </Button>
                                 </div>
