@@ -56,6 +56,7 @@ async def fetch_incremental_changes(
         await client.initialize()
 
     try:
+        # Request all history types to avoid dropping label changes or messages
         history_data = await client.get_history(start_history_id)
     except Exception as e:
         logger.warning(f"Incremental sync failed for user {user_id} (historyId {start_history_id}): {e}")
@@ -63,9 +64,19 @@ async def fetch_incremental_changes(
 
     changed_thread_ids = set()
     for record in history_data.get('history', []):
-        for msg in record.get('messagesAdded', []):
-            if 'message' in msg:
-                changed_thread_ids.add(msg['message']['threadId'])
+        # Handle new messages
+        for msg_added in record.get('messagesAdded', []):
+            if 'message' in msg_added and 'threadId' in msg_added['message']:
+                changed_thread_ids.add(msg_added['message']['threadId'])
+                
+        # Handle label changes (e.g. marking as read/unread, or archiving)
+        for label_added in record.get('labelsAdded', []):
+             if 'message' in label_added and 'threadId' in label_added['message']:
+                changed_thread_ids.add(label_added['message']['threadId'])
+                
+        for label_removed in record.get('labelsRemoved', []):
+             if 'message' in label_removed and 'threadId' in label_removed['message']:
+                changed_thread_ids.add(label_removed['message']['threadId'])
                 
     if not changed_thread_ids:
         return []
