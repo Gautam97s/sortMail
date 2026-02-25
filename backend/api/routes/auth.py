@@ -308,27 +308,3 @@ async def update_profile(
     await db.commit()
     return {"updated": True}
 
-
-@router.get("/test-redis")
-async def test_redis():
-    """DEBUG: Verify Redis connection and list active states."""
-    try:
-        redis = await get_redis()
-        # 1. Test Write
-        await redis.set("test_key", "hello_world", ex=60)
-        # 2. Test Read
-        value = await redis.get("test_key")
-        # 3. List States
-        keys = await redis.keys("oauth_state:*")
-        
-        return {
-            "status": "ok",
-            "write_read_test": value == "hello_world",
-            "value_read": value,
-            "active_states_count": len(keys),
-            "active_states_sample": [k for k in keys[:5]],
-            "redis_url_masked": str(redis.connection_pool.connection_kwargs.get("host"))
-        }
-    except Exception as e:
-        return {"status": "error", "detail": str(e)}
-
