@@ -4,7 +4,7 @@ User Model
 SQLAlchemy model for users table.
 """
 
-from datetime import uuid
+import uuid
 import datetime, timezone
 from sqlalchemy import Column, String, Boolean, DateTime, Enum, ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import JSONB
