@@ -9,7 +9,7 @@ Output: EmailThreadV1 (Boundary Contract)
 """
 
 from typing import List, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from contracts import EmailThreadV1, EmailMessage, AttachmentRef
@@ -216,7 +216,6 @@ def _parse_gmail_message(msg_resource: dict) -> Tuple[dict, List[dict]]:
     attachments = _extract_attachments_metadata(payload, msg_resource.get('id'))
     
     from email.utils import parsedate_to_datetime
-    from datetime import timezone
     
     # 2. Extract Dates defensively
     date_raw = header_map.get('date', '').strip()
@@ -224,14 +223,16 @@ def _parse_gmail_message(msg_resource: dict) -> Tuple[dict, List[dict]]:
     if date_raw:
         try:
             sent_at = parsedate_to_datetime(date_raw)
-            # Ensure it's naive UTC for our DB
-            if sent_at.tzinfo is not None:
-                sent_at = sent_at.astimezone(timezone.utc).replace(tzinfo=None)
+            # Ensure it's offset-aware UTC for our DB
+            if sent_at.tzinfo is None:
+                sent_at = sent_at.replace(tzinfo=timezone.utc)
+            else:
+                sent_at = sent_at.astimezone(timezone.utc)
         except Exception:
             pass
             
     # internalDate is always when Gmail received the email
-    received_at = datetime.fromtimestamp(int(msg_resource.get('internalDate', 0)) / 1000, tz=timezone.utc).replace(tzinfo=None)
+    received_at = datetime.fromtimestamp(int(msg_resource.get('internalDate', 0)) / 1000, tz=timezone.utc)
     
     if not sent_at:
         sent_at = received_at

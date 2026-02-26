@@ -30,8 +30,25 @@ def run_migrations_offline():
         context.run_migrations()
 
 
+from app.config import settings
+
 def run_migrations_online():
     """Run migrations in 'online' mode."""
+    # Override sqlalchemy.url with real DB URL
+    db_url = settings.DATABASE_URL
+    if db_url.startswith("postgresql+asyncpg://"):
+        db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
+    elif db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://")
+        
+    if "?" in db_url:
+        db_url = db_url.split("?")[0]
+        
+    db_url = db_url.replace(":6543/", ":5432/")
+    db_url += "?sslmode=require"
+        
+    config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
+
     connectable = engine_from_config(
         config.get_section(config.config_ini_section),
         prefix="sqlalchemy.",
