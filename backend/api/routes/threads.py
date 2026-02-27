@@ -240,8 +240,8 @@ async def get_thread(
         AttachmentRef(
             attachment_id=a.id,
             email_id=a.email_id,
-            filename=a.filename,
-            original_filename=a.original_filename,
+            filename=a.filename_sanitized or a.filename,
+            original_filename=a.filename,
             mime_type=a.mime_type,
             storage_path=a.storage_path or "",
             size_bytes=a.size_bytes,
