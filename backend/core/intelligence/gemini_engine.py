@@ -130,7 +130,6 @@ async def run_intelligence(
             generation_config={
                 "temperature": 0.2,
                 "max_output_tokens": 2048,
-                "response_mime_type": "application/json",
             },
         )
         response = await model.generate_content_async(prompt)

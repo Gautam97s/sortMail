@@ -47,7 +47,7 @@ class Attachment(Base):
     external_id = Column(String, nullable=True)
     filename = Column(String, nullable=False)
     filename_sanitized = Column(String, nullable=False)
-    content_type = Column(String, nullable=False)
+    mime_type = Column(String, nullable=False)
     size_bytes = Column(BigInteger, nullable=False)
     sha256_hash = Column(String, nullable=False, index=True)
     

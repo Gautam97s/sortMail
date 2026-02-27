@@ -302,7 +302,7 @@ class IngestionService:
                     user_id=user_id,
                     filename=att_contract.original_filename,
                     filename_sanitized=att_contract.filename,
-                    content_type=att_contract.mime_type,
+                    mime_type=att_contract.mime_type,
                     size_bytes=att_contract.size_bytes,
                     storage_provider=StorageProvider.S3,
                     storage_path=storage_path,
