@@ -40,6 +40,7 @@ class Attachment(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     # FK to emails table (not messages) — only email_id column exists in DB
     email_id = Column(String, ForeignKey("emails.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
 
     
     # File info
