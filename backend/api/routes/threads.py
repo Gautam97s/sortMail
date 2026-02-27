@@ -205,10 +205,15 @@ async def get_thread(
     msg_result = await db.execute(msg_stmt)
     messages = msg_result.scalars().all()
     
-    # 3. Attachments — skip until Attachment model FK is resolved
-    # (Attachment.message_id column doesn't exist in DB; FK points to emails not messages)
-    attachments = []
-    
+    # 3. Fetch Attachments
+    from models.attachment import Attachment
+    email_ids = [m.id for m in messages] if messages else []
+    if email_ids:
+        att_stmt = select(Attachment).where(Attachment.email_id.in_(email_ids))
+        att_result = await db.execute(att_stmt)
+        attachments = att_result.scalars().all()
+    else:
+        attachments = []
     # 4. Construct Encapsulated Objects
     normalized_messages = []
     for m in messages:
@@ -223,6 +228,7 @@ async def get_thread(
                 cc_addresses=cc_addrs,
                 subject=m.subject or "",
                 body_text=m.body_plain or "",
+                body_html=m.body_html or "",
                 sent_at=m.sent_at or m.received_at, # Fallback to received_at if sent_at is missing
                 received_at=m.received_at,
                 is_from_user=bool(m.is_from_user),

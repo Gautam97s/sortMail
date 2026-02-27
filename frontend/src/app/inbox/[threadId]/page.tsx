@@ -145,9 +145,16 @@ function MessageCard({ message }: { message: EmailMessage }) {
             {expanded && (
                 <CardContent className="pt-0">
                     <Separator className="mb-3" />
-                    <div className="text-sm leading-relaxed whitespace-pre-line text-ink-mid">
-                        {message.body_text}
-                    </div>
+                    {message.body_html ? (
+                        <div
+                            className="text-sm text-ink-mid email-body-html"
+                            dangerouslySetInnerHTML={{ __html: message.body_html }}
+                        />
+                    ) : (
+                        <div className="text-sm leading-relaxed whitespace-pre-line text-ink-mid">
+                            {message.body_text}
+                        </div>
+                    )}
                 </CardContent>
             )}
         </Card>

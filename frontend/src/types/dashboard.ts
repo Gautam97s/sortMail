@@ -44,6 +44,7 @@ export interface EmailMessage {
     cc_addresses: string[];
     subject: string;
     body_text: string;
+    body_html?: string;
     sent_at: string;
     is_from_user: boolean;
 }
