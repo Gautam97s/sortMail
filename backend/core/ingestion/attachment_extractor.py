@@ -145,11 +145,11 @@ async def index_attachment(attachment_id: str, user_id: str, db):
     text = ""
     
     try:
-        if "pdf" in att.content_type.lower():
+        if "pdf" in att.mime_type.lower():
             text = await _extract_pdf(att.storage_path)
-        elif "word" in att.content_type.lower() or "document" in att.content_type.lower():
+        elif "word" in att.mime_type.lower() or "document" in att.mime_type.lower():
             text = await _extract_docx(att.storage_path)
-        elif "powerpoint" in att.content_type.lower() or "presentation" in att.content_type.lower():
+        elif "powerpoint" in att.mime_type.lower() or "presentation" in att.mime_type.lower():
             text = await _extract_pptx(att.storage_path)
     except Exception as e:
         logger.error(f"Text extraction failed for {att.filename}: {e}")
