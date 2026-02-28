@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 
 from core.storage.database import get_db
 from models.user import User
-from api.deps import get_current_user
+from api.dependencies import get_current_user
 from models.thread import Thread
 from core.rag.retriever import get_similar_context
 import google.generativeai as genai

@@ -126,7 +126,7 @@ async def health():
 from api.routes import (
     auth, emails, threads, tasks, drafts, reminders,
     dashboard, admin_credits, notifications, credits, accounts, admin_users, events, webhooks,
-    proxy, ai
+    proxy, ai, attachments
 )
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
@@ -144,4 +144,5 @@ app.include_router(admin_users.router, prefix="/api/admin", tags=["admin"])
 app.include_router(events.router, prefix="/api/events", tags=["events"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
 app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
+app.include_router(attachments.router, prefix="/api/attachments", tags=["attachments"])
 app.include_router(proxy.router, prefix="/api", tags=["proxy"])
