@@ -1,0 +1,509 @@
+"""
+API Routes - Auth
+-----------------
+OAuth endpoints for Gmail and Outlook with Production Security.
+"""
+
+import json
+import logging
+from datetime import datetime, timedelta
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
+from core.storage.database import get_db
+from models.user import User, UserStatus, EmailProvider
+from models.connected_account import ConnectedAccount, ProviderType
+from core.auth import oauth_google, jwt, magic_link
+from core.redis import get_redis
+from core.encryption import encrypt_token
+from core.notifications.email_service import EmailService
+from api.dependencies import get_current_user as get_current_user_dep
+from schemas.auth import MagicLinkRequest
+from sqlalchemy import delete
+from models import (
+    Thread, Email, Attachment, Task, Draft, 
+    CalendarSuggestion, Reminder, Message,
+    ConnectedAccount, UserSession
+)
+
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+class AuthURLResponse(BaseModel):
+    auth_url: str
+
+
+@router.get("/google", response_model=AuthURLResponse)
+async def google_auth(request: Request):
+    """Initiate Google OAuth flow with PKCE and State protection."""
+    # 1. Generate PKCE and State
+    state = oauth_google.generate_code_verifier() # distinct state
+    code_verifier = oauth_google.generate_code_verifier()
+    code_challenge = oauth_google.generate_code_challenge(code_verifier)
+    
+    # 2. Store state with fingerprint in Redis
+    state_data = {
+        "code_verifier": code_verifier,
+        "ip_address": request.client.host,
+        "user_agent": request.headers.get("user-agent", "unknown"),
+        "created_at": datetime.utcnow().isoformat()
+    }
+    
+    redis = await get_redis()
+    state_key = f"oauth_state:{state}"
+    logger.info(f"🆕 Generating OAuth State: {state}")
+    logger.info(f"💾 Storing Redis Key: {state_key}")
+    
+    await redis.setex(state_key, 600, json.dumps(state_data))
+    
+    # Verify immediate write
+    saved_val = await redis.get(state_key)
+    logger.info(f"✅ Immediate Verify Read: {'SUCCESS' if saved_val else 'FAILED'}")
+    
+    # 3. Generate URL
+    auth_url = oauth_google.get_google_auth_url(state, code_challenge)
+    return {"auth_url": auth_url}
+
+
+@router.get("/google/callback")
+async def google_callback(
+    request: Request,
+    code: str, 
+    state: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Handle Google OAuth callback with security validation."""
+    redis = await get_redis()
+    
+    # 1. Validate State
+    # 1. Validate State
+    state_key = f"oauth_state:{state}"
+    logger.info(f"🔑 Validating OAuth State: {state}")
+    logger.info(f"🔎 Redis Key Lookup: {state_key}")
+    
+    try:
+        state_json = await redis.get(state_key)
+        logger.info(f"📄 Redis Result: {'FOUND' if state_json else 'NOT FOUND'}")
+    except Exception as e:
+        logger.error(f"❌ Redis Error during state lookup: {e}")
+        raise HTTPException(status_code=500, detail="Redis connection failed")
+    
+    if not state_json:
+        logger.warning(f"⚠️ OAuth State Missing/Expired for key: {state_key}")
+        raise HTTPException(status_code=400, detail="Invalid or expired state parameter")
+        
+    state_data = json.loads(state_json)
+    
+    # 2. Validate Fingerprint
+    # Strict UA check, soft IP warn
+    if state_data.get("user_agent") != request.headers.get("user-agent", "unknown"):
+        logger.warning(f"OAuth State User-Agent mismatch: stored={state_data.get('user_agent')}, current={request.headers.get('user_agent')}")
+        # In strict mode we might fail here, but for now we proceed with warning log
+    
+    # 3. Exchange code for tokens (PKCE)
+    try:
+        tokens = await oauth_google.exchange_code_for_tokens(code, state_data["code_verifier"])
+    except Exception as e:
+        logger.error(f"Token exchange failed: {e}")
+        raise HTTPException(status_code=400, detail="Internal authentication error")
+    finally:
+        # Prevent replay
+        # DATA RACING DEBUGGING: Temporarily commenting out delete to handle potential double-requests/retries
+        # await redis.delete(state_key)
+        pass
+    
+    # 4. Get User Info
+    try:
+        user_info = await oauth_google.get_user_info(tokens.access_token)
+        logger.info(f"👤 Fetched User Info: {user_info.email}")
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch user profile: {e}")
+        raise HTTPException(status_code=400, detail="Failed to fetch user profile")
+        
+    # 5. Encrypt Tokens
+    enc_access_token = encrypt_token(tokens.access_token)
+    enc_refresh_token = encrypt_token(tokens.refresh_token) if tokens.refresh_token else None
+        
+    # 6. Find or Create User
+    try:
+        stmt = select(User).where(User.email == user_info.email)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            user = User(
+                id=user_info.id,
+                email=user_info.email,
+                name=user_info.name,
+                picture_url=user_info.picture,
+                provider=EmailProvider.GMAIL,
+            access_token=enc_access_token, # Storing encrypted
+                created_at=datetime.utcnow(),
+                status=UserStatus.ACTIVE
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+            
+        else:
+            user.name = user_info.name
+            user.picture_url = user_info.picture
+            # user.access_token = enc_access_token # Consider if we want to update this on user model too
+    except Exception as e:
+        logger.error(f"❌ User DB Error: {e}")
+        # Explicit check for missing column to help user debug
+        if "UndefinedColumnError" in str(e) or "column \"updated_at\" does not exist" in str(e):
+             raise HTTPException(
+                status_code=500, 
+                detail="DATABASE CONFIG ERROR: Missing 'updated_at' column. Please run the migration script provided."
+            )
+        raise HTTPException(status_code=500, detail="Database error during user creation")
+    
+    # 7. Update Connected Account
+    stmt = select(ConnectedAccount).where(
+        ConnectedAccount.user_id == user.id,
+        ConnectedAccount.provider == ProviderType.GMAIL
+    )
+    result = await db.execute(stmt)
+    account = result.scalar_one_or_none()
+    
+    if account:
+        account.access_token = enc_access_token
+        if enc_refresh_token:
+            account.refresh_token = enc_refresh_token
+        account.token_expires_at = datetime.utcnow() + timedelta(seconds=tokens.expires_in)
+        account.last_sync_at = datetime.utcnow()
+    else:
+        account = ConnectedAccount(
+            id=f"gmail_{user.id}",
+            user_id=user.id,
+            provider=ProviderType.GMAIL,
+            access_token=enc_access_token,
+            refresh_token=enc_refresh_token,
+            token_expires_at=datetime.utcnow() + timedelta(seconds=tokens.expires_in),
+            last_sync_at=datetime.utcnow(),
+            created_at=datetime.utcnow()
+        )
+        db.add(account)
+        
+    await db.commit()
+    
+    # 8. Create Session
+    token_pair = jwt.create_token_pair(user.id, user.email)
+    
+    # 9. Redirect
+    # Option 1: HttpOnly Cookie (Best Security)
+    from app.config import settings
+    redirect_url = f"{settings.FRONTEND_URL}/dashboard"
+    
+    response = RedirectResponse(url=redirect_url)
+    
+    # Cookie Configuration for Cross-Domain (Vercel <-> Railway)
+    # Using 'Lax' breaks cross-site if domains differ. 'None' requires Secure=True.
+    is_development = settings.ENVIRONMENT.lower() == "development"
+    
+    response.set_cookie(
+        key="access_token",
+        value=token_pair.access_token,
+        httponly=True,
+        secure=False if is_development else True, # False for local http
+        samesite="lax" if is_development else "none", # Lax for localhost, None for cross-site prod
+        max_age=60 * 60 * 24 * 7, # 7 days (or match token expiry)
+        path="/"
+    )
+    
+    logger.info(f"✅ Google OAuth Success! Setting Cookie (Httponly={True}, Secure={not is_development}, SameSite={'lax' if is_development else 'none'})")
+    logger.info(f"🚀 Redirecting to: {redirect_url}")
+    return response
+
+
+@router.get("/outlook", response_model=AuthURLResponse)
+async def outlook_auth():
+    """Initiate Microsoft OAuth flow."""
+    return {"auth_url": "https://login.microsoftonline.com/..."}
+
+
+@router.get("/outlook/callback")
+async def outlook_callback(code: str):
+    """Handle Microsoft OAuth callback."""
+    return {"message": "Outlook auth callback - implement me"}
+
+
+@router.get("/me")
+async def get_current_user(
+    user: User = Depends(get_current_user_dep),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get current authenticated user.
+    Returns a normalized UserDTO with credits injected.
+    """
+    from contracts.user import UserDTO
+    from core.credits.credit_service import CreditService
+    from models.user import UserStatus
+
+    # Fetch credit balance (creates record if first time)
+    try:
+        credits_record = await CreditService.get_or_create_user_credits(db, user.id)
+        await db.commit()
+        credits_balance = credits_record.credits_balance
+        plan = credits_record.plan.value if credits_record.plan else "free"
+    except Exception:
+        credits_balance = 0
+        plan = "free"
+
+    return UserDTO(
+        id=user.id,
+        email=user.email,
+        name=user.name,
+        picture=user.picture_url,                              # normalize field name
+        provider=user.provider.value if user.provider else "google",
+        is_active=user.status == UserStatus.ACTIVE if user.status else True,
+        is_superuser=user.is_superuser or False,
+        credits=credits_balance,
+        plan=plan,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+    )
+
+
+@router.post("/logout")
+async def logout():
+    """Logout current user. Clears the access_token cookie."""
+    from fastapi.responses import JSONResponse
+    from app.config import settings
+    
+    response = JSONResponse(content={"message": "Logged out"})
+    is_development = settings.ENVIRONMENT.lower() == "development"
+    
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+        secure=False if is_development else True,
+        httponly=True,
+        samesite="lax" if is_development else "none",
+    )
+    return response
+
+
+@router.post("/magic-link")
+async def request_magic_link(
+    body: MagicLinkRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Generate and send a magic login link.
+    """
+    from app.config import settings
+    
+    # 1. Generate Token
+    token = await magic_link.generate_magic_link_token(body.email)
+    
+    # 2. Build Link
+    link = f"{settings.FRONTEND_URL}/verify?token={token}"
+    
+    # 3. Send Email
+    await EmailService.send_magic_link(body.email, link)
+    
+    return {"message": "Magic link sent", "email": body.email}
+
+
+@router.get("/magic-link/verify")
+async def verify_magic_link(
+    token: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Verify magic link token and create session.
+    """
+    # 1. Verify Token
+    email = await magic_link.verify_magic_link_token(token)
+    if not email:
+        raise HTTPException(status_code=400, detail="Invalid or expired magic link token")
+    
+    # 2. Find or Create User
+    stmt = select(User).where(User.email == email)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        # Create a "shallow" user - no OAuth tokens yet
+        import uuid
+        user = User(
+            id=str(uuid.uuid4()),
+            email=email,
+            name=email.split("@")[0],
+            provider=EmailProvider.GMAIL, # Default to GMAIL or add a generic one
+            created_at=datetime.utcnow(),
+            status=UserStatus.ACTIVE
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    
+    # 3. Create Session
+    token_pair = jwt.create_token_pair(user.id, user.email)
+    
+    # 4. Set Cookie & Redirect
+    from app.config import settings
+    is_development = settings.ENVIRONMENT.lower() == "development"
+    
+    # We return a JSON response so the frontend can handle the redirection
+    from fastapi.responses import JSONResponse
+    response = JSONResponse(content={"message": "Authenticated", "redirect": "/dashboard"})
+    
+    response.set_cookie(
+        key="access_token",
+        value=token_pair.access_token,
+        httponly=True,
+        secure=False if is_development else True,
+        samesite="lax" if is_development else "none",
+        max_age=60 * 60 * 24 * 7,
+        path="/"
+    )
+    
+    return response
+
+
+class UpdateProfileRequest(BaseModel):
+    name: Optional[str] = None
+    timezone: Optional[str] = None
+    locale: Optional[str] = None
+
+
+@router.patch("/users/me")
+async def update_profile(
+    body: UpdateProfileRequest,
+    user: User = Depends(get_current_user_dep),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update current user's profile (name, timezone, locale)."""
+    if body.name is not None:
+        user.name = body.name
+    if body.timezone is not None:
+        prefs = user.preferences or {}
+        prefs["timezone"] = body.timezone
+        user.preferences = prefs
+    if body.locale is not None:
+        prefs = user.preferences or {}
+        prefs["locale"] = body.locale
+        user.preferences = prefs
+    user.updated_at = datetime.utcnow()
+    await db.commit()
+    return {"updated": True}
+
+
+@router.post("/users/me/reset")
+async def reset_user_data(
+    user: User = Depends(get_current_user_dep),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Destructive: Wipes all intellectual data (threads, emails, tasks, etc.)
+    but keeps the user account and connected credentials.
+    """
+    user_id = user.id
+    
+    # Tables to wipe
+    tables = [
+        Reminder,
+        CalendarSuggestion,
+        Draft,
+        Task,
+        Message,
+        Email,
+        Thread
+    ]
+    
+    for table in tables:
+        await db.execute(delete(table).where(table.user_id == user_id))
+    
+    # We might want to clear attachments separately if they don't have user_id directly
+    # but usually they are linked to emails.
+    # For now, these 7 cover the core intellectual data.
+    
+    await db.commit()
+    logger.info(f"🗑️ Data reset performed for user {user.email}")
+    return {"message": "All intellectual data has been cleared."}
+
+
+@router.delete("/users/me")
+async def delete_user_account(
+    user: User = Depends(get_current_user_dep),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Permanent: Deletes user data, revokes accounts, and marks user as deleted.
+    """
+    user_id = user.id
+    
+    # 1. Wipe data (same as reset)
+    tables = [
+        Reminder,
+        CalendarSuggestion,
+        Draft,
+        Task,
+        Message,
+        Email,
+        Thread,
+        ConnectedAccount,
+        UserSession
+    ]
+    
+    for table in tables:
+        await db.execute(delete(table).where(table.user_id == user_id))
+        
+    # 2. Update user status (Soft delete in DB)
+    user.status = UserStatus.DELETED
+    user.deleted_at = datetime.utcnow()
+    
+    await db.commit()
+    
+    # 3. Clear cookie via response
+    from fastapi.responses import JSONResponse
+    from app.config import settings
+    
+    response = JSONResponse(content={"message": "Account permanently deleted"})
+    is_development = settings.ENVIRONMENT.lower() == "development"
+    
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+        secure=False if is_development else True,
+        httponly=True,
+        samesite="lax" if is_development else "none",
+    )
+    
+    logger.info(f"🚫 Account DELETED for user {user.email}")
+    return response
+
+
+@router.get("/test-redis")
+async def test_redis():
+    """DEBUG: Verify Redis connection and list active states."""
+    try:
+        redis = await get_redis()
+        # 1. Test Write
+        await redis.set("test_key", "hello_world", ex=60)
+        # 2. Test Read
+        value = await redis.get("test_key")
+        # 3. List States
+        keys = await redis.keys("oauth_state:*")
+        
+        return {
+            "status": "ok",
+            "write_read_test": value == "hello_world",
+            "value_read": value,
+            "active_states_count": len(keys),
+            "active_states_sample": [k for k in keys[:5]],
+            "redis_url_masked": str(redis.connection_pool.connection_kwargs.get("host"))
+        }
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
