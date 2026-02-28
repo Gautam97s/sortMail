@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, endpoints } from '@/lib/api';
-import { mockThreadListItems } from '@/data/mockData';
+import { mockThreadListItems } from '@/data/threads';
 import { ThreadListItem } from '@/types/dashboard';
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';

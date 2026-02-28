@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { LegacyAttachment } from '@/types/dashboard';
-import { FileText, Image, Table, File, Download } from 'lucide-react';
+import { FileText, Image as ImageIcon, Table, File, Download } from 'lucide-react';
 import gsap from 'gsap';
 import { api } from '@/lib/api';
 
@@ -12,7 +12,7 @@ interface AttachmentVaultProps {
 const AttachmentVault: React.FC<AttachmentVaultProps> = ({ attachments }) => {
     const getIcon = (type: string) => {
         switch (type) {
-            case 'img': return <Image size={24} className="text-purple-400" />;
+            case 'img': return <ImageIcon size={24} className="text-purple-400" />;
             case 'sheet': return <Table size={24} className="text-emerald-400" />;
             case 'pdf': return <FileText size={24} className="text-rose-400" />;
             default: return <File size={24} className="text-blue-400" />;
@@ -46,7 +46,6 @@ const AttachmentVault: React.FC<AttachmentVaultProps> = ({ attachments }) => {
             console.error("Download failed", e);
         }
     };
-
     return (
         <div className="h-full p-8 overflow-y-auto">
             <div className="flex items-end justify-between mb-8">

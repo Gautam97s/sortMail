@@ -12,18 +12,31 @@ interface AppShellProps {
 
 export default function AppShell({ children, title, subtitle }: AppShellProps) {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     return (
         <div className="flex w-full h-screen bg-paper overflow-hidden">
+            {/* Mobile Overlay */}
+            <div
+                className={`drawer-overlay ${mobileSidebarOpen ? 'open' : ''}`}
+                onClick={() => setMobileSidebarOpen(false)}
+            />
+
             <Sidebar
                 collapsed={sidebarCollapsed}
                 onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+                isOpen={mobileSidebarOpen}
+                onClose={() => setMobileSidebarOpen(false)}
             />
 
             <main className="flex-1 flex flex-col overflow-hidden">
-                <Topbar title={title} subtitle={subtitle} />
+                <Topbar
+                    title={title}
+                    subtitle={subtitle}
+                    onMenuClick={() => setMobileSidebarOpen(true)}
+                />
 
-                <div className="flex-1 overflow-auto p-6">
+                <div className="flex-1 overflow-auto p-4 md:p-6">
                     {children}
                 </div>
             </main>

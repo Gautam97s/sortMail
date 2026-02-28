@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, endpoints } from '@/lib/api';
-import { mockWaitingFor } from '@/data/mockData';
+import { mockWaitingFor } from '@/data/tasks';
 import { WaitingForDTOv1 } from '@/types/dashboard';
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';

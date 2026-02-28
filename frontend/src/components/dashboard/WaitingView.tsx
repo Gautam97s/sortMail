@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { WaitingItem } from '@/types/dashboard';
 import { Clock, Send, CheckCircle, MoreHorizontal } from 'lucide-react';
 
@@ -33,7 +34,13 @@ const WaitingView: React.FC = () => {
                     <div key={item.id} className="glass-panel p-5 rounded-xl flex items-center justify-between group hover:bg-[#18181B]">
                         <div className="flex items-center gap-4">
                             <div className="relative">
-                                <img src={item.avatar} alt={item.recipient} className="w-10 h-10 rounded-full grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+                                <Image
+                                    src={item.avatar}
+                                    alt={item.recipient}
+                                    width={40}
+                                    height={40}
+                                    className="w-10 h-10 rounded-full grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all"
+                                />
                                 <div className="absolute -bottom-1 -right-1 bg-zinc-900 rounded-full border border-zinc-700 p-0.5">
                                     <Clock size={12} className={item.daysPending > 4 ? "text-rose-500" : "text-amber-500"} />
                                 </div>

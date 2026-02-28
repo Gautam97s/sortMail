@@ -13,7 +13,7 @@
  *  - No hammering Gmail API on every page load
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, endpoints } from '@/lib/api';
 
@@ -26,18 +26,18 @@ export function useSmartSync() {
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const hasRun = useRef(false);
 
-    const stopPolling = () => {
+    const stopPolling = useCallback(() => {
         if (pollRef.current) {
             clearInterval(pollRef.current);
             pollRef.current = null;
         }
-    };
+    }, []);
 
-    const invalidateThreads = () => {
+    const invalidateThreads = useCallback(() => {
         queryClient.invalidateQueries({ queryKey: ['threads'] });
-    };
+    }, [queryClient]);
 
-    const triggerSync = async () => {
+    const triggerSync = useCallback(async () => {
         try {
             setSyncState('syncing');
             await api.post(endpoints.emailSync);
@@ -62,7 +62,7 @@ export function useSmartSync() {
         } catch {
             setSyncState('error');
         }
-    };
+    }, [stopPolling, invalidateThreads]);
 
     useEffect(() => {
         if (hasRun.current) return;
@@ -91,7 +91,7 @@ export function useSmartSync() {
         })();
 
         return () => stopPolling();
-    }, []);
+    }, [triggerSync, stopPolling]);
 
     return { syncState, lastSyncAt, triggerSync };
 }

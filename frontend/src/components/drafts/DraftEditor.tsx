@@ -56,26 +56,26 @@ export function DraftEditor({
                 </div>
             )}
             {/* Toolbar */}
-            <div className="px-10 py-6 border-b border-border-light bg-surface-card/30">
-                <div className="grid gap-4 max-w-4xl mx-auto">
-                    <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
-                        <span className="text-sm font-medium text-ink-light text-right font-mono uppercase tracking-wide">To:</span>
+            <div className="px-4 md:px-10 py-4 md:py-6 border-b border-border-light bg-surface-card/30">
+                <div className="grid gap-2 md:gap-4 max-w-4xl mx-auto">
+                    <div className="grid grid-cols-[60px_1fr] md:grid-cols-[80px_1fr] items-baseline gap-3 md:gap-4">
+                        <span className="text-xs md:text-sm font-medium text-ink-light text-right font-mono uppercase tracking-wide">To:</span>
                         <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="font-mono font-medium text-ink bg-white border-border-light">
+                            <Badge variant="secondary" className="font-mono font-medium text-ink bg-white border-border-light text-[10px] md:text-xs">
                                 {recipient}
                             </Badge>
                         </div>
                     </div>
-                    <div className="grid grid-cols-[80px_1fr] items-baseline gap-4">
-                        <span className="text-sm font-medium text-ink-light text-right font-mono uppercase tracking-wide">Subject:</span>
-                        <span className="text-base font-medium text-ink font-display tracking-wide">{subject}</span>
+                    <div className="grid grid-cols-[60px_1fr] md:grid-cols-[80px_1fr] items-baseline gap-3 md:gap-4">
+                        <span className="text-xs md:text-sm font-medium text-ink-light text-right font-mono uppercase tracking-wide">Sub:</span>
+                        <span className="text-sm md:text-base font-medium text-ink font-display tracking-wide truncate">{subject}</span>
                     </div>
                 </div>
             </div>
 
             {/* Editor Area */}
             <ScrollArea className="flex-1 bg-paper">
-                <div className="px-10 py-10 max-w-4xl mx-auto min-h-[500px]">
+                <div className="px-4 md:px-10 py-6 md:py-10 max-w-4xl mx-auto min-h-[300px] md:min-h-[500px]">
                     {isGenerating ? (
                         <div className="space-y-4 animate-pulse max-w-2xl">
                             <div className="h-4 bg-muted/20 rounded w-3/4"></div>
@@ -88,7 +88,7 @@ export function DraftEditor({
                             ref={textareaRef}
                             value={content}
                             onChange={(e) => onUpdateContent(e.target.value)}
-                            className="min-h-[400px] border-none shadow-none focus-visible:ring-0 p-0 text-base leading-loose resize-none bg-transparent font-body text-ink"
+                            className="min-h-[300px] md:min-h-[400px] border-none shadow-none focus-visible:ring-0 p-0 text-sm md:text-base leading-relaxed md:leading-loose resize-none bg-transparent font-body text-ink"
                             placeholder="Draft will appear here..."
                             spellCheck={false}
                         />
@@ -104,16 +104,16 @@ export function DraftEditor({
             {/* Action Bar */}
             <div className="border-t border-border-light bg-white/80 backdrop-blur-md p-4 sticky bottom-0 z-10">
                 <div className="max-w-4xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 md:gap-4">
                         {placeholders > 0 && (
-                            <div className="flex items-center gap-2 text-warning text-xs font-semibold bg-warning/10 px-3 py-1.5 rounded-full border border-warning/20">
-                                <AlertTriangle className="h-3.5 w-3.5" />
-                                {placeholders} placeholder{placeholders !== 1 ? 's' : ''} detected
+                            <div className="flex items-center gap-1.5 text-warning text-[10px] font-semibold bg-warning/10 px-2 md:px-3 py-1 rounded-full border border-warning/20">
+                                <AlertTriangle className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                                {placeholders} <span className="hidden sm:inline">placeholder{placeholders !== 1 ? 's' : ''}</span>
                             </div>
                         )}
-                        <Button variant="ghost" size="sm" onClick={onRegenerate} disabled={!content || isGenerating} className="text-muted-foreground hover:text-ink">
-                            <RefreshCw className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
-                            Regenerate
+                        <Button variant="ghost" size="sm" onClick={onRegenerate} disabled={!content || isGenerating} className="h-8 md:h-9 text-[10px] md:text-sm text-muted-foreground hover:text-ink">
+                            <RefreshCw className={`h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
+                            <span className="hidden xs:inline">Regenerate</span>
                         </Button>
                     </div>
 

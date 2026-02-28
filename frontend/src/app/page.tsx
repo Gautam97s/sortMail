@@ -1,54 +1,91 @@
+"use client";
+
+import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Sparkles, Paperclip, CheckSquare, FileEdit, Clock, Shield } from "lucide-react";
+import { ArrowRight, Sparkles, Paperclip, CheckSquare, FileEdit, Clock, Shield, Menu, X } from "lucide-react";
 
 export default function Home() {
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
     return (
         <main className="min-h-screen bg-paper">
             {/* Navigation */}
-            <nav className="flex items-center justify-between px-8 py-4 max-w-6xl mx-auto">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-                        <Sparkles size={16} className="text-white" />
+            <nav className="border-b border-border-light/50 sticky top-0 bg-paper/80 backdrop-blur-md z-50">
+                <div className="flex items-center justify-between px-6 md:px-8 py-4 max-w-6xl mx-auto">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
+                            <Sparkles size={16} className="text-white" />
+                        </div>
+                        <span className="font-display text-xl text-ink">SortMail</span>
                     </div>
-                    <span className="font-display text-xl text-ink">SortMail</span>
+
+                    {/* Desktop nav */}
+                    <div className="hidden md:flex items-center gap-6">
+                        <a href="#features" className="btn-ghost text-sm">Features</a>
+                        <Link href="/login" className="btn-primary text-sm px-6">
+                            Get Started <ArrowRight size={14} />
+                        </Link>
+                    </div>
+
+                    {/* Mobile menu toggle */}
+                    <button
+                        className="md:hidden p-2 text-ink"
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    >
+                        {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                    </button>
                 </div>
-                <div className="flex items-center gap-4">
-                    <a href="#features" className="btn-ghost text-sm">Features</a>
-                    <Link href="/login" className="btn-primary text-sm">
-                        Get Started <ArrowRight size={14} />
-                    </Link>
-                </div>
+
+                {/* Mobile nav dropdown */}
+                {mobileMenuOpen && (
+                    <div className="md:hidden bg-paper border-b border-border-light px-6 py-6 space-y-4 animate-fade-in">
+                        <a
+                            href="#features"
+                            className="block text-lg font-medium text-ink"
+                            onClick={() => setMobileMenuOpen(false)}
+                        >
+                            Features
+                        </a>
+                        <Link
+                            href="/login"
+                            className="btn-primary w-full justify-center text-base py-3"
+                            onClick={() => setMobileMenuOpen(false)}
+                        >
+                            Get Started <ArrowRight size={16} />
+                        </Link>
+                    </div>
+                )}
             </nav>
 
             {/* Hero Section */}
-            <div className="max-w-6xl mx-auto px-8 py-24 text-center">
-                <h1 className="font-display text-5xl md:text-6xl text-ink leading-[1.1] mb-6 max-w-3xl mx-auto">
+            <div className="max-w-6xl mx-auto px-6 md:px-8 py-16 md:py-24 text-center">
+                <h1 className="font-display text-4xl md:text-6xl text-ink leading-[1.2] md:leading-[1.1] mb-6 max-w-3xl mx-auto">
                     AI intelligence for your{" "}
                     <span className="italic text-accent">inbox</span>
                 </h1>
 
-                <p className="text-lg text-ink-light leading-relaxed mb-8 max-w-xl mx-auto">
+                <p className="text-base md:text-lg text-ink-light leading-relaxed mb-8 max-w-xl mx-auto">
                     SortMail reads your threads, extracts tasks, summarizes attachments, and drafts replies — so you focus on decisions, not email.
                 </p>
 
-                <div className="flex gap-4 justify-center">
-                    <Link href="/login" className="btn-primary text-base px-8 py-3">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Link href="/login" className="btn-primary text-base px-8 py-3 w-full sm:w-auto">
                         Start Free <ArrowRight size={16} />
                     </Link>
-                    <a href="#features" className="btn-secondary text-base px-8 py-3">
+                    <a href="#features" className="btn-secondary text-base px-8 py-3 w-full sm:w-auto">
                         See How It Works
                     </a>
                 </div>
 
                 {/* Trust bar */}
-                <div className="flex flex-wrap justify-center gap-6 mt-10 text-sm text-muted">
+                <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 mt-12 text-xs md:text-sm text-muted">
                     <div className="flex items-center gap-2">
                         <Shield size={14} className="text-success" />
                         <span>Read-only OAuth</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Shield size={14} className="text-success" />
-                        <span>End-to-end encrypted</span>
+                        <span>Encrypted</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Shield size={14} className="text-success" />
@@ -58,13 +95,13 @@ export default function Home() {
             </div>
 
             {/* Features Grid */}
-            <div id="features" className="max-w-6xl mx-auto px-8 pb-24">
+            <div id="features" className="max-w-6xl mx-auto px-6 md:px-8 pb-24">
                 <div className="text-center mb-12">
                     <span className="section-label">Features</span>
-                    <h2 className="font-display text-3xl text-ink mt-2">Everything your inbox is missing</h2>
+                    <h2 className="font-display text-2xl md:text-3xl text-ink mt-2">Everything your inbox is missing</h2>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-6">
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
                     <FeatureCard
                         icon={<Sparkles size={20} className="text-ai" />}
                         title="Executive Briefings"
@@ -99,8 +136,15 @@ export default function Home() {
             </div>
 
             {/* Footer */}
-            <footer className="border-t border-border-light py-8 text-center text-xs text-muted">
-                <p>© 2026 SortMail Inc. · <a href="#" className="hover:text-ink-light underline">Terms</a> · <a href="#" className="hover:text-ink-light underline">Privacy</a></p>
+            <footer className="border-t border-border-light py-12 text-center px-6">
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mb-6">
+                    <Link href="/terms" className="btn-secondary text-xs px-4 py-2">Terms</Link>
+                    <Link href="/help" className="btn-secondary text-xs px-4 py-2">Help</Link>
+                    <Link href="/status" className="btn-secondary text-xs px-4 py-2">Status</Link>
+                    <Link href="/changelog" className="btn-secondary text-xs px-4 py-2">Changelog</Link>
+                    <Link href="/privacy" className="btn-secondary text-xs px-4 py-2">Privacy</Link>
+                </div>
+                <p className="text-xs text-muted">© 2026 SortMail Inc. · All rights reserved.</p>
             </footer>
         </main>
     );

@@ -12,7 +12,7 @@ interface TaskKanbanProps {
 
 function KanbanColumn({ title, tasks, icon: Icon, onTaskClick }: { title: string; tasks: TaskDTOv1[]; icon: React.ElementType; onTaskClick: (id: string) => void }) {
     return (
-        <div className="flex-1 min-w-[300px] h-full flex flex-col gap-4">
+        <div className="flex-1 min-w-0 lg:min-w-[300px] h-auto lg:h-full flex flex-col gap-3 md:gap-4 shrink-0">
             <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2 font-display text-lg text-ink font-semibold">
                     <Icon className="h-5 w-5 text-muted-foreground" />
@@ -23,7 +23,7 @@ function KanbanColumn({ title, tasks, icon: Icon, onTaskClick }: { title: string
                 </Badge>
             </div>
 
-            <div className="flex flex-col gap-3 overflow-y-auto pr-2 pb-4 scrollbar-thin flex-1 bg-surface/30 rounded-xl p-3 border border-border/50">
+            <div className="flex flex-col gap-2.5 md:gap-3 overflow-y-auto pr-2 pb-4 scrollbar-thin flex-1 bg-surface/30 rounded-xl p-2.5 md:p-3 border border-border/50">
                 {tasks.map((task) => (
                     <Card
                         key={task.task_id}
@@ -31,7 +31,7 @@ function KanbanColumn({ title, tasks, icon: Icon, onTaskClick }: { title: string
                         style={{ borderLeftColor: task.priority === 'do_now' ? 'var(--danger)' : 'transparent' }}
                         onClick={() => onTaskClick(task.task_id)}
                     >
-                        <CardContent className="p-4 space-y-3">
+                        <CardContent className="p-3 md:p-4 space-y-2.5 md:space-y-3">
                             <div className="flex justify-between items-start gap-2">
                                 <PriorityBadge priority={task.priority} />
                                 {task.effort === 'deep_work' && (
@@ -89,7 +89,7 @@ export function TaskKanban({ tasks, onTaskClick }: TaskKanbanProps) {
     const doneTasks = tasks.filter(t => t.status === 'completed');
 
     return (
-        <div className="flex gap-6 overflow-x-auto pb-2 h-full">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-6 overflow-y-auto lg:overflow-x-auto pb-6 lg:pb-2 h-full lg:h-full scrollbar-hide md:scrollbar-thin">
             <KanbanColumn
                 title="To Do"
                 tasks={todoTasks}

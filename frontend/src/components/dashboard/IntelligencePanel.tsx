@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { LegacyEmail, LegacyTask } from '@/types/dashboard';
+import Image from 'next/image';
 // gsap v3.14 types don't expose .fromTo/.to on default export — cast for IDE compat
 // eslint-disable-next-line
 import _gsap from 'gsap';
 const gsap = _gsap as any;
 import {
     Sparkles, X, CheckSquare, MessageSquare, Calendar,
-    Send, RotateCw, Copy, FileText, Image, Table, File,
+    Send, RotateCw, Copy, FileText, Image as ImageIcon, Table, File,
     Cpu, Layers, CornerDownRight
 } from 'lucide-react';
 
@@ -169,7 +170,7 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
 
     const getIconForType = (type: string) => {
         switch (type) {
-            case 'img': return <Image size={16} className="text-purple-400" />;
+            case 'img': return <ImageIcon size={16} className="text-purple-400" />;
             case 'sheet': return <Table size={16} className="text-emerald-400" />;
             case 'pdf': return <FileText size={16} className="text-rose-400" />;
             default: return <File size={16} className="text-blue-400" />;
@@ -209,7 +210,7 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
                 <div className="p-6 border-b border-[#27272a] bg-[#18181B]/50">
                     <h2 className="text-lg font-bold text-white mb-1 leading-tight">{email.subject}</h2>
                     <div className="flex items-center gap-2 mt-2">
-                        <img src={email.avatar} className="w-6 h-6 rounded-full grayscale opacity-80" />
+                        <Image src={email.avatar} alt={email.sender} width={24} height={24} className="w-6 h-6 rounded-full grayscale opacity-80" />
                         <span className="text-sm text-zinc-400">From <span className="text-zinc-200">{email.sender}</span></span>
                     </div>
                 </div>

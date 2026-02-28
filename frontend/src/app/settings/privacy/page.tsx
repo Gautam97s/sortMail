@@ -131,7 +131,6 @@ export default function SettingsPrivacyPage() {
                         Save Settings
                     </Button>
                 </div>
-
                 {/* Danger Zone */}
                 <Card className="p-6 border-danger/20 bg-danger/5">
                     <div className="flex items-start gap-3 mb-4">

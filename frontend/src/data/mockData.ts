@@ -418,7 +418,7 @@ export const mockCalendarSuggestions: CalendarSuggestionV1[] = [
         confidence: 0.85,
         is_accepted: false,
         is_dismissed: false,
-        created_at: '2026-02-16T14:30:00Z',
+        created_at: '2026-02-16T14:30:000Z',
     },
     {
         suggestion_id: 'cal-002',
@@ -462,6 +462,14 @@ export const mockDashboard: DashboardData = {
 
 // --- Helper: Extract sender display info ---------------------
 
+// Re-export from modular files
+export * from './user';
+export * from './threads';
+export * from './tasks';
+export * from './help';
+export * from './settings';
+
+// Helper: Extract sender display info 
 export function getSenderInfo(email: string): { name: string; initials: string } {
     const name = email.split('@')[0]
         .split('.')

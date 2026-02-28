@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useLayoutEffect } from 'react';
 import { LayoutDashboard, ListFilter, BarChart3, Clock, Command } from 'lucide-react';
 import { View } from '@/types/dashboard';
+import Image from 'next/image';
 import gsap from 'gsap';
 import { Flip } from 'gsap/all';
 
@@ -86,7 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView }) => {
 
             <div className="px-6 mt-auto">
                 <div className="hidden lg:flex items-center gap-3 p-3 rounded-xl bg-[#18181B] border border-[#27272a]">
-                    <img src="https://picsum.photos/100/100" alt="User" className="w-8 h-8 rounded-full border border-zinc-700" />
+                    <Image src="https://picsum.photos/100/100" alt="User Avatar" width={32} height={32} className="w-8 h-8 rounded-full border border-zinc-700" />
                     <div className="overflow-hidden">
                         <p className="text-sm font-medium text-zinc-200 truncate">Alex Chen</p>
                         <p className="text-xs text-zinc-500 truncate">Pro Workspace</p>

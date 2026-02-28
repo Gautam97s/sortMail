@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import { mockThreadListItems } from "@/data/mockData";
+import { mockThreadListItems } from "@/data/threads";
 import type { ThreadListItem } from "@/types/dashboard";
 import AppShell from "@/components/layout/AppShell";
 
@@ -67,36 +67,36 @@ export default function SearchPage() {
     return (
         <AppShell title="Search">
             <div className="flex flex-col h-full bg-paper">
-                {/* Header */}
-                <div className="border-b border-border bg-white px-8 py-6">
-                    <div className="flex items-center gap-3 mb-4">
-                        <SearchIcon className="w-6 h-6 text-muted" />
-                        <h1 className="font-display text-2xl text-ink">Search</h1>
+                {/* Header Section */}
+                <div className="border-b border-border bg-white px-3 md:px-8 py-4 md:py-6">
+                    <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                        <SearchIcon className="w-5 h-5 md:w-6 md:h-6 text-muted" />
+                        <h1 className="font-display text-xl md:text-2xl text-ink">Search</h1>
                     </div>
 
-                    {/* Search Input */}
-                    <div className="relative max-w-2xl">
+                    {/* Search Input Container */}
+                    <div className="relative max-w-2xl mb-4">
                         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                         <Input
                             type="text"
-                            placeholder="Search emails, tasks, contacts..."
+                            placeholder="Search emails, tasks..."
                             value={searchQuery}
                             onChange={(e) => handleSearch(e.target.value)}
-                            className="pl-10 pr-10 h-12 text-base"
+                            className="pl-10 pr-10 h-10 md:h-12 text-sm md:text-base border-border focus:ring-accent"
                         />
                         {searchQuery && (
                             <button
                                 onClick={() => handleSearch("")}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink transition-colors"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         )}
                     </div>
 
-                    {/* Filters */}
-                    <div className="flex items-center gap-2 mt-4">
-                        <span className="text-xs text-muted font-mono uppercase tracking-wide">
+                    {/* Filters Row */}
+                    <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
+                        <span className="text-[10px] text-muted font-mono uppercase tracking-wide mr-1">
                             Filters:
                         </span>
                         {FILTER_OPTIONS.map((filter) => {
@@ -107,10 +107,10 @@ export default function SearchPage() {
                                     key={filter.id}
                                     onClick={() => toggleFilter(filter.id)}
                                     className={`
-                                        flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors
+                                        flex items-center gap-1 md:gap-1.5 px-2.5 md:px-3 py-1 md:py-1.5 rounded-md text-[10px] md:text-xs font-medium transition-all
                                         ${isActive
-                                            ? "bg-accent text-white"
-                                            : "bg-white border border-border text-ink hover:bg-paper"
+                                            ? "bg-accent text-white shadow-md shadow-accent/20"
+                                            : "bg-white border border-border text-ink hover:bg-paper-mid"
                                         }
                                     `}
                                 >
@@ -124,7 +124,7 @@ export default function SearchPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={clearFilters}
-                                className="text-xs text-muted hover:text-ink"
+                                className="h-6 px-2 text-[10px] md:text-xs text-muted hover:text-accent transition-colors"
                             >
                                 Clear all
                             </Button>
@@ -132,64 +132,71 @@ export default function SearchPage() {
                     </div>
                 </div>
 
-                {/* Results */}
-                <div className="flex-1 overflow-y-auto px-8 py-6">
+                {/* Content / Results Section */}
+                <div className="flex-1 overflow-y-auto px-3 md:px-8 py-4 md:py-6 custom-scrollbar">
                     {!searchQuery && results.length === 0 && (
-                        <div className="flex flex-col items-center justify-center h-full text-center">
-                            <SearchIcon className="w-16 h-16 text-muted mb-4" />
+                        <div className="flex flex-col items-center justify-center h-full text-center py-12">
+                            <div className="w-20 h-20 bg-paper-mid rounded-full flex items-center justify-center mb-6">
+                                <SearchIcon className="w-10 h-10 text-muted/50" />
+                            </div>
                             <h2 className="font-display text-xl text-ink mb-2">
-                                Search your emails
+                                Search your intelligence
                             </h2>
-                            <p className="text-muted max-w-md">
-                                Find emails, tasks, and contacts quickly. Use filters to narrow down results.
+                            <p className="text-muted max-w-md text-sm leading-relaxed">
+                                Find emails, tasks, and insights quickly. Use filters to narrow down the noise.
                             </p>
                         </div>
                     )}
 
                     {searchQuery && results.length === 0 && (
-                        <div className="flex flex-col items-center justify-center h-full text-center">
-                            <SearchIcon className="w-16 h-16 text-muted mb-4" />
+                        <div className="flex flex-col items-center justify-center h-full text-center py-12">
+                            <div className="w-20 h-20 bg-paper-mid rounded-full flex items-center justify-center mb-6">
+                                <X className="w-10 h-10 text-muted/50" />
+                            </div>
                             <h2 className="font-display text-xl text-ink mb-2">
                                 No results found
                             </h2>
-                            <p className="text-muted max-w-md">
-                                Try adjusting your search query or filters.
+                            <p className="text-muted max-w-md text-sm">
+                                Try adjusting your search query or removing some filters.
                             </p>
                         </div>
                     )}
 
                     {results.length > 0 && (
-                        <div className="max-w-4xl">
-                            <p className="text-xs text-muted font-mono uppercase tracking-wide mb-4">
-                                {results.length} result{results.length !== 1 ? "s" : ""}
-                            </p>
-                            <div className="space-y-2">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="flex items-center justify-between mb-6">
+                                <p className="text-[10px] text-muted font-mono uppercase tracking-widest">
+                                    {results.length} result{results.length !== 1 ? "s" : ""} detected
+                                </p>
+                            </div>
+                            <div className="space-y-3">
                                 {results.map((thread) => (
-                                    <Link key={thread.thread_id} href={`/inbox/${thread.thread_id}`}>
-                                        <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-                                            <div className="flex items-start justify-between gap-4">
+                                    <Link key={thread.thread_id} href={`/inbox/${thread.thread_id}`} className="block group">
+                                        <Card className="p-4 md:p-5 hover:border-accent/40 transition-all cursor-pointer bg-white group-hover:shadow-lg group-hover:shadow-ink/5">
+                                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <h3 className="font-medium text-ink truncate">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <h3 className="font-medium text-ink text-sm md:text-base truncate group-hover:text-accent transition-colors">
                                                             {thread.subject}
                                                         </h3>
                                                         {thread.has_attachments && (
-                                                            <Paperclip className="w-3 h-3 text-muted shrink-0" />
+                                                            <Paperclip className="w-3.5 h-3.5 text-muted shrink-0" />
                                                         )}
                                                     </div>
-                                                    <p className="text-sm text-muted line-clamp-2 mb-2">
+                                                    <p className="text-xs md:text-sm text-ink-light line-clamp-2 mb-4 leading-relaxed">
                                                         {thread.summary}
                                                     </p>
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center justify-between sm:justify-start gap-4">
                                                         <Badge
                                                             variant="secondary"
-                                                            className={`text-xs ${getIntentColor(thread.intent)}`}
+                                                            className={`text-[9px] md:text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 border-none shadow-none ${getIntentColor(thread.intent)}`}
                                                         >
                                                             {thread.intent.replace("_", " ")}
                                                         </Badge>
-                                                        <span className="text-xs text-muted">
+                                                        <div className="flex items-center gap-2 text-[10px] md:text-xs text-muted font-medium">
+                                                            <Calendar size={12} />
                                                             {new Date(thread.last_updated).toLocaleDateString()}
-                                                        </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
