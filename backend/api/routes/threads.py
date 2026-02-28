@@ -32,9 +32,9 @@ class ThreadListItem(BaseModel):
 
 from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, desc
 
-from app.config import settings, desc
+from app.config import settings
 
 from core.storage.database import get_db
 from api.dependencies import get_current_user
