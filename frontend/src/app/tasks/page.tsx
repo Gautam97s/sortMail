@@ -70,19 +70,19 @@ export default function TasksPage() {
     return (
         <AppShell title="Tasks">
             <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
-                <div className="flex flex-col gap-4 px-6 pt-6 pb-2 shrink-0">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="font-display text-3xl text-ink">Tasks</h1>
-                            <p className="text-ink-light mt-1">Manage your actionable items from emails.</p>
+                <div className="flex flex-col gap-3 md:gap-4 px-4 md:px-6 pt-4 md:pt-6 pb-2 shrink-0">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                            <h1 className="font-display text-2xl md:text-3xl text-ink truncate">Tasks</h1>
+                            <p className="text-sm md:text-base text-ink-light mt-0.5 md:mt-1 truncate">Manage your actionable items.</p>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 md:gap-3 shrink-0">
                             <div className="bg-surface-card p-1 rounded-lg border border-border-light flex items-center">
                                 <Button
                                     variant={view === 'board' ? 'secondary' : 'ghost'}
                                     size="sm"
                                     onClick={() => setView('board')}
-                                    className="h-8 w-8 p-0"
+                                    className="h-7 w-7 md:h-8 md:w-8 p-0"
                                 >
                                     <LayoutGrid className="h-4 w-4" />
                                 </Button>
@@ -90,14 +90,15 @@ export default function TasksPage() {
                                     variant={view === 'list' ? 'secondary' : 'ghost'}
                                     size="sm"
                                     onClick={() => setView('list')}
-                                    className="h-8 w-8 p-0"
+                                    className="h-7 w-7 md:h-8 md:w-8 p-0"
                                 >
                                     <ListIcon className="h-4 w-4" />
                                 </Button>
                             </div>
-                            <Button className="gap-2 bg-accent hover:bg-accent-hover text-white">
-                                <Plus className="h-4 w-4" />
-                                Add Task
+                            <Button className="h-8 md:h-9 px-3 gap-1.5 md:gap-2 bg-accent hover:bg-accent-hover text-white text-xs md:text-sm">
+                                <Plus className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                                <span className="hidden sm:inline">Add Task</span>
+                                <span className="sm:hidden">Add</span>
                             </Button>
                         </div>
                     </div>
@@ -113,7 +114,7 @@ export default function TasksPage() {
                     />
                 </div>
 
-                <div className="flex-1 overflow-hidden px-6 pb-6">
+                <div className="flex-1 overflow-hidden px-4 md:px-6 pb-4 md:pb-6">
                     {view === 'board' ? (
                         <TaskKanban tasks={filteredTasks} onTaskClick={handleTaskClick} />
                     ) : (

@@ -25,3 +25,9 @@ api.interceptors.response.use(
 export const dashboardApi = {
     getStats: async () => (await api.get('/api/dashboard/stats')).data,
 };
+
+export const threadsApi = {
+    getThreads: async () => (await api.get('/api/threads')).data,
+    getThread: async (id: string) => (await api.get(`/api/threads/${id}`)).data,
+    getIntel: async (id: string) => (await api.get(`/api/threads/${id}/intel`)).data,
+};

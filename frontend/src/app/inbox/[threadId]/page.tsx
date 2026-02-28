@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { getSenderInfo } from '@/data/mockData';
+import { mockThreads, getSenderInfo } from '@/data/threads';
 import type { EmailMessage, EmailThreadV1, ThreadIntelV1, TaskDTOv1, DraftDTOv1, AttachmentRef, PriorityLevel } from '@/types/dashboard';
 import {
     ArrowLeft, Sparkles, AlertTriangle, Clock, FileText,
@@ -327,7 +327,6 @@ function AttachmentsPanel({ attachments, intel }: { attachments: AttachmentRef[]
             console.error("Preview failed", e);
         }
     };
-
     return (
         <Card>
             <CardHeader className="pb-3">

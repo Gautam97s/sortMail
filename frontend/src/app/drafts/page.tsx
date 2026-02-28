@@ -5,7 +5,7 @@ import AppShell from '@/components/layout/AppShell';
 import { DraftControls } from '@/components/drafts/DraftControls';
 import { DraftEditor } from '@/components/drafts/DraftEditor';
 import { useDrafts } from '@/hooks/useDrafts';
-import { mockThreads } from '@/data/mockData';
+import { mockThreads } from '@/data/threads';
 import { EmailThreadV1 } from '@/types/dashboard';
 
 export default function DraftsPage() {

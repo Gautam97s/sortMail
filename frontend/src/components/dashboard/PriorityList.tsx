@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import { LegacyEmail, Urgency } from '@/types/dashboard';
 import { AlertCircle, Clock, CheckCircle2, Zap, ArrowRight, CornerUpLeft, Sparkles } from 'lucide-react';
+import Image from 'next/image';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -71,7 +72,7 @@ const PriorityList: React.FC<PriorityListProps> = ({ emails, onOpenAction }) => 
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-4">
                                 <div className="relative">
-                                    <img src={email.avatar} alt={email.sender} className="w-12 h-12 rounded-full border border-zinc-600" />
+                                    <Image src={email.avatar} alt={email.sender} width={48} height={48} className="w-12 h-12 rounded-full border border-zinc-600" />
                                     <div className={`absolute -bottom-1 -right-1 p-1 rounded-full border border-[#18181B] ${email.urgency === 'High' ? 'bg-rose-500 text-white' :
                                         email.urgency === 'Medium' ? 'bg-amber-500 text-black' : 'bg-emerald-500 text-white'
                                         }`}>

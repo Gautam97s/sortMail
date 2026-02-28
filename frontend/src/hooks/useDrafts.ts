@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api, endpoints } from '@/lib/api';
-import { mockDraft } from '@/data/mockData';
+import { mockDraft } from '@/data/tasks';
 import { DraftDTOv1 } from '@/types/dashboard';
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';

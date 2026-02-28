@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Mail, Brain, Palette, Check, Plus, AlertCircle, Save } from 'lucide-react';
+import { User, Mail, Brain, Palette, Check, Plus, AlertCircle, Save, LifeBuoy, ArrowRight, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api, endpoints } from '@/lib/api';
 
@@ -56,15 +58,15 @@ export default function SettingsPage() {
                 </div>
 
                 <Card>
-                    <CardContent className="p-6">
-                        <div className="flex items-center gap-6">
-                            <Avatar className="h-20 w-20 border-2 border-border-light">
+                    <CardContent className="p-4 md:p-6">
+                        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
+                            <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-border-light shrink-0">
                                 {user?.picture && <AvatarImage src={user.picture} />}
-                                <AvatarFallback className="bg-primary/5 text-primary text-xl font-display">
+                                <AvatarFallback className="bg-primary/5 text-primary text-lg md:text-xl font-display">
                                     {initials}
                                 </AvatarFallback>
                             </Avatar>
-                            <div className="space-y-4 flex-1 max-w-md">
+                            <div className="space-y-4 flex-1 w-full max-w-md">
                                 <div className="grid gap-2">
                                     <Label htmlFor="name">Display Name</Label>
                                     <Input ref={nameRef} id="name" defaultValue={user?.name || ""} className="bg-paper" />
@@ -74,9 +76,9 @@ export default function SettingsPage() {
                                     <Input id="email" defaultValue={user?.email || ""} disabled className="bg-paper-mid opacity-70" />
                                 </div>
                             </div>
-                            <div className="ml-auto self-start flex items-center gap-2">
+                            <div className="md:ml-auto w-full md:w-auto self-start flex flex-col-reverse sm:flex-row md:flex-row items-center gap-2 pt-2 md:pt-0">
                                 {saved && <span className="text-success text-sm flex items-center gap-1"><Check className="w-4 h-4" /> Saved</span>}
-                                <Button onClick={handleSave} disabled={updateProfile.isPending} className="gap-2">
+                                <Button onClick={handleSave} disabled={updateProfile.isPending} className="w-full md:w-auto gap-2">
                                     <Save className="w-4 h-4" />
                                     {updateProfile.isPending ? "Saving..." : "Save Changes"}
                                 </Button>
@@ -118,7 +120,7 @@ export default function SettingsPage() {
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-3">
                                     <div className="h-10 w-10 bg-white rounded-full border border-border-light flex items-center justify-center p-2">
-                                        <img src="https://www.gstatic.com/images/branding/product/1x/gmail_2020q4_48dp.png" alt="Gmail" className="h-6 w-6" />
+                                        <Image src="https://www.gstatic.com/images/branding/product/1x/gmail_2020q4_48dp.png" alt="Gmail" width={24} height={24} className="h-6 w-6" />
                                     </div>
                                     <div>
                                         <CardTitle className="text-base font-body">Gmail</CardTitle>
@@ -147,7 +149,7 @@ export default function SettingsPage() {
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-3">
                                     <div className="h-10 w-10 bg-white rounded-full border border-border-light flex items-center justify-center p-2">
-                                        <img src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg" alt="Outlook" className="h-6 w-6" />
+                                        <Image src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg" alt="Outlook" width={24} height={24} className="h-6 w-6" />
                                     </div>
                                     <div>
                                         <CardTitle className="text-base font-body">Outlook</CardTitle>
@@ -235,6 +237,55 @@ export default function SettingsPage() {
                     </CardContent>
                 </Card>
             </section>
+            <Separator />
+
+            {/* Support & Resources */}
+            <section className="space-y-4">
+                <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
+                        <LifeBuoy className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h2 className="font-display text-xl text-ink font-semibold">Support & Resources</h2>
+                        <p className="text-sm text-ink-light">Get help and stay updated</p>
+                    </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <SupportLink
+                        title="Contact Support"
+                        desc="Start a conversation"
+                        href="/support"
+                    />
+                    <SupportLink
+                        title="Help Center"
+                        desc="Read documentation"
+                        href="/help"
+                    />
+                    <SupportLink
+                        title="System Status"
+                        desc="Check platform health"
+                        href="/status"
+                    />
+                    <SupportLink
+                        title="Changelog"
+                        desc="See what's new"
+                        href="/changelog"
+                    />
+                </div>
+            </section>
         </div>
+    );
+}
+
+function SupportLink({ title, desc, href }: { title: string, desc: string, href: string }) {
+    return (
+        <Link href={href} className="flex flex-col gap-1 p-5 rounded-2xl border border-border bg-white hover:border-accent hover:shadow-lg hover:shadow-ink/5 transition-all group">
+            <div className="flex items-center justify-between">
+                <h3 className="font-bold text-ink group-hover:text-accent transition-colors">{title}</h3>
+                <ArrowRight className="h-4 w-4 text-muted group-hover:text-accent group-hover:translate-x-1 transition-all" />
+            </div>
+            <p className="text-sm text-muted leading-relaxed">{desc}</p>
+        </Link>
     );
 }

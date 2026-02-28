@@ -5,9 +5,14 @@ import gsap from "gsap";
 import { ArrowRight, Loader2, Shield, Eye, Github, Sparkles } from "lucide-react";
 import Link from "next/link";
 
+import { mockLandingContent } from "@/data/settings";
+import { DynamicIcon } from "@/components/ui/dynamic-icon";
+
 export default function LoginPage() {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [loading, setLoading] = useState<"google" | "outlook" | null>(null);
+    const [loading, setLoading] = useState<"google" | "outlook" | "magic" | null>(null);
+    const [email, setEmail] = useState("");
+    const content = mockLandingContent;
 
     const handleGoogleLogin = async () => {
         try {
@@ -46,6 +51,32 @@ export default function LoginPage() {
         }, 800);
     };
 
+    const handleSendMagicLink = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!email) return;
+
+        try {
+            setLoading("magic");
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/magic-link`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+
+            if (response.ok) {
+                // Store email in session storage for the "magic-link-sent" page to use for resends
+                sessionStorage.setItem("pending_email", email);
+                window.location.href = "/magic-link-sent";
+            } else {
+                const data = await response.json();
+                console.error("Magic link failed", data);
+                setLoading(null);
+            }
+        } catch (error) {
+            console.error("Failed to send magic link", error);
+            setLoading(null);
+        }
+    };
     return (
         <main ref={containerRef} className="min-h-screen w-full bg-paper flex items-center justify-center relative overflow-hidden">
             {/* Subtle warm gradient orbs */}
@@ -67,24 +98,20 @@ export default function LoginPage() {
 
                     {/* Trust Indicators */}
                     <div className="hero-trust flex flex-wrap justify-center lg:justify-start gap-4 text-sm text-muted">
-                        <div className="flex items-center gap-2">
-                            <Shield size={14} className="text-success" />
-                            <span>Read-only OAuth</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Eye size={14} className="text-success" />
-                            <span>No auto-send</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Github size={14} className="text-success" />
-                            <span>Open source</span>
-                        </div>
+                        {content.trustIndicators.map((indicator, idx) => {
+                            return (
+                                <div key={idx} className="flex items-center gap-2">
+                                    <DynamicIcon name={indicator.iconName} fallback={Shield} size={14} className="text-success" />
+                                    <span>{indicator.label}</span>
+                                </div>
+                            );
+                        })}
                     </div>
 
                     {/* Social Proof */}
                     <div className="hero-trust mt-8 flex items-center gap-3 justify-center lg:justify-start">
                         <div className="flex -space-x-2">
-                            {["SC", "LT", "DT"].map((init, i) => (
+                            {content.socialProofInitials.map((init, i) => (
                                 <div
                                     key={i}
                                     className="w-8 h-8 rounded-full bg-paper-deep border-2 border-white flex items-center justify-center text-xs font-mono font-semibold text-ink-light"
@@ -93,7 +120,7 @@ export default function LoginPage() {
                                 </div>
                             ))}
                         </div>
-                        <span className="text-sm text-muted">Trusted by 1,200+ professionals</span>
+                        <span className="text-sm text-muted">Trusted by {content.trustedUserCount} professionals</span>
                     </div>
                 </div>
 
@@ -156,17 +183,30 @@ export default function LoginPage() {
                     </div>
 
                     {/* Magic Link */}
-                    <div className="auth-item">
+                    <form onSubmit={handleSendMagicLink} className="auth-item">
                         <input
                             type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             placeholder="Enter your work email"
+                            required
                             className="w-full h-12 px-4 rounded-lg border border-border-light bg-white text-sm text-ink placeholder:text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/20 transition-all"
                         />
-                        <button className="btn-primary w-full mt-3 h-12">
-                            Send Magic Link
-                            <ArrowRight size={16} />
+                        <button
+                            type="submit"
+                            disabled={loading !== null || !email}
+                            className="btn-primary w-full mt-3 h-12 flex items-center justify-center gap-2 disabled:opacity-60"
+                        >
+                            {loading === "magic" ? (
+                                <Loader2 size={18} className="animate-spin" />
+                            ) : (
+                                <>
+                                    Send Magic Link
+                                    <ArrowRight size={16} />
+                                </>
+                            )}
                         </button>
-                    </div>
+                    </form>
 
                     {/* Footer */}
                     <p className="auth-item text-center text-xs text-muted mt-6">

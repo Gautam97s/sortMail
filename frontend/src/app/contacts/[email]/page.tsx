@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { mockThreadListItems } from "@/data/mockData";
+import { mockThreadListItems } from "@/data/threads";
 
 export default function ContactDetailPage() {
     const params = useParams();

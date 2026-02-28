@@ -32,26 +32,26 @@ export function TaskFilters({
     const hasActiveFilters = searchQuery || priorityFilter !== 'all' || statusFilter !== 'all';
 
     return (
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between py-4">
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-center justify-between py-2 md:py-4">
             <div className="relative w-full md:w-96">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                     placeholder="Search tasks..."
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    className="pl-9 bg-surface-card"
+                    className="pl-9 bg-surface-card h-10 text-sm"
                 />
             </div>
 
-            <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
                 <Select value={priorityFilter} onValueChange={onPriorityChange}>
-                    <SelectTrigger className="w-[140px] bg-surface-card">
-                        <div className="flex items-center gap-2">
-                            <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                    <SelectTrigger className="w-full sm:w-[180px] bg-surface-card h-10 md:h-10 px-3 md:px-4 rounded-xl border-border/50 text-xs md:text-sm">
+                        <div className="flex items-center gap-2 md:gap-2.5 truncate">
+                            <Filter className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground shrink-0" />
                             <SelectValue placeholder="Priority" />
                         </div>
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-xl border-border/50 shadow-xl">
                         <SelectItem value="all">All Priorities</SelectItem>
                         <SelectItem value="do_now">Do Now</SelectItem>
                         <SelectItem value="do_today">Do Today</SelectItem>
@@ -60,10 +60,10 @@ export function TaskFilters({
                 </Select>
 
                 <Select value={statusFilter} onValueChange={onStatusChange}>
-                    <SelectTrigger className="w-[140px] bg-surface-card">
+                    <SelectTrigger className="w-full sm:w-[160px] bg-surface-card h-10 md:h-10 px-3 md:px-4 rounded-xl border-border/50 text-xs md:text-sm">
                         <SelectValue placeholder="Status" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-xl border-border/50 shadow-xl">
                         <SelectItem value="all">All Statuses</SelectItem>
                         <SelectItem value="pending">Todo</SelectItem>
                         <SelectItem value="in_progress">In Progress</SelectItem>

@@ -1,102 +1,114 @@
-"use client";
+'use client';
 
 import React from "react";
-import { Sparkles, Copy, CheckCircle2, FileText, AlertCircle } from "lucide-react";
-import type { ThreadDetail } from "@/types/dashboard";
+import { Sparkles, Copy, AlertCircle, Info, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import ActionItemCard from "./ActionItemCard";
+import AttachmentIntelCard from "./AttachmentIntelCard";
+import { ThreadIntelV1 } from "@/types/dashboard";
 
 interface SummaryPanelProps {
-    intel: ThreadDetail["intel"];
-    attachments: ThreadDetail["attachments"];
+    intel: ThreadIntelV1;
+    onActionComplete?: (index: number) => void;
+    onAskAI?: (context: string) => void;
 }
 
-export default function SummaryPanel({ intel, attachments }: SummaryPanelProps) {
-    const handleCopy = (text: string) => {
-        navigator.clipboard.writeText(text);
+export default function SummaryPanel({ intel, onActionComplete, onAskAI }: SummaryPanelProps) {
+    const handleCopy = () => {
+        navigator.clipboard.writeText(intel.summary);
     };
 
     return (
-        <div className="space-y-5">
-            {/* AI Summary */}
-            <div>
-                <div className="flex items-center gap-2 mb-3">
-                    <Sparkles size={14} className="text-ai" />
-                    <span className="section-label mb-0">AI Summary</span>
-                </div>
-                <div className="p-4 rounded-lg bg-ai-soft/50 border border-[#D4C8FF]/50">
-                    <p className="text-sm text-ink-mid leading-relaxed">{intel.summary}</p>
-                    <button
-                        onClick={() => handleCopy(intel.summary)}
-                        className="btn-ghost mt-2 text-xs text-ai"
+        <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+            {/* Header: Intent & Urgency */}
+            <div className="flex items-center justify-between border-b border-border pb-4">
+                <div className="flex items-center gap-3">
+                    <Badge
+                        variant={intel.urgency_score > 70 ? "destructive" : "secondary"}
+                        className="font-mono text-[10px] uppercase tracking-widest px-2"
                     >
-                        <Copy size={12} /> Copy
-                    </button>
+                        {intel.intent.replace('_', ' ')}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground font-mono">
+                        Urgency: <span className={intel.urgency_score > 70 ? "text-danger" : "text-accent"}>{intel.urgency_score}</span>/100
+                    </span>
+                </div>
+                <div className="flex gap-1">
+                    <Badge variant="outline" className="text-[9px] opacity-50 uppercase font-mono">
+                        {intel.model_version}
+                    </Badge>
                 </div>
             </div>
 
-            {/* Intent & Urgency */}
-            <div className="flex items-center gap-3">
-                <span className="priority-badge priority-urgent">
-                    <AlertCircle size={10} /> {intel.intent}
-                </span>
-                <span className="text-xs font-mono text-muted">
-                    Urgency: {intel.urgencyScore}/100
-                </span>
-            </div>
-
-            {/* Main Ask */}
-            <div>
-                <span className="section-label">Main Ask</span>
-                <div className="p-3 rounded-lg bg-paper-mid border border-border-light">
-                    <p className="text-sm text-ink font-medium">{intel.mainAsk}</p>
+            {/* AI Summary Section */}
+            <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-ai" />
+                        <h3 className="section-label mb-0 text-ai">Executive Summary</h3>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={handleCopy} className="h-6 text-[10px] gap-1 px-2 text-muted-foreground hover:text-ai">
+                        <Copy className="h-3 w-3" /> Copy
+                    </Button>
                 </div>
-            </div>
-
-            {/* Action Items */}
-            <div>
-                <span className="section-label">Action Items</span>
-                <div className="space-y-2">
-                    {intel.actionItems.map((item, i) => (
-                        <div
-                            key={i}
-                            className="flex items-start gap-2.5 p-2.5 rounded-lg hover:bg-paper-mid transition-colors cursor-pointer group"
-                        >
-                            <CheckCircle2 size={14} className="text-muted mt-0.5 group-hover:text-success transition-colors shrink-0" />
-                            <span className="text-sm text-ink-mid">{item}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Attachment Summaries */}
-            {attachments.length > 0 && (
-                <div>
-                    <span className="section-label">Attachment Intelligence</span>
-                    <div className="space-y-2">
-                        {attachments.map((att) => (
-                            <div key={att.id} className="p-3 rounded-lg border border-border-light bg-white">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <FileText size={14} className="text-ink-light" />
-                                    <span className="text-sm font-medium text-ink truncate">
-                                        {att.filename}
-                                    </span>
-                                </div>
-                                {att.aiSummary && (
-                                    <p className="text-xs text-muted mb-2">{att.aiSummary}</p>
-                                )}
-                                {att.keyPoints && att.keyPoints.length > 0 && (
-                                    <ul className="space-y-1">
-                                        {att.keyPoints.map((point, i) => (
-                                            <li key={i} className="text-xs text-ink-light flex items-start gap-1.5">
-                                                <span className="text-accent mt-0.5">•</span>
-                                                {point}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                        ))}
+                <div className="relative group">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-ai/20 to-purple-400/20 rounded-xl blur opacity-75 group-hover:opacity-100 transition duration-300" />
+                    <div className="relative p-5 rounded-xl bg-paper-mid border border-ai/10 leading-relaxed text-sm text-ink-mid">
+                        {intel.summary}
                     </div>
                 </div>
+            </section>
+
+            {/* Main Ask / Decision Needed */}
+            {(intel.main_ask || intel.decision_needed) && (
+                <section className="p-4 rounded-xl bg-accent/5 border border-accent/10 space-y-2">
+                    <div className="flex items-center gap-2 text-accent">
+                        <Zap size={14} className="fill-accent/20" />
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Crucial Outcome</span>
+                    </div>
+                    <p className="text-sm font-medium text-ink leading-snug">
+                        {intel.main_ask || intel.decision_needed}
+                    </p>
+                </section>
+            )}
+
+            {/* Action Items List */}
+            {intel.suggested_action && (
+                <section className="space-y-4">
+                    <div className="flex items-center gap-2">
+                        <Info size={14} className="text-muted-foreground" />
+                        <h3 className="section-label mb-0">Action Items</h3>
+                    </div>
+                    <div className="space-y-2">
+                        {intel.suggested_reply_points.map((point, i) => (
+                            <ActionItemCard
+                                key={i}
+                                title={point}
+                                priority={intel.urgency_score > 70 ? 'do_now' : 'do_today'}
+                                isAIGenerated
+                                onComplete={() => onActionComplete?.(i)}
+                            />
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* Attachment Intelligence */}
+            {intel.attachment_summaries && intel.attachment_summaries.length > 0 && (
+                <section className="space-y-4">
+                    <h3 className="section-label">Attachment Insights</h3>
+                    <div className="space-y-3">
+                        {intel.attachment_summaries.map((att) => (
+                            <AttachmentIntelCard
+                                key={att.attachment_id}
+                                filename={att.attachment_id}
+                                intel={att}
+                                onAskAI={() => onAskAI?.(`Tell me more about ${att.attachment_id}`)}
+                            />
+                        ))}
+                    </div>
+                </section>
             )}
         </div>
     );

@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Mail, Wand2 } from 'lucide-react';
-import { mockThreads } from '@/data/mockData';
+import { mockThreads } from '@/data/threads';
 import { EmailThreadV1 } from '@/types/dashboard';
 
 interface DraftControlsProps {
@@ -30,14 +30,14 @@ export function DraftControls({
     onGenerate
 }: DraftControlsProps) {
     return (
-        <div className="flex flex-col gap-6 p-6 h-full border-r border-border-light bg-surface-card w-full md:w-[380px] shrink-0 overflow-y-auto">
-            <div className="flex items-center gap-3 pb-4 border-b border-border-light">
-                <div className="h-10 w-10 bg-ai/10 rounded-xl flex items-center justify-center text-ai">
-                    <Wand2 className="h-5 w-5" />
+        <div className="flex flex-col gap-4 md:gap-6 p-4 md:p-6 h-full border-r border-border-light bg-surface-card w-full md:w-[380px] shrink-0 overflow-y-auto">
+            <div className="flex items-center gap-3 pb-3 md:pb-4 border-b border-border-light">
+                <div className="h-9 w-9 md:h-10 md:w-10 bg-ai/10 rounded-xl flex items-center justify-center text-ai">
+                    <Wand2 className="h-4 w-4 md:h-5 md:w-5" />
                 </div>
                 <div>
-                    <h2 className="font-display text-xl text-ink font-semibold">Draft Copilot</h2>
-                    <p className="text-xs text-ink-light">AI-powered email replies</p>
+                    <h2 className="font-display text-lg md:text-xl text-ink font-semibold">Draft Copilot</h2>
+                    <p className="text-[10px] md:text-xs text-ink-light font-mono uppercase tracking-wider">AI Assistant</p>
                 </div>
             </div>
 
@@ -64,27 +64,27 @@ export function DraftControls({
                 </div>
 
                 <div className="space-y-3">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground font-mono">Tone & Style</Label>
-                    <RadioGroup value={tone} onValueChange={onToneChange} className="grid grid-cols-1 gap-2">
-                        <label className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${tone === 'brief' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
+                    <Label className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono">Tone & Style</Label>
+                    <RadioGroup value={tone} onValueChange={onToneChange} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-2">
+                        <label className={`flex items-center space-x-3 p-2.5 md:p-3 rounded-lg border cursor-pointer transition-all ${tone === 'brief' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
                             <RadioGroupItem value="brief" id="brief" />
                             <div className="flex flex-col">
-                                <span className="text-sm font-medium text-ink">Brief & Direct</span>
-                                <span className="text-xs text-muted-foreground">Short, to the point</span>
+                                <span className="text-sm font-medium text-ink">Brief</span>
+                                <span className="text-[10px] md:text-xs text-muted-foreground">Short, to the point</span>
                             </div>
                         </label>
-                        <label className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${tone === 'normal' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
+                        <label className={`flex items-center space-x-3 p-2.5 md:p-3 rounded-lg border cursor-pointer transition-all ${tone === 'normal' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
                             <RadioGroupItem value="normal" id="normal" />
                             <div className="flex flex-col">
                                 <span className="text-sm font-medium text-ink">Professional</span>
-                                <span className="text-xs text-muted-foreground">Standard business tone</span>
+                                <span className="text-[10px] md:text-xs text-muted-foreground">Standard tone</span>
                             </div>
                         </label>
-                        <label className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-all ${tone === 'formal' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
+                        <label className={`flex items-center space-x-3 p-2.5 md:p-3 rounded-lg border cursor-pointer transition-all ${tone === 'formal' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
                             <RadioGroupItem value="formal" id="formal" />
                             <div className="flex flex-col">
-                                <span className="text-sm font-medium text-ink">Formal & Polished</span>
-                                <span className="text-xs text-muted-foreground">Respectful, detailed</span>
+                                <span className="text-sm font-medium text-ink">Formal</span>
+                                <span className="text-[10px] md:text-xs text-muted-foreground">Detailed</span>
                             </div>
                         </label>
                     </RadioGroup>
