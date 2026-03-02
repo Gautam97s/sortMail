@@ -5,14 +5,22 @@ import gsap from "gsap";
 import { ArrowRight, Loader2, Shield, Eye, Github, Sparkles } from "lucide-react";
 import Link from "next/link";
 
-import { mockLandingContent } from "@/data/settings";
 import { DynamicIcon } from "@/components/ui/dynamic-icon";
 
 export default function LoginPage() {
     const containerRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState<"google" | "outlook" | "magic" | null>(null);
     const [email, setEmail] = useState("");
-    const content = mockLandingContent;
+
+    const content = {
+        trustIndicators: [
+            { iconName: "Shield", label: "Enterprise Security" },
+            { iconName: "Lock", label: "End-to-End Encrypted" },
+            { iconName: "EyeOff", label: "We Don't Read Your Email" }
+        ],
+        socialProofInitials: ["AM", "JS", "CB", "DK"],
+        trustedUserCount: "12,000+"
+    };
 
     const handleGoogleLogin = async () => {
         try {

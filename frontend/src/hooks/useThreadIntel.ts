@@ -12,13 +12,7 @@ export function useThreadIntel(threadId: string, options: { enabled?: boolean } 
         queryFn: async (): Promise<ThreadIntelV1 | null> => {
             if (!threadId) return null;
 
-            // In a real app, this would be an API call
-            // return await threadsApi.getIntel(threadId);
-
-            // For now, we simulate the logic
-            const response = await threadsApi.getThread(threadId);
-            // Assuming the thread response might include intel or a separate endpoint is used
-            return (response as any).intel || null;
+            return await threadsApi.getIntel(threadId);
         },
         enabled: !!threadId && options.enabled !== false,
         refetchInterval: (data) => {

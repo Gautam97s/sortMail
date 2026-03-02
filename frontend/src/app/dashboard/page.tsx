@@ -7,10 +7,8 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import AppShell from '@/components/layout/AppShell';
-import { mockThreads, getSenderInfo } from '@/data/threads';
-import { mockDashboard } from '@/data/tasks';
 import { useDashboard } from '@/hooks/useDashboard';
-import type { TaskDTOv1, ThreadListItem, EmailThreadV1, PriorityLevel } from '@/types/dashboard';
+import type { TaskDTOv1, ThreadListItem, PriorityLevel } from '@/types/dashboard';
 import {
     Sparkles, Mail, AlertTriangle, CheckSquare, Clock,
     ArrowUpRight, ChevronRight, Zap, FileText, Plus
@@ -178,22 +176,21 @@ function DashboardContent() {
                         <CardContent className="p-0">
                             <ScrollArea className="h-[360px]">
                                 {recent_threads.map((thread: ThreadListItem) => {
-                                    const fullThread = mockThreads.find((t: EmailThreadV1) => t.thread_id === thread.thread_id);
-                                    const lastMsg = fullThread?.messages[fullThread.messages.length - 1];
-                                    const sender = lastMsg ? getSenderInfo(lastMsg.from_address) : { name: 'Unknown', initials: '??' };
+                                    // With the real API, we don't have full threads here, just the list view
+                                    const senderInitials = thread.subject.slice(0, 2).toUpperCase();
 
                                     return (
                                         <Link key={thread.thread_id} href={`/inbox/${thread.thread_id}`}>
                                             <div className="flex items-start gap-4 px-4 md:px-5 py-3 md:py-4 border-b border-border/40 last:border-0 hover:bg-paper-mid/50 transition-colors cursor-pointer group">
                                                 {/* Avatar */}
                                                 <div className="w-9 h-9 rounded-full bg-paper-deep flex items-center justify-center text-[11px] font-bold text-muted shrink-0 border border-border/60">
-                                                    {sender.initials}
+                                                    {senderInitials}
                                                 </div>
 
                                                 {/* Content */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between mb-0.5">
-                                                        <p className="text-sm font-semibold text-ink truncate group-hover:text-accent transition-colors">{sender.name}</p>
+                                                        <p className="text-sm font-semibold text-ink truncate group-hover:text-accent transition-colors">Sender Name</p>
                                                         <span className="text-[10px] font-mono text-muted uppercase tracking-tighter shrink-0 ml-4">
                                                             {new Date(thread.last_updated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                                         </span>

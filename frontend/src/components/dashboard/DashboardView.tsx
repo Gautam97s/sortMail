@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import gsap from 'gsap';
 import { Sparkles, Activity, ArrowRight, Mail, Zap, ChevronRight } from 'lucide-react';
 import { DashboardData, TaskDTOv1, ThreadListItem } from '@/types/dashboard';
-import { mockUserProfile } from '@/data/user';
+import { useUser } from '@/hooks/useUser';
 import Link from 'next/link';
 
 interface DashboardViewProps {
@@ -10,7 +10,7 @@ interface DashboardViewProps {
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ data }) => {
-    const user = mockUserProfile;
+    const { data: user, isLoading: isUserLoading } = useUser();
 
     useEffect(() => {
         const tl = gsap.timeline();
@@ -46,12 +46,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ data }) => {
         <div className="h-full p-8 overflow-y-auto custom-scrollbar bg-paper">
             <div className="dash-header mb-8 flex justify-between items-end">
                 <div>
-                    <h1 className="text-3xl font-display text-ink mb-1">Good Morning, {user.firstName}</h1>
+                    <h1 className="text-3xl font-display text-ink mb-1">
+                        Good Morning, {isUserLoading ? '...' : user?.name?.split(' ')[0] || 'User'}
+                    </h1>
                     <p className="text-ink-light font-mono text-xs uppercase tracking-widest">{briefing.date}</p>
                 </div>
                 <div className="flex gap-2">
                     <span className="text-[10px] font-mono font-bold text-accent uppercase bg-accent/5 px-2 py-1 rounded border border-accent/20">
-                        {user.plan} Active
+                        {user?.plan || 'Free'} Active
                     </span>
                 </div>
             </div>

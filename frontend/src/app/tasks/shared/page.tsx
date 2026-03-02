@@ -20,11 +20,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import AppShell from '@/components/layout/AppShell';
-import { mockTasks } from "@/data/tasks";
-
+import { useTasks } from "@/hooks/useTasks";
 export default function SharedTasksPage() {
     const [filter, setFilter] = useState("all");
-    const tasks = mockTasks;
+    const { data: tasks = [] } = useTasks();
 
     return (
         <AppShell title="Shared Tasks" subtitle="Team-wide action items">
@@ -63,7 +62,7 @@ export default function SharedTasksPage() {
 
                 {/* Tasks List */}
                 <div className="space-y-6">
-                    {tasks.map((task) => (
+                    {tasks.map((task: any) => (
                         <Card key={task.task_id} className="group hover:shadow-xl hover:shadow-accent/5 transition-all border-border-light rounded-3xl overflow-hidden">
                             <CardContent className="p-0">
                                 <div className="flex flex-col sm:flex-row items-stretch">

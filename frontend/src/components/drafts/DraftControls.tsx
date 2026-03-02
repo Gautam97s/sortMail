@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Mail, Wand2 } from 'lucide-react';
-import { mockThreads } from '@/data/threads';
+import { useThreads } from "@/hooks/useThreads";
 import { EmailThreadV1 } from '@/types/dashboard';
 
 interface DraftControlsProps {
@@ -29,6 +29,7 @@ export function DraftControls({
     isGenerating,
     onGenerate
 }: DraftControlsProps) {
+    const { data: threads = [] } = useThreads();
     return (
         <div className="flex flex-col gap-4 md:gap-6 p-4 md:p-6 h-full border-r border-border-light bg-surface-card w-full md:w-[380px] shrink-0 overflow-y-auto">
             <div className="flex items-center gap-3 pb-3 md:pb-4 border-b border-border-light">
@@ -49,7 +50,7 @@ export function DraftControls({
                             <SelectValue placeholder="Choose an email to reply to..." />
                         </SelectTrigger>
                         <SelectContent>
-                            {mockThreads.map((thread: EmailThreadV1) => (
+                            {threads.map((thread: any) => (
                                 <SelectItem key={thread.thread_id} value={thread.thread_id}>
                                     <div className="flex flex-col gap-0.5 max-w-[300px]">
                                         <span className="truncate font-medium">{thread.subject}</span>

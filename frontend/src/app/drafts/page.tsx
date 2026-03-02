@@ -5,7 +5,7 @@ import AppShell from '@/components/layout/AppShell';
 import { DraftControls } from '@/components/drafts/DraftControls';
 import { DraftEditor } from '@/components/drafts/DraftEditor';
 import { useDrafts } from '@/hooks/useDrafts';
-import { mockThreads } from '@/data/threads';
+import { useThreads } from '@/hooks/useThreads';
 import { EmailThreadV1 } from '@/types/dashboard';
 
 export default function DraftsPage() {
@@ -17,6 +17,9 @@ export default function DraftsPage() {
 
     // Fetch draft if a thread is selected
     const { data: activeDraft, isLoading } = useDrafts(selectedThreadId);
+
+    // Live threads data
+    const { data: allThreads = [] } = useThreads();
 
     // Effect to populate content when draft is loaded
     useEffect(() => {
@@ -33,14 +36,14 @@ export default function DraftsPage() {
         setIsGenerating(true);
         // Simulate API generation
         setTimeout(() => {
-            const thread = mockThreads.find(t => t.thread_id === selectedThreadId);
-            const newContent = `Hi ${thread?.participants[0] || 'there'},\n\nThis is a generated draft based on your instructions: "${customInstructions}"\n\nBest,\n[Your Name]`;
+            const thread = allThreads.find(t => t.thread_id === selectedThreadId) as unknown as EmailThreadV1;
+            const newContent = `Hi ${thread?.participants?.[0] || 'there'},\n\nThis is a generated draft based on your instructions: "${customInstructions}"\n\nBest,\n[Your Name]`;
             setGeneratedContent(newContent);
             setIsGenerating(false);
         }, 1500);
     };
 
-    const selectedThread = mockThreads.find((t: EmailThreadV1) => t.thread_id === selectedThreadId) || null;
+    const selectedThread = allThreads.find(t => t.thread_id === selectedThreadId) as unknown as EmailThreadV1 || null;
 
     return (
         <AppShell title="Draft Copilot">

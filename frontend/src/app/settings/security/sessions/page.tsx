@@ -12,10 +12,17 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { mockSessions } from "@/data/settings";
+import { useSettings } from "@/hooks/useSettings";
 
 export default function SessionsPage() {
-    const [sessions, setSessions] = useState(mockSessions);
+    const { data: settings, isLoading } = useSettings();
+    const [sessions, setSessions] = useState<any[]>([]);
+
+    React.useEffect(() => {
+        if (settings?.sessions) {
+            setSessions(settings.sessions);
+        }
+    }, [settings]);
 
     const revokeSession = (id: string) => {
         setSessions(sessions.filter(s => s.id !== id));
@@ -42,6 +49,8 @@ export default function SessionsPage() {
             </div>
 
             <div className="space-y-4">
+                {isLoading && <div className="p-8 text-center text-sm text-muted animate-pulse">Loading active sessions...</div>}
+                {!isLoading && sessions.length === 0 && <div className="p-8 text-center text-sm text-muted">No sessions found.</div>}
                 {sessions.map((session) => (
                     <Card key={session.id} className={session.isCurrent ? "border-primary/20 bg-primary/5" : ""}>
                         <CardContent className="p-6">

@@ -3,11 +3,29 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowLeft, Shield } from "lucide-react";
-import { mockPrivacyPolicy } from "@/data/settings";
 import { DynamicIcon } from "@/components/ui/dynamic-icon";
 
 export default function PrivacyPage() {
-    const content = mockPrivacyPolicy;
+    const content = {
+        title: "Privacy Policy",
+        lastUpdated: "October 10, 2025",
+        sections: [
+            {
+                id: "1",
+                title: "Information We Collect",
+                iconName: "Database",
+                content: "We only collect what we need to make SortMail work for you.",
+                items: ["Email metadata", "Account information", "Usage analytics"]
+            },
+            {
+                id: "2",
+                title: "How We Use Information",
+                iconName: "Activity",
+                content: "Your data is used exclusively to improve your email experience and train your personal AI agent.",
+                items: ["Auto-categorization", "Smart replies", "Priority sorting"]
+            }
+        ]
+    };
 
     return (
         <div className="min-h-screen bg-paper py-20 px-6">

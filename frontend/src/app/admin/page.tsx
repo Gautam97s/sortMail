@@ -26,7 +26,6 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { mockUserProfile } from '@/data/user';
 
 export default function AdminDashboardPage() {
     return (

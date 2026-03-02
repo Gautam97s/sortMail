@@ -4,10 +4,12 @@ import React from "react";
 import Link from "next/link";
 import { AlertCircle, CreditCard, ArrowRight, Zap, CheckCircle2 } from "lucide-react";
 
-import { mockBillingPlan } from "@/data/settings";
 
 export default function BillingExpiredPage() {
-    const plan = mockBillingPlan;
+    const plan = {
+        name: "SortMail Pro",
+        features: ["Unlimited automated drafting", "Custom intelligence rules", "Priority sync queues"]
+    };
 
     return (
         <div className="min-h-screen bg-paper flex items-center justify-center p-6 text-center">

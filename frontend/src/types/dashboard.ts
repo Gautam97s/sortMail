@@ -220,6 +220,17 @@ export interface SenderInfo {
     initials: string;
 }
 
+/** Global authenticated user profile */
+export interface UserProfile {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+    role?: 'user' | 'admin' | string;
+    plan?: 'free' | 'pro' | 'enterprise' | string;
+    credits: number;
+}
+
 // ─── Legacy Compat (for old dashboard components) ────────────
 
 export enum View {

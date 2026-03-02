@@ -13,10 +13,11 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { mockTeamMembers } from "@/data/settings";
+import { useSettings } from "@/hooks/useSettings";
 
 export default function TeamSettingsPage() {
-    const [members] = useState(mockTeamMembers);
+    const { data: settings, isLoading } = useSettings();
+    const members = settings?.teamMembers || [];
 
     return (
         <div className="max-w-5xl space-y-8">
@@ -40,12 +41,16 @@ export default function TeamSettingsPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="divide-y divide-border-light">
-                        {members.map((member) => (
+                        {isLoading ? (
+                            <div className="p-8 text-center text-sm text-muted-foreground animate-pulse">Loading team members...</div>
+                        ) : members.length === 0 ? (
+                            <div className="p-8 text-center text-sm text-muted-foreground">No team members found.</div>
+                        ) : members.map((member: any) => (
                             <div key={member.id} className="py-4 flex items-center justify-between group">
                                 <div className="flex items-center gap-4">
                                     <Avatar className="h-10 w-10 border border-border-light">
                                         <AvatarFallback className="bg-primary/5 text-primary text-sm font-display">
-                                            {member.name.split(" ").map(n => n[0]).join("")}
+                                            {member.name.split(" ").map((n: string) => n[0]).join("")}
                                         </AvatarFallback>
                                     </Avatar>
                                     <div>
