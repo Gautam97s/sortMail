@@ -9,9 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
-import { mockIntegrations } from "@/data/settings";
+import { useSettings } from "@/hooks/useSettings";
 
 export default function IntegrationsSettingsPage() {
+    const { data: settings, isLoading } = useSettings();
+    const integrations = settings?.integrations || [];
     return (
         <div className="max-w-5xl space-y-8">
             <div className="flex justify-between items-end">
@@ -26,7 +28,17 @@ export default function IntegrationsSettingsPage() {
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
-                {mockIntegrations.map((app) => (
+                {isLoading && (
+                    <div className="md:col-span-2 p-8 text-center text-sm text-muted animate-pulse">
+                        Loading available integrations...
+                    </div>
+                )}
+                {!isLoading && integrations.length === 0 && (
+                    <div className="md:col-span-2 p-8 text-center text-sm text-muted">
+                        No integrations found.
+                    </div>
+                )}
+                {integrations.map((app: any) => (
                     <Card key={app.id} className={app.status === 'pro' ? 'opacity-70' : ''}>
                         <CardHeader className="pb-3">
                             <div className="flex justify-between items-start">

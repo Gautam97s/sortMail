@@ -61,14 +61,14 @@ export default function SummaryPanel({ intel, onActionComplete, onAskAI }: Summa
             </section>
 
             {/* Main Ask / Decision Needed */}
-            {(intel.main_ask || intel.decision_needed) && (
+            {intel.suggested_action && (
                 <section className="p-4 rounded-xl bg-accent/5 border border-accent/10 space-y-2">
                     <div className="flex items-center gap-2 text-accent">
                         <Zap size={14} className="fill-accent/20" />
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Crucial Outcome</span>
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider">Suggested Action</span>
                     </div>
                     <p className="text-sm font-medium text-ink leading-snug">
-                        {intel.main_ask || intel.decision_needed}
+                        {intel.suggested_action}
                     </p>
                 </section>
             )}

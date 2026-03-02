@@ -33,7 +33,7 @@ export default function AppShell({ children, title, subtitle }: AppShellProps) {
                 <Topbar
                     title={title}
                     subtitle={subtitle}
-                    onMenuClick={() => setMobileSidebarOpen(true)}
+                    onOpenSidebar={() => setMobileSidebarOpen(true)}
                 />
 
                 <div className="flex-1 overflow-auto p-4 md:p-6">

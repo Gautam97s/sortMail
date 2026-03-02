@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { mockThreads, getSenderInfo } from '@/data/threads';
 import type { EmailMessage, EmailThreadV1, ThreadIntelV1, TaskDTOv1, DraftDTOv1, AttachmentRef, PriorityLevel } from '@/types/dashboard';
 import {
     ArrowLeft, Sparkles, AlertTriangle, Clock, FileText,
@@ -117,6 +116,33 @@ export default function ThreadDetailPage() {
 
 // ─── Message Card ────────────────────────────────────────────
 
+function getSenderInfo(fromAddress: string) {
+    // Expected formats: "John Doe <john@example.com>" or "john@example.com"
+    let name = fromAddress;
+    let email = fromAddress;
+
+    const match = fromAddress.match(/(.*?)<(.+?)>/);
+    if (match) {
+        name = match[1].trim().replace(/^"|"$/g, ''); // Remove surrounding quotes if present
+        email = match[2].trim();
+    }
+
+    // If name is empty after stripping emails, use the prefix of the email
+    if (!name || name === email) {
+        name = email.split('@')[0];
+    }
+
+    const initials = name
+        .split(' ')
+        .map(n => n[0])
+        .filter((_, i, arr) => i === 0 || i === arr.length - 1)
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+
+    return { name, email, initials: initials || '?' };
+}
+
 function MessageCard({ message }: { message: EmailMessage }) {
     const sender = getSenderInfo(message.from_address);
     const [expanded, setExpanded] = useState(true);
@@ -195,19 +221,11 @@ function IntelPanel({ intel }: { intel: ThreadIntelV1 }) {
                     </Badge>
                 </div>
 
-                {/* Main Ask */}
-                {intel.main_ask && (
+                {/* Suggested Action */}
+                {intel.suggested_action && (
                     <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
-                        <p className="text-xs font-mono text-amber-600 uppercase tracking-wider mb-1">Main Ask</p>
-                        <p className="text-sm font-medium">{intel.main_ask}</p>
-                    </div>
-                )}
-
-                {/* Decision Needed */}
-                {intel.decision_needed && (
-                    <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                        <p className="text-xs font-mono text-red-600 uppercase tracking-wider mb-1">Decision Needed</p>
-                        <p className="text-sm font-medium">{intel.decision_needed}</p>
+                        <p className="text-xs font-mono text-amber-600 uppercase tracking-wider mb-1">Suggested Action</p>
+                        <p className="text-sm font-medium">{intel.suggested_action}</p>
                     </div>
                 )}
 

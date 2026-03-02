@@ -1,19 +1,26 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sliders, Plus, Play, Pause, Trash2, Edit2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 
-import { mockRules } from "@/data/settings";
+import { useSettings } from "@/hooks/useSettings";
 
 export default function RulesSettingsPage() {
-    const [rules, setRules] = useState(mockRules);
+    const { data: settings, isLoading } = useSettings();
+    const [rules, setRules] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (settings?.rules) {
+            setRules(settings.rules);
+        }
+    }, [settings]);
 
     const toggleRule = (id: string) => {
-        setRules(rules.map(r => r.id === id ? { ...r, active: !r.active } : r));
+        setRules(rules.map(r => r.id === id ? { ...r, isActive: !r.isActive } : r));
     };
 
     return (
@@ -30,28 +37,30 @@ export default function RulesSettingsPage() {
             </div>
 
             <div className="space-y-4">
+                {isLoading && <div className="p-8 text-center text-sm text-muted animate-pulse">Loading rules...</div>}
+                {!isLoading && rules.length === 0 && <div className="p-8 text-center text-sm text-muted">No rules configured.</div>}
                 {rules.map((rule) => (
-                    <Card key={rule.id} className={`${!rule.active ? 'opacity-70' : ''} transition-opacity`}>
+                    <Card key={rule.id} className={`${!rule.isActive ? 'opacity-70' : ''} transition-opacity`}>
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-3">
                                         <h3 className="font-semibold text-ink">{rule.name}</h3>
-                                        <Badge variant={rule.active ? "secondary" : "outline"} className="text-[10px] h-4">
-                                            {rule.active ? "Active" : "Paused"}
+                                        <Badge variant={rule.isActive ? "secondary" : "outline"} className="text-[10px] h-4">
+                                            {rule.isActive ? "Active" : "Paused"}
                                         </Badge>
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-ink-light">
                                         <Zap className="w-3 h-3 text-accent" />
-                                        <span>If {rule.trigger}</span>
+                                        <span>If {rule.condition}</span>
                                         <span className="text-border mx-1">|</span>
-                                        <span>Then {rule.action}</span>
+                                        <span>Then {rule.actions?.join(', ') || 'None'}</span>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-3">
                                     <Switch
-                                        checked={rule.active}
+                                        checked={rule.isActive}
                                         onCheckedChange={() => toggleRule(rule.id)}
                                     />
                                     <div className="w-[1px] h-8 bg-border ml-2 mr-1" />

@@ -15,13 +15,33 @@ import {
     Sparkles,
     type LucideIcon
 } from "lucide-react";
-import { mockHelpCategories } from "@/data/help";
 import { DynamicIcon } from "@/components/ui/dynamic-icon";
 
 // Removed manual ICON_MAP in favor of DynamicIcon
 
 export default function HelpCenterPage() {
     const [searchQuery, setSearchQuery] = useState("");
+
+    const mockHelpCategories = [
+        {
+            title: "Getting Started",
+            iconName: "Compass",
+            description: "Learn how to connect your accounts and set up SortMail.",
+            articles: [
+                { slug: "quickstart", title: "Quickstart Guide" },
+                { slug: "adding-accounts", title: "Adding Email Accounts" }
+            ]
+        },
+        {
+            title: "Security & Privacy",
+            iconName: "Shield",
+            description: "How we protect your data.",
+            articles: [
+                { slug: "privacy-policy", title: "Data Handling" },
+                { slug: "oauth-scopes", title: "OAuth Scopes Explained" }
+            ]
+        }
+    ];
 
     return (
         <div className="min-h-screen bg-paper">

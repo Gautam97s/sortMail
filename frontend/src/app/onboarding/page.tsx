@@ -9,14 +9,23 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import gsap from "gsap";
 
-import { mockOnboardingSteps, mockOnboardingTips } from "@/data/settings";
 import { DynamicIcon } from "@/components/ui/dynamic-icon";
 
 export default function OnboardingPage() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(1);
-    const steps = mockOnboardingSteps;
-    const tips = mockOnboardingTips;
+
+    const steps = [
+        { id: 1, title: "Connect", iconName: "Mail" },
+        { id: 2, title: "Personalize", iconName: "Settings" },
+        { id: 3, title: "Launch", iconName: "Rocket" }
+    ];
+
+    const tips = [
+        { title: "Inbox Scanning", description: "SortMail is learning your email habits." },
+        { title: "Smart Rules", description: "Your first automated filters are being built." }
+    ];
+
     const [preferences, setPreferences] = useState({
         aiTone: "normal",
         autoDraft: true,

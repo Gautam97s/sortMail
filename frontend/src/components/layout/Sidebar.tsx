@@ -19,9 +19,23 @@ import {
     LifeBuoy,
     Share2,
     Zap,
-    ShieldCheck
+    ShieldCheck,
+    HelpCircle,
+    FileText,
+    ChevronUp,
+    Bell,
+    Sun,
+    MoreHorizontal,
+    FileSearch,
+    Sparkles,
+    FolderOpen
 } from "lucide-react";
-import { mockUserProfile, mockNavCounts, mockAppStatus } from "@/data/user";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuGroup } from "@/components/ui/dropdown-menu";
+import { useUser } from "@/hooks/useUser";
 
 interface SidebarProps {
     collapsed?: boolean;
@@ -32,9 +46,9 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed = false, onToggle, isOpen = false, onClose }: SidebarProps) {
     const pathname = usePathname();
-    const user = mockUserProfile;
-    const counts = mockNavCounts;
-    const status = mockAppStatus;
+    const { data: user, isLoading: isUserLoading } = useUser();
+    const counts = { inbox: 0, drafts: 0, actions: 0, tasks: 0, followups: 0 };
+    const status = { state: "online", lastSync: "Just now", activeRules: 0, tasksCompleted: 0, isOnline: true };
 
     const navItems = [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -160,13 +174,12 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
                 {/* User Profile & Sign Out */}
                 {!collapsed && (
                     <div className="mt-4 pt-4 border-t border-border flex items-center gap-3 px-1">
-                        <div className="w-8 h-8 rounded-full bg-paper-deep border border-border shrink-0 relative">
-                            {/* Avatar placeholder */}
-                            <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-ink/80">{user.initials}</div>
-                        </div>
+                        <Avatar className="h-8 w-8 ring-1 ring-border shadow-sm">
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                        </Avatar>
                         <div className="flex-1 min-w-0">
-                            <div className="text-[12px] font-bold text-ink truncate">{user.firstName} {user.lastName}</div>
-                            <div className="text-[10px] text-muted truncate">{user.plan} Plan</div>
+                            <div className="text-[12px] font-bold text-ink truncate">{user?.name}</div>
+                            <div className="text-[10px] text-muted truncate">{user?.plan} Plan</div>
                         </div>
                         <button className="text-muted/60 hover:text-danger transition-colors" title="Sign Out">
                             <LogOut size={14} />

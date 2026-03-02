@@ -8,10 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
-import { mockDeveloperSettings } from "@/data/settings";
-
 export default function DeveloperSettingsPage() {
-    const [apiKey] = useState(mockDeveloperSettings.apiKey);
+    const [apiKey] = useState("sk_live_51P2u_example_key_12345");
     const [copied, setCopied] = useState(false);
 
     const handleCopy = () => {

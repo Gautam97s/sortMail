@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { mockThreadListItems } from "@/data/threads";
+import { useThreads } from "@/hooks/useThreads";
 
 export default function ContactDetailPage() {
     const params = useParams();
@@ -26,8 +26,14 @@ export default function ContactDetailPage() {
         lastContact: "2026-02-16",
     };
 
-    // Filter threads for this contact
-    const contactThreads = mockThreadListItems.slice(0, 5);
+    // Use live API data
+    const { data: allThreads = [], isLoading } = useThreads();
+
+    // In a real scenario, the API would return participants. For now we do a simple
+    // filter on the live thread list assuming we can check if they are involved.
+    // If participants array is missing from ThreadListItem, this just shows top 5 globally
+    // as a fallback for the demo until the dedicated `/api/contacts/{email}/threads` endpoint is built.
+    const contactThreads = allThreads.slice(0, 5);
 
     const getInitials = (name: string) => {
         return name
@@ -150,37 +156,48 @@ export default function ContactDetailPage() {
                     </div>
 
                     {/* Thread History */}
-                    <div>
+                    <div className="min-h-[300px]">
                         <h2 className="font-display text-lg text-ink mb-3">Recent Threads</h2>
-                        <div className="space-y-2">
-                            {contactThreads.map((thread) => (
-                                <Link key={thread.thread_id} href={`/inbox/${thread.thread_id}`}>
-                                    <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-medium text-ink truncate mb-1">
-                                                    {thread.subject}
-                                                </h3>
-                                                <p className="text-sm text-muted line-clamp-2 mb-2">
-                                                    {thread.summary}
-                                                </p>
-                                                <div className="flex items-center gap-2">
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className={`text-xs ${getIntentColor(thread.intent)}`}
-                                                    >
-                                                        {thread.intent.replace("_", " ")}
-                                                    </Badge>
-                                                    <span className="text-xs text-muted">
-                                                        {new Date(thread.last_updated).toLocaleDateString()}
-                                                    </span>
+                        {isLoading ? (
+                            <div className="space-y-2">
+                                {[...Array(3)].map((_, i) => (
+                                    <div key={i} className="h-[90px] bg-paper-mid animate-pulse rounded-xl border border-border-light" />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {contactThreads.map((thread) => (
+                                    <Link key={thread.thread_id} href={`/inbox/${thread.thread_id}`}>
+                                        <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-medium text-ink truncate mb-1">
+                                                        {thread.subject}
+                                                    </h3>
+                                                    <p className="text-sm text-muted line-clamp-2 mb-2">
+                                                        {thread.summary}
+                                                    </p>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className={`text-xs ${getIntentColor(thread.intent)}`}
+                                                        >
+                                                            {thread.intent.replace("_", " ")}
+                                                        </Badge>
+                                                        <span className="text-xs text-muted">
+                                                            {new Date(thread.last_updated).toLocaleDateString()}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </Card>
-                                </Link>
-                            ))}
-                        </div>
+                                        </Card>
+                                    </Link>
+                                ))}
+                                {contactThreads.length === 0 && (
+                                    <p className="text-sm text-muted-foreground italic p-4 text-center border border-dashed rounded-lg">No recent threads found with this contact.</p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

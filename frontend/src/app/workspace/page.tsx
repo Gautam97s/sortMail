@@ -19,9 +19,11 @@ import {
     Globe,
     Lock
 } from "lucide-react";
-import { mockTeamMembers } from "@/data/settings";
+import { useSettings } from "@/hooks/useSettings";
 
 export default function WorkspacePage() {
+    const { data: settings, isLoading } = useSettings();
+    const members = settings?.teamMembers || [];
     return (
         <AppShell title="Workspace" subtitle="Team Management">
             <div className="max-w-6xl mx-auto space-y-8 pb-20">
@@ -31,7 +33,7 @@ export default function WorkspacePage() {
                     <StatCard
                         icon={<Users className="text-accent" />}
                         label="Active Members"
-                        value={mockTeamMembers.filter(m => m.status === 'Active').length.toString()}
+                        value={members.filter((m: any) => m.status === 'Active').length.toString()}
                         suffix="/ 50"
                     />
                     <StatCard
@@ -67,13 +69,14 @@ export default function WorkspacePage() {
                             <Card>
                                 <CardContent className="p-0">
                                     <div className="divide-y divide-border">
-                                        {mockTeamMembers.map((member) => (
+                                        {isLoading && <div className="p-6 text-center text-sm text-muted animate-pulse">Loading members...</div>}
+                                        {!isLoading && members.map((member: any) => (
                                             <div key={member.id} className="flex items-center justify-between p-6 hover:bg-paper-mid transition-colors group">
                                                 <div className="flex items-center gap-4">
                                                     <Avatar className="h-12 w-12 border border-border-light shadow-sm">
                                                         {member.picture && <AvatarImage src={member.picture} />}
                                                         <AvatarFallback className="bg-paper text-ink font-bold">
-                                                            {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                                            {member.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div>

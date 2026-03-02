@@ -13,12 +13,28 @@ import {
     Search,
     LifeBuoy
 } from "lucide-react";
-import { mockHelpArticles } from "@/data/help";
 import { notFound } from "next/navigation";
 
 export default function HelpArticlePage() {
     const params = useParams();
     const slug = params.articleSlug as string;
+
+    const mockHelpArticles: Record<string, any> = {
+        "quickstart": {
+            title: "Quickstart Guide",
+            categoryTitle: "Getting Started",
+            readTime: "5 min read",
+            lastUpdated: "October 12, 2025",
+            content: "<h2>Welcome to SortMail</h2><p>Here is how you get started connecting your inbox.</p>"
+        },
+        "privacy-policy": {
+            title: "Data Handling",
+            categoryTitle: "Security & Privacy",
+            readTime: "3 min read",
+            lastUpdated: "October 10, 2025",
+            content: "<h2>Privacy First</h2><p>We do not train our public data sets using your personal emails.</p>"
+        }
+    };
 
     const article = mockHelpArticles[slug];
 

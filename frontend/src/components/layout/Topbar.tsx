@@ -3,23 +3,23 @@
 import React from "react";
 import { Search, Bell, User, Menu } from "lucide-react";
 import Link from "next/link";
-import { mockUserProfile } from "@/data/user";
+import { useUser } from "@/hooks/useUser";
 
 interface TopbarProps {
     title: string;
     subtitle?: string;
-    onMenuClick?: () => void;
+    onOpenSidebar?: () => void;
 }
 
-export default function Topbar({ title, subtitle, onMenuClick }: TopbarProps) {
-    const user = mockUserProfile;
+export default function Topbar({ title, subtitle, onOpenSidebar }: TopbarProps) {
+    const { data: user, isLoading: isUserLoading } = useUser();
 
     return (
         <header className="h-[56px] border-b border-border bg-white flex items-center px-4 md:px-6 justify-between sticky top-0 z-10">
             <div className="flex items-center gap-3">
-                {onMenuClick && (
+                {onOpenSidebar && (
                     <button
-                        onClick={onMenuClick}
+                        onClick={onOpenSidebar}
                         className="btn-ghost p-2 md:hidden"
                         title="Open Menu"
                     >
@@ -54,7 +54,7 @@ export default function Topbar({ title, subtitle, onMenuClick }: TopbarProps) {
                 {/* Avatar */}
                 <Link href="/settings">
                     <div className="w-8 h-8 rounded-full bg-paper-deep flex items-center justify-center border border-border-light cursor-pointer hover:border-ink-light transition-colors">
-                        <span className="text-[10px] font-bold text-ink-light">{user.initials}</span>
+                        <span className="text-[10px] font-bold text-ink-light">{user?.name?.charAt(0) || 'U'}</span>
                     </div>
                 </Link>
             </div>

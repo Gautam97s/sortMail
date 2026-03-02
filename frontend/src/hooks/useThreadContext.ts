@@ -21,27 +21,57 @@ export function useThreadContext(threadId: string) {
 
         // Simulate AI response based on thread context
         try {
-            // In a real app, this would be an API call like:
-            // const response = await aiApi.chat(threadId, content, messages);
+            const apiRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/ai/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    thread_id: threadId,
+                    query: content,
+                    options: { use_attachments: true },
+                    history: messages.map(m => ({ role: m.role === 'user' ? 'user' : 'model', parts: [m.content] }))
+                })
+            });
 
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            if (!apiRes.ok) throw new Error('Failed to connect to AI');
 
-            let aiResponse = "I'm analyzing the thread context...";
-            if (intel) {
-                if (content.toLowerCase().includes('summary')) {
-                    aiResponse = `According to my analysis: ${intel.summary}`;
-                } else if (content.toLowerCase().includes('task') || content.toLowerCase().includes('action')) {
-                    aiResponse = `The main asks from this thread are: ${intel.main_ask || 'Not explicitly stated, but I suggest focusing on the latest reply.'}`;
-                } else {
-                    aiResponse = `I see this thread is about "${intel.intent}". Based on the summary, ${intel.summary.slice(0, 100)}... How else can I help?`;
+            // Add an empty assistant message to stream into
+            setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+            setIsTyping(false);
+
+            const reader = apiRes.body?.getReader();
+            const decoder = new TextDecoder();
+
+            if (reader) {
+                let done = false;
+                while (!done) {
+                    const { value, done: readerDone } = await reader.read();
+                    done = readerDone;
+                    if (value) {
+                        const chunkStr = decoder.decode(value, { stream: true });
+                        const lines = chunkStr.split('\n');
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const data = JSON.parse(line.slice(5));
+                                    if (data.token) {
+                                        setMessages(prev => {
+                                            const newMsgs = [...prev];
+                                            const last = newMsgs[newMsgs.length - 1];
+                                            last.content += data.token;
+                                            return newMsgs;
+                                        });
+                                    }
+                                } catch (e) {
+                                    // ignore parse errors for split chunks
+                                }
+                            }
+                        }
+                    }
                 }
             }
-
-            setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
         } catch (error) {
             console.error('AI Chat Error:', error);
             setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I'm having trouble connecting to the AI intelligence layer right now." }]);
-        } finally {
             setIsTyping(false);
         }
     }, [intel]);

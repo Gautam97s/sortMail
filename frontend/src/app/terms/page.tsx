@@ -3,11 +3,28 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowLeft, Gavel } from "lucide-react";
-import { mockTermsOfService } from "@/data/settings";
 import { DynamicIcon } from "@/components/ui/dynamic-icon";
 
 export default function TermsPage() {
-    const content = mockTermsOfService;
+    const content = {
+        title: "Terms of Service",
+        lastUpdated: "October 10, 2025",
+        sections: [
+            {
+                id: "1",
+                title: "Acceptance of Terms",
+                iconName: "CheckCircle",
+                content: "By using SortMail, you agree to these terms. If you reside in the EU, additional provisions apply.",
+            },
+            {
+                id: "2",
+                title: "User Responsibilities",
+                iconName: "User",
+                content: "You are responsible for maintaining the security of your account and the data you connect.",
+                items: ["Do not share credentials", "Use strong passwords", "Report unauthorized access"]
+            }
+        ]
+    };
 
     return (
         <div className="min-h-screen bg-paper py-20 px-6">
