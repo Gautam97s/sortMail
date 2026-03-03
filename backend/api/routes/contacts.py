@@ -101,18 +101,18 @@ async def list_contact_threads(
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found")
         
-    # Standard array search logic for participants
-    # Note: Using .any() for SQLAlchemy ARRAY types
     from models.thread import Thread
-    from sqlalchemy import func
+    from models.email import Email
     
-    # Simple array contains query
+    # Refined query: Threads where the contact is the SENDER of at least one message
     stmt = (
         select(Thread)
+        .join(Email, Email.thread_id == Thread.id)
         .where(
             Thread.user_id == current_user.id,
-            Thread.participants.any(contact.email_address)
+            Email.sender == contact.email_address
         )
+        .distinct()
         .order_by(desc(Thread.last_email_at))
         .limit(50)
     )
