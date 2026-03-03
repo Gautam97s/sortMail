@@ -16,5 +16,6 @@ export function mapThreadToListItem(backendData: any): ThreadListItem {
         has_attachments: backendData.has_attachments || false,
         last_updated: backendData.last_updated || new Date().toISOString(),
         is_read: backendData.is_read || false,
+        participants: backendData.participants || [],
     };
 }

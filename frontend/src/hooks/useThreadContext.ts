@@ -74,7 +74,7 @@ export function useThreadContext(threadId: string) {
             setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I'm having trouble connecting to the AI intelligence layer right now." }]);
             setIsTyping(false);
         }
-    }, [intel]);
+    }, [messages, threadId]);
 
     const clearChat = useCallback(() => {
         setMessages([]);
