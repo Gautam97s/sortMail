@@ -20,8 +20,16 @@ class VectorStore:
         
     async def initialize(self):
         """Initialize Chroma client."""
+        if not settings.CHROMA_API_KEY or not settings.CHROMA_TENANT:
+            logger.warning("ChromaDB not configured (missing CHROMA_API_KEY or CHROMA_TENANT). Skipping vector store init.")
+            return
+            
         try:
             import chromadb
+            
+            # Diagnostic log — helps confirm env vars are loaded correctly on Railway
+            key_preview = settings.CHROMA_API_KEY[:8] + "..." if settings.CHROMA_API_KEY else "MISSING"
+            logger.info(f"Connecting to ChromaDB Cloud: tenant={settings.CHROMA_TENANT} db={settings.CHROMA_DATABASE} key={key_preview}")
             
             # Initialize synchronously in a thread
             def _init_chroma():
@@ -33,7 +41,7 @@ class VectorStore:
                 return client, client.get_or_create_collection(name="my_collection")
                 
             self._client, self._collection = await asyncio.to_thread(_init_chroma)
-            logger.info("ChromaDB Cloud Client initialized.")
+            logger.info("ChromaDB Cloud Client initialized successfully.")
             
         except Exception as e:
             logger.error(f"Failed to initialize Chroma Cloud DB: {e}")
