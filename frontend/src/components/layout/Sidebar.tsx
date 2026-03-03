@@ -28,7 +28,8 @@ import {
     MoreHorizontal,
     FileSearch,
     Sparkles,
-    FolderOpen
+    FolderOpen,
+    Tag
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
@@ -57,6 +58,7 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
         { label: "Contacts", href: "/contacts", icon: Users },
         { label: "Tasks", href: "/tasks", icon: CheckSquare, badge: counts.tasks },
         { label: "Drafts", href: "/drafts", icon: FileEdit },
+        { label: "Tags", href: "/tags", icon: Tag },
         { label: "Follow-ups", href: "/followups", icon: Clock, badge: counts.followups },
         { label: "Calendar", href: "/calendar", icon: Calendar },
     ];
