@@ -48,7 +48,7 @@ class Draft(Base):
     reply_to_email_id = Column(String, ForeignKey("emails.id"), nullable=True)
     
     # Draft content
-    tone = Column(Enum(DraftTone), default=DraftTone.PROFESSIONAL, nullable=False)
+    tone = Column(Enum(DraftTone, native_enum=False, length=50), default=DraftTone.PROFESSIONAL, nullable=False)
     custom_instructions = Column(Text, nullable=True)
     subject = Column(String, nullable=False)
     body = Column(Text, nullable=False)
@@ -57,13 +57,13 @@ class Draft(Base):
     tokens_used = Column(Integer, nullable=True)
     cost_cents = Column(Integer, nullable=True)
     
-    status = Column(Enum(DraftStatus), default=DraftStatus.GENERATED, nullable=False)
+    status = Column(Enum(DraftStatus, native_enum=False, length=50), default=DraftStatus.GENERATED, nullable=False)
     user_edited = Column(Boolean, default=False)
     
     copied_at = Column(DateTime(timezone=True), nullable=True)
     sent_at = Column(DateTime(timezone=True), nullable=True)
     
-    feedback = Column(Enum(DraftFeedback), nullable=True)
+    feedback = Column(Enum(DraftFeedback, native_enum=False, length=50), nullable=True)
     feedback_comment = Column(Text, nullable=True)
     
     metadata_json = Column(JSONB, default=dict)
