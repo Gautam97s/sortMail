@@ -50,6 +50,8 @@ Respond ONLY with this JSON structure:
   "follow_up_needed": true,
   "reply_deadline": "YYYY-MM-DD or null",
   "topics": ["budget", "contract", "hiring"],
+  "tags": ["Invoice", "Meeting", "Newsletter"],
+  "suggested_draft": "Draft a concise, professional reply if response needed. Otherwise null.",
   "meeting_detected": {{
     "has_meeting": true,
     "date": "YYYY-MM-DD or null",
@@ -168,6 +170,8 @@ def _fallback_intel(subject: str, thread_id: str) -> dict:
         "follow_up_needed": False,
         "reply_deadline": None,
         "topics": [],
+        "tags": [],
+        "suggested_draft": None,
         "meeting_detected": {"has_meeting": False},
         "model": "fallback",
     }

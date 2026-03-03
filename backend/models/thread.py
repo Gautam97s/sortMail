@@ -8,9 +8,11 @@ import uuid
 from datetime import datetime, timezone
 from sqlalchemy import Column, String, DateTime, Integer, Text, ForeignKey, Boolean, Enum, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
+from sqlalchemy.orm import relationship
 import enum
 
 from core.storage.database import Base
+from models.tag import thread_tags
 
 class IntelStatus(str, enum.Enum):
     PENDING = "pending"
@@ -49,6 +51,9 @@ class Thread(Base):
     intel_generated_at = Column(DateTime(timezone=True))
     rag_embedded_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    
+    # Relationships
+    tags = relationship("Tag", secondary=thread_tags, back_populates="threads")
 
 
 class Message(Base):

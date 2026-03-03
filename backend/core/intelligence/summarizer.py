@@ -62,3 +62,12 @@ def extract_suggested_action(intel_json: dict) -> Optional[str]:
     elif intent in ("newsletter", "social"):
         return None  # No action needed
     return None
+
+def extract_suggested_draft(intel_json: dict) -> Optional[str]:
+    """
+    Extract the AI's suggested draft reply.
+    """
+    draft = intel_json.get("suggested_draft")
+    if draft and draft.lower() not in ("null", "none"):
+        return draft.strip()
+    return None

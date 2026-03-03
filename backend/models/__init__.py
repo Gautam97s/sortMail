@@ -11,6 +11,8 @@ from .reminder import Reminder
 from .vip_domain import VIPDomain
 from .calendar_suggestion import CalendarSuggestion
 from .credits import UserCredits, CreditTransaction, CreditPricing, CreditPackage
+from .contact import Contact
+from .tag import Tag, thread_tags
 
 __all__ = [
     # Users & Auth
@@ -41,4 +43,8 @@ __all__ = [
     "CreditTransaction",
     "CreditPricing",
     "CreditPackage",
+    # CRM & Categorization
+    "Contact",
+    "Tag",
+    "thread_tags",
 ]
