@@ -103,14 +103,21 @@ async def list_contact_threads(
         
     from models.thread import Thread
     from models.email import Email
+    from sqlalchemy import or_, cast, String
     
-    # Refined query: Threads where the contact is the SENDER of at least one message
+    # Refined query: Threads where the contact is either the SENDER 
+    # OR a RECIPIENT. This is necessary for system/alias emails (like GitHub)
+    # where the contact email address often appears in the To/CC headers 
+    # while the technical sender is a generic notification address.
     stmt = (
         select(Thread)
         .join(Email, Email.thread_id == Thread.id)
         .where(
             Thread.user_id == current_user.id,
-            Email.sender.ilike(f"%{contact.email_address}%")
+            or_(
+                Email.sender.ilike(f"%{contact.email_address}%"),
+                cast(Email.recipients, String).ilike(f"%{contact.email_address}%")
+            )
         )
         .distinct()
         .order_by(desc(Thread.last_email_at))
