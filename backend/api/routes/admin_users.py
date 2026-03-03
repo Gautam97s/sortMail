@@ -183,28 +183,3 @@ async def toggle_superuser(
     return {"user_id": user_id, "is_superuser": user.is_superuser}
 
 
-@router.post("/credits/adjust")
-async def adjust_credits(
-    body: CreditAdjustRequest,
-    admin: User = Depends(require_superuser),
-    db: AsyncSession = Depends(get_db),
-):
-    """Manually add or deduct credits from a user (admin)."""
-    # Verify user exists
-    stmt = select(User.id).where(User.id == body.user_id)
-    if not (await db.execute(stmt)).scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="User not found")
-        
-    try:
-        new_balance = await CreditService.add_credits(
-            db,
-            body.user_id,
-            body.amount,
-            TransactionType.ADMIN_ADJUSTMENT,
-            metadata={"reason": body.reason, "admin_id": admin.id},
-        )
-        await db.commit()
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-        
-    return {"success": True, "new_balance": new_balance, "user_id": body.user_id}
