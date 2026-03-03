@@ -9,6 +9,29 @@ export const api = axios.create({
     headers: { 'Content-Type': 'application/json' },
 });
 
+// Intercept 401 Unauthorized globally to boot unauthenticated users to the login screen
+if (typeof window !== 'undefined') {
+    api.interceptors.response.use(
+        (response) => response,
+        (error) => {
+            if (error.response?.status === 401) {
+                // Prevent infinite redirect loops on public paths
+                const publicPaths = [
+                    '/login', '/privacy', '/terms', '/onboarding', '/help',
+                    '/callback', '/magic-link-sent', '/verify', '/reset-password'
+                ];
+                const currentPath = window.location.pathname;
+
+                if (!publicPaths.some(path => currentPath.startsWith(path)) && currentPath !== '/') {
+                    window.location.href = '/login';
+                }
+            }
+            return Promise.reject(error);
+        }
+    );
+}
+
+
 export const endpoints = {
     dashboard: '/api/dashboard',
     threads: '/api/threads',
