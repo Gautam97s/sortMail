@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { api, endpoints } from '@/lib/api';
 import { ThreadListItem } from '@/types/dashboard';
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
 
 export function useThreads(filter?: string) {
     return useQuery({

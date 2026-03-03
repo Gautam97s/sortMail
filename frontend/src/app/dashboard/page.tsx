@@ -176,8 +176,8 @@ function DashboardContent() {
                         <CardContent className="p-0">
                             <ScrollArea className="h-[360px]">
                                 {recent_threads.map((thread: ThreadListItem) => {
-                                    // With the real API, we don't have full threads here, just the list view
-                                    const senderInitials = thread.subject.slice(0, 2).toUpperCase();
+                                    const sender = thread.participants?.[0] || 'Unknown';
+                                    const senderInitials = sender.split(/[.@\s]/).map((p: string) => p[0]).join("").toUpperCase().slice(0, 2);
 
                                     return (
                                         <Link key={thread.thread_id} href={`/inbox/${thread.thread_id}`}>
@@ -190,7 +190,9 @@ function DashboardContent() {
                                                 {/* Content */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between mb-0.5">
-                                                        <p className="text-sm font-semibold text-ink truncate group-hover:text-accent transition-colors">Sender Name</p>
+                                                        <p className="text-sm font-semibold text-ink truncate group-hover:text-accent transition-colors">
+                                                            {thread.participants?.[0]?.split('@')[0] || "Unknown"}
+                                                        </p>
                                                         <span className="text-[10px] font-mono text-muted uppercase tracking-tighter shrink-0 ml-4">
                                                             {new Date(thread.last_updated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                                         </span>

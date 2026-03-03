@@ -53,6 +53,84 @@ async def list_contacts(
         })
     return result
 
+@router.get("/by-email/{email}", response_model=ContactResponse)
+async def get_contact_by_email(
+    email: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get a single contact by email address."""
+    stmt = select(Contact).where(Contact.email_address == email, Contact.user_id == current_user.id)
+    contact = (await db.execute(stmt)).scalars().first()
+    
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+        
+    return {
+        "id": contact.id,
+        "email_address": contact.email_address,
+        "name": contact.name,
+        "company": contact.company,
+        "interaction_count": contact.interaction_count,
+        "is_unsubscribed": contact.is_unsubscribed,
+        "is_vip": contact.is_vip,
+        "last_interaction_at": contact.last_interaction_at.isoformat() if contact.last_interaction_at else None
+    }
+
+from datetime import datetime
+class ThreadListItemMeta(BaseModel):
+    thread_id: str
+    subject: str
+    summary: str
+    intent: str
+    urgency_score: int
+    last_updated: datetime
+    has_attachments: bool
+
+@router.get("/{contact_id}/threads", response_model=list[ThreadListItemMeta])
+async def list_contact_threads(
+    contact_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List threads for a specific contact."""
+    # First get the contact to get the email
+    stmt = select(Contact).where(Contact.id == contact_id, Contact.user_id == current_user.id)
+    contact = (await db.execute(stmt)).scalars().first()
+    
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+        
+    # Standard array search logic for participants
+    # Note: Using .any() for SQLAlchemy ARRAY types
+    from models.thread import Thread
+    from sqlalchemy import func
+    
+    # Simple array contains query
+    stmt = (
+        select(Thread)
+        .where(
+            Thread.user_id == current_user.id,
+            Thread.participants.any(contact.email_address)
+        )
+        .order_by(desc(Thread.last_email_at))
+        .limit(50)
+    )
+    threads = (await db.execute(stmt)).scalars().all()
+    
+    return [
+        ThreadListItemMeta(
+            thread_id=t.id,
+            subject=t.subject or "(No Subject)",
+            summary=t.summary or "",
+            intent=t.intent or "neutral",
+            urgency_score=t.urgency_score or 0,
+            last_updated=t.last_email_at or t.created_at,
+            has_attachments=t.has_attachments or False
+        )
+        for t in threads
+    ]
+
 @router.post("/{contact_id}/unsubscribe")
 async def toggle_unsubscribe(
     contact_id: str,

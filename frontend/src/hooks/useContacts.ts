@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, endpoints } from '@/lib/api';
-import { Contact } from '@/types/dashboard';
+import { Contact, ThreadListItem } from '@/types/dashboard';
 
 export function useContacts() {
     return useQuery<Contact[]>({
@@ -9,6 +9,30 @@ export function useContacts() {
             const { data } = await api.get(endpoints.contacts);
             return data;
         },
+        staleTime: 1000 * 60 * 5,
+    });
+}
+
+export function useContact(email: string) {
+    return useQuery<Contact>({
+        queryKey: ['contact', email],
+        queryFn: async () => {
+            const { data } = await api.get(endpoints.contactByEmail(email));
+            return data;
+        },
+        enabled: !!email,
+        staleTime: 1000 * 60 * 10,
+    });
+}
+
+export function useContactThreads(contactId: string) {
+    return useQuery<ThreadListItem[]>({
+        queryKey: ['contact-threads', contactId],
+        queryFn: async () => {
+            const { data } = await api.get(endpoints.contactThreads(contactId));
+            return data;
+        },
+        enabled: !!contactId,
         staleTime: 1000 * 60 * 5,
     });
 }

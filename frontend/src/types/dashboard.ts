@@ -190,6 +190,7 @@ export interface ThreadListItem {
     has_attachments: boolean;
     days_waiting: number;
     is_read: boolean;
+    participants: string[];
 }
 
 /** Dashboard aggregate (to be added as backend endpoint) */
