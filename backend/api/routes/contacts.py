@@ -1,4 +1,5 @@
 import logging
+import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
@@ -6,12 +7,22 @@ from sqlalchemy import select, desc
 from core.storage.database import get_db
 from models.user import User
 from models.contact import Contact
+from models.tag import Tag
 from api.dependencies import get_current_user
 from pydantic import BaseModel
+from sqlalchemy.orm import selectinload
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+class TagResponse(BaseModel):
+    id: str
+    name: str
+    color_hex: str
+
+    class Config:
+        from_attributes = True
 
 class ContactResponse(BaseModel):
     id: str
@@ -22,6 +33,7 @@ class ContactResponse(BaseModel):
     is_unsubscribed: bool
     is_vip: bool
     last_interaction_at: str | None
+    tags: list[TagResponse] = []
 
     class Config:
         from_attributes = True
@@ -35,6 +47,7 @@ async def list_contacts(
     stmt = (
         select(Contact)
         .where(Contact.user_id == current_user.id)
+        .options(selectinload(Contact.tags))
         .order_by(desc(Contact.interaction_count))
     )
     contacts = (await db.execute(stmt)).scalars().all()
@@ -49,7 +62,8 @@ async def list_contacts(
             "interaction_count": c.interaction_count,
             "is_unsubscribed": c.is_unsubscribed,
             "is_vip": c.is_vip,
-            "last_interaction_at": c.last_interaction_at.isoformat() if c.last_interaction_at else None
+            "last_interaction_at": c.last_interaction_at.isoformat() if c.last_interaction_at else None,
+            "tags": [{"id": t.id, "name": t.name, "color_hex": t.color_hex} for t in (c.tags or [])]
         })
     return result
 
@@ -60,7 +74,11 @@ async def get_contact_by_email(
     current_user: User = Depends(get_current_user)
 ):
     """Get a single contact by email address."""
-    stmt = select(Contact).where(Contact.email_address == email, Contact.user_id == current_user.id)
+    stmt = (
+        select(Contact)
+        .where(Contact.email_address == email, Contact.user_id == current_user.id)
+        .options(selectinload(Contact.tags))
+    )
     contact = (await db.execute(stmt)).scalars().first()
     
     if not contact:
@@ -74,7 +92,8 @@ async def get_contact_by_email(
         "interaction_count": contact.interaction_count,
         "is_unsubscribed": contact.is_unsubscribed,
         "is_vip": contact.is_vip,
-        "last_interaction_at": contact.last_interaction_at.isoformat() if contact.last_interaction_at else None
+        "last_interaction_at": contact.last_interaction_at.isoformat() if contact.last_interaction_at else None,
+        "tags": [{"id": t.id, "name": t.name, "color_hex": t.color_hex} for t in (contact.tags or [])]
     }
 
 from datetime import datetime
@@ -155,3 +174,78 @@ async def toggle_unsubscribe(
     await db.commit()
     
     return {"status": "success", "is_unsubscribed": contact.is_unsubscribed}
+
+class TagCreate(BaseModel):
+    name: str
+    color_hex: str | None = None
+
+@router.post("/{contact_id}/tags", response_model=TagResponse)
+async def add_contact_tag(
+    contact_id: str,
+    tag_data: TagCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Assign a tag to a contact. Creates the tag if it doesn't exist."""
+    # 1. Get contact
+    stmt = select(Contact).where(Contact.id == contact_id, Contact.user_id == current_user.id).options(selectinload(Contact.tags))
+    contact = (await db.execute(stmt)).scalars().first()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+        
+    # 2. Get or create tag
+    tag_stmt = select(Tag).where(Tag.user_id == current_user.id, Tag.name.ilike(tag_data.name))
+    tag = (await db.execute(tag_stmt)).scalars().first()
+    
+    if not tag:
+        tag = Tag(
+            id=str(uuid.uuid4()),
+            user_id=current_user.id,
+            name=tag_data.name,
+            color_hex=tag_data.color_hex or "#E2E8F0"
+        )
+        db.add(tag)
+        
+    # 3. Associate
+    if tag not in contact.tags:
+        contact.tags.append(tag)
+        await db.commit()
+        
+    return tag
+
+@router.delete("/{contact_id}/tags/{tag_id}")
+async def remove_contact_tag(
+    contact_id: str,
+    tag_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Remove a tag association from a contact."""
+    stmt = select(Contact).where(Contact.id == contact_id, Contact.user_id == current_user.id).options(selectinload(Contact.tags))
+    contact = (await db.execute(stmt)).scalars().first()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+        
+    tag = next((t for t in contact.tags if t.id == tag_id), None)
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found on this contact")
+        
+    contact.tags.remove(tag)
+    await db.commit()
+    
+    return {"status": "success"}
+
+@router.get("/{contact_id}", response_model=ContactResponse)
+async def get_contact(
+    contact_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get a single contact by ID."""
+    stmt = select(Contact).where(Contact.id == contact_id, Contact.user_id == current_user.id).options(selectinload(Contact.tags))
+    contact = (await db.execute(stmt)).scalars().first()
+    
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+        
+    return contact

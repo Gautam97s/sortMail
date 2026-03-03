@@ -244,6 +244,7 @@ export interface Contact {
     is_unsubscribed: boolean;
     is_vip: boolean;
     last_interaction_at: string | null;
+    tags: Tag[];
 }
 
 /** Mirrors backend: models/tag.py → Tag */

@@ -2,14 +2,16 @@
 
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Mail, Clock, Archive, Ban, ArrowLeft, Send } from "lucide-react";
+import { Mail, Clock, ArrowLeft, Send } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useContact, useContactThreads } from "@/hooks/useContacts";
+import { useContact, useContactThreads, useToggleUnsubscribe, useAddContactTag, useRemoveContactTag } from "@/hooks/useContacts";
 import { formatDistanceToNow } from "date-fns";
+import { Plus, X, Bell, BellOff } from "lucide-react";
 
 export default function ContactDetailPage() {
     const params = useParams();
@@ -18,6 +20,13 @@ export default function ContactDetailPage() {
 
     const { data: contact, isLoading: isLoadingContact } = useContact(email);
     const { data: contactThreads = [], isLoading: isLoadingThreads } = useContactThreads(contact?.id || "");
+
+    const { mutate: toggleUnsubscribe, isPending: isUnsubscribing } = useToggleUnsubscribe();
+    const { mutate: addTag, isPending: isAddingTag } = useAddContactTag();
+    const { mutate: removeTag } = useRemoveContactTag();
+
+    const [newTagName, setNewTagName] = React.useState("");
+    const [showTagInput, setShowTagInput] = React.useState(false);
 
     const isLoading = isLoadingContact || isLoadingThreads;
 
@@ -100,17 +109,21 @@ export default function ContactDetailPage() {
 
                     {/* Quick Actions */}
                     <div className="flex items-center gap-2">
+                        <Button
+                            variant={contact.is_unsubscribed ? "default" : "outline"}
+                            className={`gap-2 ${!contact.is_unsubscribed ? "text-muted hover:text-primary" : "bg-primary text-white"}`}
+                            onClick={() => toggleUnsubscribe({ contactId: contact.id, email: contact.email_address })}
+                            disabled={isUnsubscribing}
+                        >
+                            {contact.is_unsubscribed ? (
+                                <><Bell className="w-4 h-4" /> Resubscribe</>
+                            ) : (
+                                <><BellOff className="w-4 h-4" /> Unsubscribe</>
+                            )}
+                        </Button>
                         <Button variant="default" className="gap-2">
                             <Send className="w-4 h-4" />
                             Compose
-                        </Button>
-                        <Button variant="outline" className="gap-2">
-                            <Archive className="w-4 h-4" />
-                            Archive All
-                        </Button>
-                        <Button variant="outline" className="gap-2 text-danger hover:bg-danger hover:text-white">
-                            <Ban className="w-4 h-4" />
-                            Block
                         </Button>
                     </div>
                 </div>
@@ -149,6 +162,70 @@ export default function ContactDetailPage() {
                                     </div>
                                 </div>
                             </Card>
+                        </div>
+                    </div>
+
+                    {/* Tags */}
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="font-display text-lg text-ink">Tags & Categories</h2>
+                            {!showTagInput ? (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 text-xs gap-1 text-primary"
+                                    onClick={() => setShowTagInput(true)}
+                                >
+                                    <Plus className="w-3 h-3" /> Add Tag
+                                </Button>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        size={1}
+                                        value={newTagName}
+                                        onChange={(e) => setNewTagName(e.target.value)}
+                                        placeholder="Tag name..."
+                                        className="h-7 text-xs w-32 bg-paper"
+                                        autoFocus
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && newTagName) {
+                                                addTag({ contactId: contact.id, name: newTagName });
+                                                setNewTagName("");
+                                                setShowTagInput(false);
+                                            }
+                                            if (e.key === 'Escape') setShowTagInput(false);
+                                        }}
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => setShowTagInput(false)}
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {contact.tags?.map((tag) => (
+                                <Badge
+                                    key={tag.id}
+                                    style={{ backgroundColor: tag.color_hex || '#E2E8F0', color: '#1E293B' }}
+                                    className="flex items-center gap-1.5 px-2 py-1 border-none"
+                                >
+                                    {tag.name}
+                                    <button
+                                        onClick={() => removeTag({ contactId: contact.id, tagId: tag.id })}
+                                        className="hover:bg-black/10 rounded-full p-0.5 transition-colors"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </Badge>
+                            ))}
+                            {contact.tags?.length === 0 && !showTagInput && (
+                                <p className="text-sm text-muted italic">No tags assigned yet.</p>
+                            )}
                         </div>
                     </div>
 

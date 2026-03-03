@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, and_
+from sqlalchemy import select, func, desc, and_, or_, cast
 
 from pydantic import BaseModel
 
@@ -16,6 +16,9 @@ from core.storage.database import get_db
 from api.dependencies import get_current_user
 from models.user import User
 from models.thread import Thread
+from models.email import Email
+from models.contact import Contact
+from sqlalchemy import String
 from api.routes.threads import ThreadListItem
 from contracts import (
     TaskDTOv1, 
@@ -71,10 +74,21 @@ async def get_dashboard_stats(
         suggested_actions=["Review urgent threads", "Check calendar"]
     )
     
-    # 3. Recent Threads
+    # 3. Recent Threads (respects unsubscribe filter — same logic as list_threads)
     threads_stmt = (
         select(Thread)
-        .where(Thread.user_id == current_user.id)
+        .outerjoin(Email, and_(Email.thread_id == Thread.id, Email.received_at == Thread.last_email_at))
+        .outerjoin(Contact, and_(
+            Contact.user_id == current_user.id,
+            or_(
+                Email.sender.ilike(func.concat('%', Contact.email_address, '%')),
+                cast(Email.recipients, String).ilike(func.concat('%', Contact.email_address, '%'))
+            )
+        ))
+        .where(
+            Thread.user_id == current_user.id,
+            or_(Contact.is_unsubscribed == False, Contact.is_unsubscribed == None)
+        )
         .order_by(desc(Thread.last_email_at))
         .limit(5)
     )
@@ -110,7 +124,7 @@ async def get_dashboard_stats(
     priority_tasks = [
         TaskDTOv1(
             task_id=t.id,
-            thread_id=t.thread_id,
+            thread_id=t.source_thread_id or "",  # Task model uses source_thread_id
             user_id=t.user_id,
             title=t.title,
             description=t.description,
