@@ -122,7 +122,7 @@ async def process_thread_intelligence(
         await _process_tags(user_id, thread, tags_list, db)
 
         # ── 6b. Process Contacts ──────────────────────────────────────
-        await _process_contacts(user_id, list(thread.participants or []), db)
+        await _process_contacts(user_id, messages, db)
 
         # ── 6c. Process Suggested Draft ───────────────────────────────
         if suggested_draft:
@@ -170,6 +170,7 @@ async def _load_messages(thread_id: str, db: AsyncSession) -> list[dict]:
             "from": m.sender,
             "date": m.sent_at.isoformat() if m.sent_at else m.received_at.isoformat() if m.received_at else "",
             "body": (m.body_plain or m.body_html or "")[:2000],
+            "is_from_user": bool(m.is_from_user),
         }
         for m in rows
     ]
@@ -209,37 +210,48 @@ async def _process_tags(user_id: str, thread: Thread, tags_list: list[str], db: 
             thread.tags.append(existing_tag)
 
 
-async def _process_contacts(user_id: str, participants: list[str], db: AsyncSession) -> None:
-    """Extract email addresses from participants and update/create Contacts."""
+async def _process_contacts(user_id: str, messages: list[dict], db: AsyncSession) -> None:
+    """Extract email addresses from message senders and update/create Contacts."""
     import re
+    from collections import Counter
     # Match text between < > or match full string if it's just an email
     email_regex = re.compile(r"<([^>]+)>|([^\s<>]+@[^\s<>]+)")
     
-    for participant in participants:
+    # Count occurrences per sender
+    sender_counts = Counter()
+    sender_full_names = {}
+
+    for msg in messages:
+        if msg.get("is_from_user"):
+            continue
+        
+        participant = msg.get("from", "")
         match = email_regex.search(participant)
         if match:
-            email = match.group(1) or match.group(2)
-            if not email:
-                continue
-            email = email.lower()
-            
-            stmt = select(Contact).where(Contact.user_id == user_id, Contact.email_address == email)
-            contact = (await db.execute(stmt)).scalars().first()
-            
-            if contact:
-                contact.interaction_count += 1
-                contact.last_interaction_at = datetime.now(timezone.utc)
-                contact.updated_at = datetime.now(timezone.utc)
-            else:
-                contact = Contact(
-                    id=str(uuid.uuid4()),
-                    user_id=user_id,
-                    email_address=email,
-                    name=participant.split("<")[0].strip() if "<" in participant else None,
-                    interaction_count=1,
-                    last_interaction_at=datetime.now(timezone.utc)
-                )
-                db.add(contact)
+            email = (match.group(1) or match.group(2)).lower()
+            if email:
+                sender_counts[email] += 1
+                sender_full_names[email] = participant
+
+    for email, count in sender_counts.items():
+        stmt = select(Contact).where(Contact.user_id == user_id, Contact.email_address == email)
+        contact = (await db.execute(stmt)).scalars().first()
+        
+        full_name = sender_full_names[email]
+        if contact:
+            contact.interaction_count += count
+            contact.last_interaction_at = datetime.now(timezone.utc)
+            contact.updated_at = datetime.now(timezone.utc)
+        else:
+            contact = Contact(
+                id=str(uuid.uuid4()),
+                user_id=user_id,
+                email_address=email,
+                name=full_name.split("<")[0].strip() if "<" in full_name else None,
+                interaction_count=count,
+                last_interaction_at=datetime.now(timezone.utc)
+            )
+            db.add(contact)
 
 
 async def _create_draft(user_id: str, thread_id: str, content: str, db: AsyncSession) -> None:
