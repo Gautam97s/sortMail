@@ -56,6 +56,8 @@ export const endpoints = {
     tags: '/api/tags',
     draftApprove: (id: string) => `/api/drafts/${id}/approve`,
     draftSchedule: (id: string) => `/api/drafts/${id}/schedule`,
+    draftRegenerate: (id: string) => `/api/drafts/${id}/regenerate`,
+
     calendarSuggestions: '/api/tasks/calendar-suggestions',
     connectedAccounts: '/api/connected-accounts',
     adminUsers: '/api/admin/users',
