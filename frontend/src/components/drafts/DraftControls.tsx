@@ -45,7 +45,7 @@ export function DraftControls({
             <div className="space-y-6">
                 <div className="space-y-2">
                     <Label className="text-xs uppercase tracking-wider text-muted-foreground font-mono">Select Thread</Label>
-                    <Select value={selectedThreadId} onValueChange={onThreadChange}>
+                    <Select value={selectedThreadId || undefined} onValueChange={onThreadChange}>
                         <SelectTrigger className="w-full bg-paper border-border-light text-ink">
                             <SelectValue placeholder="Choose an email to reply to..." />
                         </SelectTrigger>
@@ -53,9 +53,9 @@ export function DraftControls({
                             {threads.map((thread: any) => (
                                 <SelectItem key={thread.thread_id} value={thread.thread_id}>
                                     <div className="flex flex-col gap-0.5 max-w-[300px]">
-                                        <span className="truncate font-medium">{thread.subject}</span>
+                                        <span className="truncate font-medium">{thread.subject || "(No Subject)"}</span>
                                         <span className="truncate text-xs text-muted-foreground">
-                                            {thread.participants[0]}
+                                            {thread.participants?.[0] || 'Unknown sender'}
                                         </span>
                                     </div>
                                 </SelectItem>
