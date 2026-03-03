@@ -263,6 +263,14 @@ async def get_thread(
             lambda match: f'src="{backend_url}/api/proxy/image?url={quote(match.group(1), safe="")}"',
             raw_html
         )
+        
+        # Safe HTML: Fix malformed viewport meta tags from external email clients (e.g. width=device-width;)
+        safed_html = re.sub(
+            r'<meta[^>]*name=["\']viewport["\'][^>]*>',
+            lambda match: match.group(0).replace(";", ","),
+            safed_html,
+            flags=re.IGNORECASE
+        )
 
         normalized_messages.append(
             EmailMessage(

@@ -39,6 +39,15 @@ const nextConfig = {
 
     // Transpile GSAP for better performance
     transpilePackages: ['gsap'],
+
+    async rewrites() {
+        return [
+            {
+                source: '/api/proxy/:path*',
+                destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://sortmail-production.up.railway.app'}/api/proxy/:path*`,
+            },
+        ];
+    },
 };
 
 module.exports = nextConfig;
