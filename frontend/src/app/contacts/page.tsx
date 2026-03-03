@@ -1,23 +1,16 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Search, Mail, TrendingUp, Clock, User } from "lucide-react";
+import { Search, Mail, Clock, User, Star, BellOff, Bell } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import AppShell from "@/components/layout/AppShell";
-import { api, endpoints } from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
-
-interface Contact {
-    email: string;
-    name: string;
-    total_threads: number;
-    last_contact: string | null;
-}
+import { useContacts, useToggleUnsubscribe } from "@/hooks/useContacts";
+import { Contact } from "@/types/dashboard";
 
 type SortOption = "most_emails" | "recent" | "alphabetical";
 
@@ -25,32 +18,29 @@ export default function ContactsPage() {
     const [search, setSearch] = useState("");
     const [sort, setSort] = useState<SortOption>("most_emails");
 
-    const { data: contacts = [], isLoading } = useQuery<Contact[]>({
-        queryKey: ["contacts"],
-        queryFn: async () => {
-            const { data } = await api.get(endpoints.contacts);
-            return data;
-        },
-    });
+    const { data: contacts = [], isLoading } = useContacts();
+    const { mutate: toggleUnsubscribe, isPending } = useToggleUnsubscribe();
 
     const filtered = useMemo(() => {
         let items = contacts;
         if (search) {
             const q = search.toLowerCase();
             items = items.filter(c =>
-                c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
+                (c.name ?? "").toLowerCase().includes(q) || c.email_address.toLowerCase().includes(q)
             );
         }
-        if (sort === "most_emails") items = [...items].sort((a, b) => b.total_threads - a.total_threads);
-        if (sort === "alphabetical") items = [...items].sort((a, b) => a.name.localeCompare(b.name));
+        if (sort === "most_emails") items = [...items].sort((a, b) => b.interaction_count - a.interaction_count);
+        if (sort === "alphabetical") items = [...items].sort((a, b) => (a.name ?? a.email_address).localeCompare(b.name ?? b.email_address));
         if (sort === "recent") items = [...items].sort((a, b) =>
-            new Date(b.last_contact ?? 0).getTime() - new Date(a.last_contact ?? 0).getTime()
+            new Date(b.last_interaction_at ?? 0).getTime() - new Date(a.last_interaction_at ?? 0).getTime()
         );
         return items;
     }, [contacts, search, sort]);
 
-    const getInitials = (name: string) =>
-        name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+    const getInitials = (contact: Contact) => {
+        const name = contact.name ?? contact.email_address;
+        return name.split(/[\s@]/).map(w => w[0]).join("").toUpperCase().slice(0, 2);
+    };
 
     if (isLoading) {
         return (
@@ -85,7 +75,7 @@ export default function ContactsPage() {
                                 onClick={() => setSort(s)}
                                 className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${sort === s ? "bg-primary text-white" : "bg-paper-mid text-ink-light hover:bg-paper"}`}
                             >
-                                {s === "most_emails" ? "Most Emails" : s === "recent" ? "Recent" : "A–Z"}
+                                {s === "most_emails" ? "Most Active" : s === "recent" ? "Recent" : "A–Z"}
                             </button>
                         ))}
                     </div>
@@ -99,40 +89,67 @@ export default function ContactsPage() {
                         </p>
                         <p className="text-sm mt-1">
                             {contacts.length === 0
-                                ? "Contacts appear automatically from your synced emails."
+                                ? "Contacts appear automatically as emails are synced and analysed."
                                 : "Try a different search term."}
                         </p>
                     </Card>
                 ) : (
                     <div className="grid gap-3 md:grid-cols-2">
                         {filtered.map(contact => (
-                            <Link key={contact.email} href={`/contacts/${encodeURIComponent(contact.email)}`}>
-                                <Card className="p-4 flex items-center gap-4 hover:border-primary/40 hover:shadow-sm transition-all cursor-pointer group">
-                                    <Avatar className="h-11 w-11 border border-border-light">
-                                        <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
-                                            {getInitials(contact.name)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 min-w-0">
+                            <Card
+                                key={contact.id}
+                                className={`p-4 flex items-center gap-4 hover:border-primary/40 hover:shadow-sm transition-all group ${contact.is_unsubscribed ? "opacity-60" : ""}`}
+                            >
+                                <Avatar className="h-11 w-11 border border-border-light">
+                                    <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
+                                        {getInitials(contact)}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
                                         <p className="font-medium text-ink truncate group-hover:text-primary transition-colors">
-                                            {contact.name}
+                                            {contact.name ?? contact.email_address}
                                         </p>
-                                        <p className="text-xs text-muted-foreground truncate">{contact.email}</p>
-                                    </div>
-                                    <div className="text-right shrink-0 space-y-1">
-                                        <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
-                                            <Mail className="h-3 w-3" />
-                                            {contact.total_threads}
-                                        </div>
-                                        {contact.last_contact && (
-                                            <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
-                                                <Clock className="h-3 w-3" />
-                                                {formatDistanceToNow(new Date(contact.last_contact), { addSuffix: true })}
-                                            </div>
+                                        {contact.is_vip && (
+                                            <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500 shrink-0" />
+                                        )}
+                                        {contact.is_unsubscribed && (
+                                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                                Unsubscribed
+                                            </Badge>
                                         )}
                                     </div>
-                                </Card>
-                            </Link>
+                                    <p className="text-xs text-muted-foreground truncate">{contact.email_address}</p>
+                                    {contact.company && (
+                                        <p className="text-xs text-muted-foreground truncate">{contact.company}</p>
+                                    )}
+                                </div>
+                                <div className="text-right shrink-0 space-y-1.5">
+                                    <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
+                                        <Mail className="h-3 w-3" />
+                                        {contact.interaction_count}
+                                    </div>
+                                    {contact.last_interaction_at && (
+                                        <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
+                                            <Clock className="h-3 w-3" />
+                                            {formatDistanceToNow(new Date(contact.last_interaction_at), { addSuffix: true })}
+                                        </div>
+                                    )}
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className={`h-7 px-2 text-xs ${contact.is_unsubscribed ? "text-primary hover:text-primary" : "text-muted-foreground hover:text-destructive"}`}
+                                        onClick={() => toggleUnsubscribe(contact.id)}
+                                        disabled={isPending}
+                                    >
+                                        {contact.is_unsubscribed ? (
+                                            <><Bell className="h-3 w-3 mr-1" /> Resubscribe</>
+                                        ) : (
+                                            <><BellOff className="h-3 w-3 mr-1" /> Unsubscribe</>
+                                        )}
+                                    </Button>
+                                </div>
+                            </Card>
                         ))}
                     </div>
                 )}

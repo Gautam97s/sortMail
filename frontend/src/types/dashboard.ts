@@ -231,6 +231,39 @@ export interface UserProfile {
     credits: number;
 }
 
+// ─── New CRM / Tagging / Draft Types ────────────────────────
+
+/** Mirrors backend: models/contact.py → Contact */
+export interface Contact {
+    id: string;
+    email_address: string;
+    name: string | null;
+    company: string | null;
+    interaction_count: number;
+    is_unsubscribed: boolean;
+    is_vip: boolean;
+    last_interaction_at: string | null;
+}
+
+/** Mirrors backend: models/tag.py → Tag */
+export interface Tag {
+    id: string;
+    name: string;
+    color_hex: string | null;
+    is_auto_applied: boolean;
+}
+
+/** Mirrors backend: models/draft.py → Draft (AI-generated draft records) */
+export interface AiDraft {
+    id: string;
+    thread_id: string;
+    subject: string;
+    body: string;
+    tone: string;
+    status: string;
+    created_at: string;
+}
+
 // ─── Legacy Compat (for old dashboard components) ────────────
 
 export enum View {

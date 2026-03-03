@@ -1,9 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, endpoints } from '@/lib/api';
-import { DraftDTOv1 } from '@/types/dashboard';
+import { DraftDTOv1, AiDraft } from '@/types/dashboard';
 
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true';
-
+/** Fetch draft for an in-progress generation (existing generate flow) */
 export function useDrafts(threadId?: string) {
     return useQuery({
         queryKey: ['drafts', threadId],
@@ -15,3 +14,44 @@ export function useDrafts(threadId?: string) {
         staleTime: 1000 * 60 * 2,
     });
 }
+
+/** Fetch all AI-generated (pending) drafts from the backend */
+export function useAiDrafts() {
+    return useQuery<AiDraft[]>({
+        queryKey: ['ai-drafts'],
+        queryFn: async () => {
+            const { data } = await api.get(endpoints.drafts);
+            return Array.isArray(data) ? data : [];
+        },
+        staleTime: 1000 * 60 * 2,
+    });
+}
+
+/** Approve a stored AI draft for immediate send */
+export function useApproveDraft() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (draftId: string) => {
+            const { data } = await api.post(endpoints.draftApprove(draftId));
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['ai-drafts'] });
+        },
+    });
+}
+
+/** Schedule a stored AI draft for 'Send Later' */
+export function useScheduleDraft() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ draftId, scheduledForDate }: { draftId: string; scheduledForDate: string }) => {
+            const { data } = await api.post(endpoints.draftSchedule(draftId), { scheduled_for_date: scheduledForDate });
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['ai-drafts'] });
+        },
+    });
+}
+
