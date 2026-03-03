@@ -342,21 +342,34 @@ async def refresh_thread(
     """
     OPERATION_TYPE = "thread_summary"
     
-    # 1. Check Balance
+    # 1. Verify thread belongs to user
+    stmt = select(Thread).where(Thread.id == thread_id, Thread.user_id == current_user.id)
+    result = await db.execute(stmt)
+    thread = result.scalars().first()
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    
+    # 2. Check Balance
     if not await CreditService.check_balance(db, current_user.id, OPERATION_TYPE):
          raise HTTPException(status_code=402, detail="Insufficient credits.")
 
     try:
-        # TODO: Trigger re-analysis (Call Celery task or Intelligence Engine)
-        
-        # 2. Deduct Credits
+        # 3. Deduct Credits
         await CreditService.deduct_credits(
             db, user_id=current_user.id, operation_type=OPERATION_TYPE,
             metadata={"thread_id": thread_id, "action": "refresh"}
         )
+        
+        # 4. Force re-process by clearing the intel timestamp
+        thread.intel_generated_at = None
         await db.commit()
         
-        return {"thread_id": thread_id, "refreshed": True}
+        # 5. Trigger intelligence pipeline in background
+        import asyncio
+        from core.ingestion.sync_service import _run_intel_safe
+        asyncio.create_task(_run_intel_safe(thread_id, current_user.id, db))
+        
+        return {"thread_id": thread_id, "status": "processing", "message": "Intelligence refresh queued"}
     except InsufficientCreditsError as e:
         await db.rollback()
         raise HTTPException(status_code=402, detail=str(e))
@@ -366,3 +379,42 @@ async def refresh_thread(
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{thread_id}/intel")
+async def get_thread_intel(
+    thread_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Get intelligence profile for a thread.
+    
+    Returns cached intel immediately if available.
+    If not yet generated, triggers the pipeline and returns a 202 Accepted.
+    """
+    stmt = select(Thread).where(Thread.id == thread_id, Thread.user_id == current_user.id)
+    result = await db.execute(stmt)
+    thread = result.scalars().first()
+    
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    # Return cached intel if present
+    if thread.intel_json:
+        return {
+            "status": "completed",
+            "thread_id": thread_id,
+            "intel": thread.intel_json,
+        }
+
+    # Trigger pipeline in background if not yet processed
+    import asyncio
+    from core.ingestion.sync_service import _run_intel_safe
+    asyncio.create_task(_run_intel_safe(thread_id, current_user.id, db))
+    
+    return {
+        "status": "processing",
+        "thread_id": thread_id,
+        "message": "Intelligence is being generated. Poll /intel-status for updates.",
+    }
