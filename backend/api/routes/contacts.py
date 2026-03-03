@@ -2,7 +2,7 @@ import logging
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, or_, func
+from sqlalchemy import select, desc, or_, func, any_
 
 from core.storage.database import get_db
 from models.user import User
@@ -137,7 +137,7 @@ async def list_contact_threads(
                 # Sender: use = for exact match or ILIKE for name <email> format
                 Email.sender.ilike(f"%{email_addr}%"),
                 # Recipients: exact array membership — fast, uses GIN index if present
-                Email.recipients.any(func.lower(email_addr)),
+                func.lower(email_addr) == any_(Email.recipients),
             )
         )
         .distinct()

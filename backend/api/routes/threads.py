@@ -42,7 +42,7 @@ from models.user import User
 from models.thread import Thread
 from models.email import Email
 from models.contact import Contact
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func, any_
 from core.credits.credit_service import CreditService, InsufficientCreditsError, RateLimitExceededError
 
 @router.get("", response_model=List[ThreadListItem])
@@ -72,7 +72,7 @@ async def list_threads(
             Contact.user_id == current_user.id,
             or_(
                 Email.sender.ilike(func.concat('%', Contact.email_address, '%')),
-                Email.recipients.any(func.lower(Contact.email_address))
+                func.lower(Contact.email_address) == any_(Email.recipients)
             )
         ))
         .where(
