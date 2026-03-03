@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
 import { formatDistanceToNow } from "date-fns";
 import { useContacts, useToggleUnsubscribe } from "@/hooks/useContacts";
@@ -96,60 +97,65 @@ export default function ContactsPage() {
                 ) : (
                     <div className="grid gap-3 md:grid-cols-2">
                         {filtered.map(contact => (
-                            <Card
-                                key={contact.id}
-                                className={`p-4 flex items-center gap-4 hover:border-primary/40 hover:shadow-sm transition-all group ${contact.is_unsubscribed ? "opacity-60" : ""}`}
-                            >
-                                <Avatar className="h-11 w-11 border border-border-light">
-                                    <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
-                                        {getInitials(contact)}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                        <p className="font-medium text-ink truncate group-hover:text-primary transition-colors">
-                                            {contact.name ?? contact.email_address}
-                                        </p>
-                                        {contact.is_vip && (
-                                            <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500 shrink-0" />
-                                        )}
-                                        {contact.is_unsubscribed && (
-                                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                                Unsubscribed
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground truncate">{contact.email_address}</p>
-                                    {contact.company && (
-                                        <p className="text-xs text-muted-foreground truncate">{contact.company}</p>
-                                    )}
-                                </div>
-                                <div className="text-right shrink-0 space-y-1.5">
-                                    <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
-                                        <Mail className="h-3 w-3" />
-                                        {contact.interaction_count}
-                                    </div>
-                                    {contact.last_interaction_at && (
-                                        <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
-                                            <Clock className="h-3 w-3" />
-                                            {formatDistanceToNow(new Date(contact.last_interaction_at), { addSuffix: true })}
+                            <Link key={contact.id} href={`/contacts/${encodeURIComponent(contact.email_address)}`} className="block">
+                                <Card
+                                    className={`p-4 flex items-center gap-4 hover:border-primary/40 hover:shadow-sm transition-all group cursor-pointer ${contact.is_unsubscribed ? "opacity-60" : ""}`}
+                                >
+                                    <Avatar className="h-11 w-11 border border-border-light">
+                                        <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
+                                            {getInitials(contact)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-medium text-ink truncate group-hover:text-primary transition-colors">
+                                                {contact.name ?? contact.email_address}
+                                            </p>
+                                            {contact.is_vip && (
+                                                <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500 shrink-0" />
+                                            )}
+                                            {contact.is_unsubscribed && (
+                                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                                    Unsubscribed
+                                                </Badge>
+                                            )}
                                         </div>
-                                    )}
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className={`h-7 px-2 text-xs ${contact.is_unsubscribed ? "text-primary hover:text-primary" : "text-muted-foreground hover:text-destructive"}`}
-                                        onClick={() => toggleUnsubscribe(contact.id)}
-                                        disabled={isPending}
-                                    >
-                                        {contact.is_unsubscribed ? (
-                                            <><Bell className="h-3 w-3 mr-1" /> Resubscribe</>
-                                        ) : (
-                                            <><BellOff className="h-3 w-3 mr-1" /> Unsubscribe</>
+                                        <p className="text-xs text-muted-foreground truncate">{contact.email_address}</p>
+                                        {contact.company && (
+                                            <p className="text-xs text-muted-foreground truncate">{contact.company}</p>
                                         )}
-                                    </Button>
-                                </div>
-                            </Card>
+                                    </div>
+                                    <div className="text-right shrink-0 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
+                                            <Mail className="h-3 w-3" />
+                                            {contact.interaction_count}
+                                        </div>
+                                        {contact.last_interaction_at && (
+                                            <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
+                                                <Clock className="h-3 w-3" />
+                                                {formatDistanceToNow(new Date(contact.last_interaction_at), { addSuffix: true })}
+                                            </div>
+                                        )}
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className={`h-7 px-2 text-xs ${contact.is_unsubscribed ? "text-primary hover:text-primary" : "text-muted-foreground hover:text-destructive"}`}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                toggleUnsubscribe(contact.id);
+                                            }}
+                                            disabled={isPending}
+                                        >
+                                            {contact.is_unsubscribed ? (
+                                                <><Bell className="h-3 w-3 mr-1" /> Resubscribe</>
+                                            ) : (
+                                                <><BellOff className="h-3 w-3 mr-1" /> Unsubscribe</>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </Card>
+                            </Link>
                         ))}
                     </div>
                 )}

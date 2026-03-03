@@ -48,6 +48,8 @@ export const endpoints = {
     creditsMe: '/api/credits/me',
     creditsTransactions: '/api/credits/me/transactions',
     contacts: '/api/contacts',
+    contactByEmail: (email: string) => `/api/contacts/by-email/${email}`,
+    contactThreads: (id: string) => `/api/contacts/${id}/threads`,
     contactUnsubscribe: (id: string) => `/api/contacts/${id}/unsubscribe`,
     tags: '/api/tags',
     draftApprove: (id: string) => `/api/drafts/${id}/approve`,
