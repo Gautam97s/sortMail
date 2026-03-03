@@ -159,7 +159,7 @@ async def list_drafts(
     """List all pending AI drafts for the current user."""
     stmt = (
         select(Draft)
-        .where(Draft.user_id == current_user.id, Draft.status == DraftStatus.GENERATED)
+        .where(Draft.user_id == current_user.id, Draft.status == DraftStatus.GENERATED.value)
         .order_by(desc(Draft.created_at))
     )
     drafts = (await db.execute(stmt)).scalars().all()
@@ -171,8 +171,8 @@ async def list_drafts(
             "thread_id": d.thread_id,
             "subject": d.subject,
             "body": d.body,
-            "tone": d.tone.value,
-            "status": d.status.value,
+            "tone": d.tone,
+            "status": d.status,
             "created_at": d.created_at.isoformat() if d.created_at else ""
         })
     return result
@@ -190,7 +190,7 @@ async def approve_draft_for_send(
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found")
         
-    draft.status = DraftStatus.SENT
+    draft.status = DraftStatus.SENT.value
     # TODO: Push to email provider APIs via background jobs
     draft.sent_at = datetime.now(timezone.utc)
     
@@ -211,7 +211,7 @@ async def schedule_draft(
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found")
         
-    draft.status = DraftStatus.EDITED # Means it was reviewed
+    draft.status = DraftStatus.EDITED.value # Means it was reviewed
     
     try:
         scheduled_time = datetime.fromisoformat(payload.scheduled_for_date.replace('Z', '+00:00'))

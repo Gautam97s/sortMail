@@ -290,7 +290,7 @@ async def _create_draft(user_id: str, thread_id: str, content: str, db: AsyncSes
     stmt = select(Draft).where(
         Draft.user_id == user_id, 
         Draft.thread_id == thread_id,
-        Draft.status == DraftStatus.GENERATED
+        Draft.status == DraftStatus.GENERATED.value
     )
     existing = (await db.execute(stmt)).scalars().first()
     if existing:
@@ -302,9 +302,9 @@ async def _create_draft(user_id: str, thread_id: str, content: str, db: AsyncSes
         thread_id=thread_id,
         subject="Re: Thread", # Placeholder, relies on frontend to pull thread subject
         body=content,
-        tone=DraftTone.PROFESSIONAL,
+        tone=DraftTone.PROFESSIONAL.value,
         generation_model="gemini-2.5-flash",
-        status=DraftStatus.GENERATED
+        status=DraftStatus.GENERATED.value
     )
     db.add(draft)
     logger.info(f"Auto-draft created for thread={thread_id}")

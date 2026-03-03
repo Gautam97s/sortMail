@@ -26,7 +26,7 @@ class Thread(Base):
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
-    external_id = Column(String, nullable=False)  # Provider's thread ID
+    external_id = Column(String, nullable=False, index=True)  # Provider's thread ID
     
     # Thread data
     subject = Column(String)
