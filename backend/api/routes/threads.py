@@ -72,7 +72,7 @@ async def list_threads(
             Contact.user_id == current_user.id,
             or_(
                 Email.sender.ilike(func.concat('%', Contact.email_address, '%')),
-                func.lower(Contact.email_address).op("= ANY")(Email.recipients)
+                Email.recipients.any(func.lower(Contact.email_address))
             )
         ))
         .where(
