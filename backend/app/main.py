@@ -29,11 +29,14 @@ async def lifespan(app: FastAPI):
     
     # Initialize ChromaDB
     try:
-        await vector_store.initialize()
-        logger.info("✅ ChromaDB initialized")
+        ok = await vector_store.initialize()
+        if ok:
+            logger.info("ChromaDB initialized successfully")
+        else:
+            logger.warning("ChromaDB initialization failed — proceeding without vector search")
     except Exception as e:
-        logger.error(f"❌ ChromaDB initialization failed: {e}")
-        logger.warning("⚠️ Proceeding without vector search")
+        logger.error(f"ChromaDB initialization error: {e}")
+        logger.warning("Proceeding without vector search")
     
     # Start Background AI Worker
     if hasattr(settings, "REDIS_URL") and settings.REDIS_URL:

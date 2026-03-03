@@ -42,9 +42,11 @@ class VectorStore:
                 
             self._client, self._collection = await asyncio.to_thread(_init_chroma)
             logger.info("ChromaDB Cloud Client initialized successfully.")
+            return True
             
         except Exception as e:
             logger.error(f"Failed to initialize Chroma Cloud DB: {e}")
+            return False
     
     async def add(
         self,
