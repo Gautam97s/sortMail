@@ -8,7 +8,6 @@ from models.user import User
 from api.dependencies import get_current_user
 from models.thread import Thread
 from core.rag.retriever import get_similar_context
-import google.generativeai as genai
 from app.config import settings
 import logging
 
@@ -16,8 +15,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-if getattr(settings, "GEMINI_API_KEY", None):
-    genai.configure(api_key=settings.GEMINI_API_KEY)
+
+def _get_genai_client():
+    """Get google.genai client (new SDK)."""
+    from google import genai
+    return genai.Client(api_key=settings.GEMINI_API_KEY)
+
 
 @router.get("/context/{thread_id}")
 async def get_thread_context(
@@ -56,7 +59,7 @@ async def ai_chat_stream(
 ):
     """
     Universal RAG Chatbot Endpoint.
-    Streams back a Server-Sent Events (SSE) response using Gemini 2.0 Flash.
+    Streams back a Server-Sent Events (SSE) response using Gemini 2.5 Flash.
     """
     query = payload.get("message")
     if not query:
@@ -70,8 +73,8 @@ async def ai_chat_stream(
     )
     
     # 2. Build Prompt Context
-    context_str = "\\n\\n".join([
-        f"--- Source: {item.get('source_type', 'unknown')} ---\\n{item.get('document', '')[:1000]}"
+    context_str = "\n\n".join([
+        f"--- Source: {item.get('source_type', 'unknown')} ---\n{item.get('document', '')[:1000]}"
         for item in similar_items
     ])
     
@@ -86,21 +89,28 @@ User Query: {query}
 """
 
     async def generate_chat_stream():
-        # Using Gemini 2.0 Flash as requested for the chatbot stream phase 5
-        model = genai.GenerativeModel('gemini-2.5-flash') 
         try:
-            response = await model.generate_content_async(
-                contents=prompt,
-                stream=True
-            )
-            async for chunk in response:
-                if chunk.text:
-                    # Replace newlines safely for SSE formatting
-                    safe_text = chunk.text.replace("\\n", "\\n")
-                    yield f"data: {safe_text}\\n\\n"
-            yield "data: [DONE]\\n\\n"
+            import asyncio
+            client = _get_genai_client()
+            
+            def _stream():
+                chunks = []
+                for chunk in client.models.generate_content_stream(
+                    model="gemini-2.5-flash",
+                    contents=prompt,
+                ):
+                    if chunk.text:
+                        chunks.append(chunk.text)
+                return chunks
+
+            chunks = await asyncio.to_thread(_stream)
+            for text in chunks:
+                safe_text = text.replace("\n", "\\n")
+                yield f"data: {safe_text}\n\n"
+            yield "data: [DONE]\n\n"
         except Exception as e:
             logger.error(f"Chat stream failed: {e}")
-            yield f"data: Error: {str(e)}\\n\\n"
+            yield f"data: Error: {str(e)}\n\n"
 
     return StreamingResponse(generate_chat_stream(), media_type="text/event-stream")
+
