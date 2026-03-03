@@ -65,11 +65,19 @@ CRITICAL: Only use information from the email. Do not hallucinate. Do not wrap i
 
 # ── Engine ────────────────────────────────────────────────────────────────────
 
-async def generate_with_retry(model, prompt: str, max_retries: int = 5, thread_id: str = "") -> dict:
+async def generate_with_retry(client, prompt: str, max_retries: int = 5, thread_id: str = "") -> dict:
     """Production-grade retry logic with exponential backoff"""
+    from google.genai import types
     for attempt in range(max_retries):
         try:
-            response = await model.generate_content_async(prompt)
+            response = await client.aio.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.2,
+                    max_output_tokens=2048,
+                )
+            )
             raw = response.text.strip()
             # Strip markdown code fences if model wrapped response
             raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.DOTALL).strip()
@@ -104,8 +112,8 @@ async def run_intelligence(
     """Run the intelligence engine on a thread."""
     try:
         from app.config import settings
-        import google.generativeai as genai
-        genai.configure(api_key=settings.GEMINI_API_KEY)
+        from google import genai
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
     except Exception as e:
         logger.error(f"Gemini configuration error: {e}")
         return _fallback_intel(subject, thread_id)
@@ -132,15 +140,7 @@ async def run_intelligence(
         "{messages}", messages_xml
     )
 
-    model = genai.GenerativeModel(
-        "gemini-2.5-flash",
-        generation_config={
-            "temperature": 0.2,
-            "max_output_tokens": 2048,
-        },
-    )
-
-    intel = await generate_with_retry(model, prompt, max_retries=5, thread_id=thread_id)
+    intel = await generate_with_retry(client, prompt, max_retries=5, thread_id=thread_id)
     if not isinstance(intel, dict) or "summary" not in intel:
         intel = _fallback_intel(subject, thread_id)
         

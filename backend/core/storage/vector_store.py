@@ -30,9 +30,7 @@ class VectorStore:
             # Diagnostic log — helps confirm env vars are loaded correctly on Railway
             key_preview = settings.CHROMA_API_KEY[:8] + "..." if settings.CHROMA_API_KEY else "MISSING"
             logger.info(f"Connecting to ChromaDB Cloud: tenant={settings.CHROMA_TENANT} db={settings.CHROMA_DATABASE} key={key_preview}")
-            logger.warning(f"TENANT='{settings.CHROMA_TENANT}'")
-            logger.warning(f"DATABASE='{settings.CHROMA_DATABASE}'")
-            logger.warning(f"KEY PREFIX='{settings.CHROMA_API_KEY[:8] if settings.CHROMA_API_KEY else 'MISSING'}'")
+
             
             # Initialize synchronously in a thread
             def _init_chroma():
