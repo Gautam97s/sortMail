@@ -44,6 +44,9 @@ Participants: {', '.join(thread.participants or [])}
 
         # 3. Generate Embedding
         embedding = await generate_embedding(document)
+        if not embedding or all(v == 0.0 for v in embedding):
+            logger.error(f"Embedding failed. Skipping ChromaDB insertion for thread {thread.id}")
+            return False
         
         # 4. Insert into Vector DB
         await vector_store.add(

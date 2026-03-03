@@ -73,7 +73,7 @@ Return ONLY valid JSON.
 """
     
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         response = await model.generate_content_async(
             contents=prompt,
             generation_config=genai.types.GenerationConfig(

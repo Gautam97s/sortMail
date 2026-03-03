@@ -140,7 +140,7 @@ def create_mock_thread_intel() -> ThreadIntelV1:
             "Acknowledge the updated terms",
             "State your decision",
         ],
-        model_version="gemini-1.5-pro",
+        model_version="gemini-2.5-flash",
         processed_at=datetime.now(timezone.utc),
         schema_version="1.0",
     )
@@ -198,7 +198,7 @@ Best regards""",
         references_attachments=True,
         references_deadlines=True,
         created_at=datetime.now(timezone.utc),
-        model_version="gemini-1.5-pro",
+        model_version="gemini-2.5-flash",
         schema_version="1.0",
     )
 

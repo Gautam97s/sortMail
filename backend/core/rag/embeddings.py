@@ -25,21 +25,21 @@ async def generate_embedding(text: str) -> List[float]:
     from app.config import settings
     
     if settings.LLM_PROVIDER == "gemini" and settings.GEMINI_API_KEY:
-        import google.generativeai as genai
-        genai.configure(api_key=settings.GEMINI_API_KEY)
+        from google import genai
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
         
         # Using Google's text-embedding model in a threadpool
         def _embed():
-            return genai.embed_content(
-                model="models/text-embedding-004",
-                content=text,
-                task_type="retrieval_document"
+            response = client.models.embed_content(
+                model="gemini-embedding-001",
+                contents=text
             )
+            return response.embeddings[0].values
         try:    
             result = await asyncio.to_thread(_embed)
-            return result['embedding']
+            return result
         except Exception as e:
-            logger.error(f"Failed embedding generation via Gemini: {e}")
+            logger.error(f"Failed embedding generation via Gemini SDK: {e}")
             return [0.0] * 768
             
     elif settings.LLM_PROVIDER == "openai" and settings.OPENAI_API_KEY:

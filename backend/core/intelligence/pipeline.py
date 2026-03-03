@@ -129,6 +129,7 @@ async def process_thread_intelligence(
         return final_intel
 
     except Exception as exc:
+        await db.rollback()
         logger.error(f"Intel pipeline failed for {thread_id}: {exc}", exc_info=True)
         return None
 
@@ -170,11 +171,12 @@ async def _create_task(
     item: dict,
     db: AsyncSession,
 ) -> None:
+
     """Create a Task from an action item. Idempotent — skips if duplicate exists."""
     title = item.get("title", "")
     if not title:
         return
-
+        
     # Dedup check
     existing = (await db.execute(
         select(Task).where(
@@ -199,13 +201,25 @@ async def _create_task(
         except ValueError:
             pass
 
+    raw_type = (item.get("task_type") or "general").lower()
+    ALLOWED_TASK_TYPES = {"general", "email", "follow_up", "meeting"}
+    
+    if raw_type not in ALLOWED_TASK_TYPES:
+        logger.warning(f"Invalid task type '{raw_type}', defaulting to '{TaskType.GENERAL.value}'")
+        final_task_type = TaskType.GENERAL
+    else:
+        final_task_type = TaskType(raw_type)
+    logger.debug(f"raw_type: {raw_type}")
+    logger.debug(f"final_task_type enum: {final_task_type}")
+    logger.debug(f"value being inserted: {final_task_type.value}")
+
     task = Task(
         id=str(uuid.uuid4()),
         user_id=user_id,
         source_thread_id=thread_id,
         title=title,
         description=item.get("description"),
-        task_type=TaskType.GENERAL,
+        task_type=final_task_type,
         priority_level=priority_value,
         priority_score=priority_score,
         due_date=due_date,
@@ -215,9 +229,13 @@ async def _create_task(
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
     )
-    db.add(task)
-    await db.commit()
-    logger.info(f"Auto-task created: '{title}' (thread={thread_id})")
+    try:
+        db.add(task)
+        await db.commit()
+        logger.info(f"Auto-task created: '{title}' (thread={thread_id})")
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Failed to create auto-task '{title}': {e}")
 
 
 async def _publish_intel_ready(user_id: str, thread_id: str, intel: dict) -> None:
