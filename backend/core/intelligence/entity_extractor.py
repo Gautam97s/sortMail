@@ -70,6 +70,12 @@ def extract_action_items(intel_json: dict) -> list[dict]:
     return valid
 
 
+def extract_tags(intel_json: dict) -> list[str]:
+    """Extract a cleaned list of tags from Gemini intel output."""
+    raw_tags = intel_json.get("tags") or []
+    return _clean_list(raw_tags)[:5]  # Cap at 5 tags per thread
+
+
 def _clean_list(raw) -> list[str]:
     """Deduplicate and clean a list of strings."""
     if not raw or not isinstance(raw, list):

@@ -29,10 +29,13 @@ from models.task import Task, TaskStatus, TaskType, PriorityLevel
 
 # Intelligence modules — each is a pure extractor, no extra LLM calls
 from .gemini_engine import run_intelligence
-from .summarizer import extract_summary, extract_key_points, extract_suggested_action
+from .summarizer import extract_summary, extract_key_points, extract_suggested_action, extract_suggested_draft
 from .intent_classifier import extract_intent, extract_priority_level, should_follow_up
 from .deadline_extractor import extract_deadlines, extract_expected_reply_by
-from .entity_extractor import extract_entities, extract_action_items
+from .entity_extractor import extract_entities, extract_action_items, extract_tags
+from models.contact import Contact
+from models.tag import Tag
+from models.draft import Draft, DraftStatus, DraftTone
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +89,8 @@ async def process_thread_intelligence(
         deadlines              = extract_deadlines(raw_intel)
         entities               = extract_entities(raw_intel)
         action_items           = extract_action_items(raw_intel)
+        tags_list              = extract_tags(raw_intel)
+        suggested_draft        = extract_suggested_draft(raw_intel)
 
         # ── 5. Assemble final intel dict ──────────────────────────────
         final_intel = {
@@ -101,6 +106,8 @@ async def process_thread_intelligence(
             "deadlines"        : deadlines,
             "entities"         : entities,
             "action_items"     : action_items,
+            "tags"             : tags_list,
+            "suggested_draft"  : suggested_draft,
             "processed_at"     : datetime.now(timezone.utc).isoformat(),
         }
 
@@ -110,6 +117,17 @@ async def process_thread_intelligence(
         thread.urgency_score        = urgency_score
         thread.intel_json           = final_intel
         thread.intel_generated_at   = datetime.now(timezone.utc)
+        
+        # ── 6a. Process Tags ──────────────────────────────────────────
+        await _process_tags(user_id, thread, tags_list, db)
+
+        # ── 6b. Process Contacts ──────────────────────────────────────
+        await _process_contacts(user_id, list(thread.participants or []), db)
+
+        # ── 6c. Process Suggested Draft ───────────────────────────────
+        if suggested_draft:
+            await _create_draft(user_id, thread_id, suggested_draft, db)
+
         await db.commit()
         logger.info(f"Intel saved: thread={thread_id} intent={intent} score={urgency_score}")
 
@@ -163,6 +181,91 @@ _PRIORITY_MAP = {
     "medium": ("do_today", 55),
     "low"   : ("can_wait", 20),
 }
+
+
+async def _process_tags(user_id: str, thread: Thread, tags_list: list[str], db: AsyncSession) -> None:
+    """Get or create tags and attach them to the thread."""
+    if not tags_list:
+        return
+        
+    for tag_name in tags_list:
+        if not tag_name:
+            continue
+        
+        stmt = select(Tag).where(Tag.user_id == user_id, Tag.name.ilike(tag_name))
+        existing_tag = (await db.execute(stmt)).scalars().first()
+        
+        if not existing_tag:
+            existing_tag = Tag(
+                id=str(uuid.uuid4()),
+                user_id=user_id,
+                name=tag_name,
+                is_auto_applied=True
+            )
+            db.add(existing_tag)
+            
+        # Add to thread if not already present
+        if existing_tag not in thread.tags:
+            thread.tags.append(existing_tag)
+
+
+async def _process_contacts(user_id: str, participants: list[str], db: AsyncSession) -> None:
+    """Extract email addresses from participants and update/create Contacts."""
+    import re
+    # Match text between < > or match full string if it's just an email
+    email_regex = re.compile(r"<([^>]+)>|([^\s<>]+@[^\s<>]+)")
+    
+    for participant in participants:
+        match = email_regex.search(participant)
+        if match:
+            email = match.group(1) or match.group(2)
+            if not email:
+                continue
+            email = email.lower()
+            
+            stmt = select(Contact).where(Contact.user_id == user_id, Contact.email_address == email)
+            contact = (await db.execute(stmt)).scalars().first()
+            
+            if contact:
+                contact.interaction_count += 1
+                contact.last_interaction_at = datetime.now(timezone.utc)
+                contact.updated_at = datetime.now(timezone.utc)
+            else:
+                contact = Contact(
+                    id=str(uuid.uuid4()),
+                    user_id=user_id,
+                    email_address=email,
+                    name=participant.split("<")[0].strip() if "<" in participant else None,
+                    interaction_count=1,
+                    last_interaction_at=datetime.now(timezone.utc)
+                )
+                db.add(contact)
+
+
+async def _create_draft(user_id: str, thread_id: str, content: str, db: AsyncSession) -> None:
+    """Auto-create a Draft reply from Gemini's suggestion."""
+    # Dedup Check: Avoid creating multiple AUTO generated drafts per thread
+    stmt = select(Draft).where(
+        Draft.user_id == user_id, 
+        Draft.thread_id == thread_id,
+        Draft.status == DraftStatus.GENERATED
+    )
+    existing = (await db.execute(stmt)).scalars().first()
+    if existing:
+        return
+        
+    draft = Draft(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        thread_id=thread_id,
+        subject="Re: Thread", # Placeholder, relies on frontend to pull thread subject
+        body=content,
+        tone=DraftTone.PROFESSIONAL,
+        generation_model="gemini-2.5-flash",
+        status=DraftStatus.GENERATED
+    )
+    db.add(draft)
+    logger.info(f"Auto-draft created for thread={thread_id}")
 
 
 async def _create_task(
