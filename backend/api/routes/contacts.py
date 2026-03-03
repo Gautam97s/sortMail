@@ -137,7 +137,7 @@ async def list_contact_threads(
                 # Sender: use = for exact match or ILIKE for name <email> format
                 Email.sender.ilike(f"%{email_addr}%"),
                 # Recipients: exact array membership — fast, uses GIN index if present
-                func.lower(email_addr).op("= ANY")(Email.recipients),
+                Email.recipients.any(func.lower(email_addr)),
             )
         )
         .distinct()
