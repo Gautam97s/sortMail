@@ -24,7 +24,16 @@ async def lifespan(app: FastAPI):
     print(f"🚀 Starting SortMail API v{settings.VERSION}")
     print(f"📧 Environment: {settings.ENVIRONMENT}")
     from core.storage.database import init_db
+    from core.storage.vector_store import vector_store
     await init_db()
+    
+    # Initialize ChromaDB
+    try:
+        await vector_store.initialize()
+        logger.info("✅ ChromaDB initialized")
+    except Exception as e:
+        logger.error(f"❌ ChromaDB initialization failed: {e}")
+        logger.warning("⚠️ Proceeding without vector search")
     
     # Start Background AI Worker
     if hasattr(settings, "REDIS_URL") and settings.REDIS_URL:
@@ -147,3 +156,25 @@ app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
 app.include_router(attachments.router, prefix="/api/attachments", tags=["attachments"])
 app.include_router(proxy.router, prefix="/api", tags=["proxy"])
 app.include_router(app_settings.router, prefix="/api/settings", tags=["settings"])
+
+from pydantic import BaseModel
+from typing import Optional
+from fastapi import Depends, HTTPException
+from core.storage.vector_store import get_chroma_collection
+
+class RequestBody(BaseModel):
+    ids: list[str]
+    documents: list[str]
+    metadatas: list[dict]
+
+@app.post("/api/documents/")
+async def add_documents(request: RequestBody, col=Depends(get_chroma_collection)):
+    try:
+        col.add(
+            ids=request.ids,
+            documents=request.documents,
+            metadatas=request.metadatas
+        )
+        return {"message": "Documents added successfully", "ids": request.ids}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

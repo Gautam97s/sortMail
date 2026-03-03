@@ -248,7 +248,7 @@ class DraftDTOv1(BaseModel):
                 "references_attachments": True,
                 "references_deadlines": False,
                 "created_at": "2026-01-18T14:30:00Z",
-                "schema_version": "gemini-1.5-pro"
+                "schema_version": "gemini-2.5-flash"
             }
         }
 

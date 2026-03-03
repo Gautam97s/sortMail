@@ -37,7 +37,8 @@ Respond ONLY with this JSON structure:
       "task": "What to do",
       "owner": "Who should do it (YOU or THEM)",
       "deadline": "YYYY-MM-DD or null",
-      "priority": "urgent|high|medium|low"
+      "priority": "urgent|high|medium|low",
+      "task_type": "general|email|follow_up|meeting"
     }}
   ],
   "entities": {{
@@ -62,7 +63,7 @@ CRITICAL: Only use information from the email. Do not hallucinate. Do not wrap i
 
 # ── Engine ────────────────────────────────────────────────────────────────────
 
-async def generate_with_retry(model, prompt: str, max_retries: int = 3, thread_id: str = "") -> dict:
+async def generate_with_retry(model, prompt: str, max_retries: int = 5, thread_id: str = "") -> dict:
     """Production-grade retry logic with exponential backoff"""
     for attempt in range(max_retries):
         try:
@@ -130,20 +131,21 @@ async def run_intelligence(
     )
 
     model = genai.GenerativeModel(
-        "gemini-2.0-flash",
+        "gemini-2.5-flash",
         generation_config={
             "temperature": 0.2,
             "max_output_tokens": 2048,
+            "response_mime_type": "application/json",
         },
     )
 
-    intel = await generate_with_retry(model, prompt, max_retries=3, thread_id=thread_id)
+    intel = await generate_with_retry(model, prompt, max_retries=5, thread_id=thread_id)
     if not isinstance(intel, dict) or "summary" not in intel:
         intel = _fallback_intel(subject, thread_id)
         
     intel["thread_id"] = thread_id
     intel["processed_at"] = datetime.now(timezone.utc).isoformat()
-    intel["model"] = "gemini-2.0-flash"
+    intel["model"] = "gemini-2.5-flash"
 
     logger.info(
         f"Intel generated for thread {thread_id}: "

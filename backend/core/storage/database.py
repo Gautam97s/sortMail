@@ -24,7 +24,7 @@ elif original_url and original_url.startswith("postgresql://"):
 # Debug Logging (Mask password)
 try:
     u = make_url(original_url)
-    print(f"🔌 Connecting to DB Host: {u.host}:{u.port} | DB: {u.database}")
+    print(f"Connecting to DB Host: {u.host}:{u.port} | DB: {u.database}")
 except Exception as e:
     print(f"⚠️ Could not parse DB URL for logging: {e}")
 
@@ -44,7 +44,7 @@ is_production = (
 )
 
 if is_production:
-    print("🚀 Configuring database for PRODUCTION/CLOUD environment")
+    print("Configuring database for PRODUCTION/CLOUD environment")
     
     # 1. SSL Context (Necessary for Supabase/Railway)
     # We use a custom context to avoid "certificate verify failed" or hostname mismatches
@@ -57,15 +57,15 @@ if is_production:
     # If using port 6543, we MUST disable prepared statements.
     # If using port 5432 (Direct), we can keep them enabled for better performance.
     if db_url_obj.port == 6543:
-        print("🛠️  Detected PgBouncer (Port 6543). Disabling prepared statements.")
+        print("Detected PgBouncer (Port 6543). Disabling prepared statements.")
         connect_args["statement_cache_size"] = 0
     else:
-        print(f"⚡ Detected Direct Connection (Port {db_url_obj.port}). Prepared statements enabled.")
+        print(f"Detected Direct Connection (Port {db_url_obj.port}). Prepared statements enabled.")
 
     # 3. Strip 'sslmode' query param to avoid conflicts with our manual SSL context
     query_params = dict(db_url_obj.query)
     if "sslmode" in query_params:
-        print("🧹 Removing 'sslmode' query parameter (handled manually)")
+        print("Removing 'sslmode' query parameter (handled manually)")
         del query_params["sslmode"]
     
     # Ensure no conflicting args in query if we set them in connect_args
@@ -75,9 +75,9 @@ if is_production:
     db_url_obj = db_url_obj._replace(query=query_params)
     
 else:
-    print("💻 Configuring database for LOCAL environment")
+    print("Configuring database for LOCAL environment")
 
-print(f"⚙️  Final connect_args: keys={list(connect_args.keys())}")
+print(f"Final connect_args: keys={list(connect_args.keys())}")
 
 # Create async engine
 # Create async engine

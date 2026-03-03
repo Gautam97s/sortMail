@@ -87,7 +87,7 @@ User Query: {query}
 
     async def generate_chat_stream():
         # Using Gemini 2.0 Flash as requested for the chatbot stream phase 5
-        model = genai.GenerativeModel('gemini-2.0-flash') 
+        model = genai.GenerativeModel('gemini-2.5-flash') 
         try:
             response = await model.generate_content_async(
                 contents=prompt,
