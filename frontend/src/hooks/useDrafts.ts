@@ -55,3 +55,30 @@ export function useScheduleDraft() {
     });
 }
 
+/** Generate a new AI draft for a thread */
+export function useGenerateDraft() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ threadId, tone, additionalContext }: { threadId: string; tone: string; additionalContext?: string }) => {
+            const { data } = await api.post(endpoints.drafts + '/', {
+                thread_id: threadId,
+                tone,
+                additional_context: additionalContext || null,
+            });
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['ai-drafts'] });
+        },
+    });
+}
+
+/** Regenerate an existing draft */
+export function useRegenerateDraft() {
+    return useMutation({
+        mutationFn: async ({ draftId, tone }: { draftId: string; tone?: string }) => {
+            const { data } = await api.post(endpoints.draftRegenerate(draftId), { tone });
+            return data;
+        },
+    });
+}
