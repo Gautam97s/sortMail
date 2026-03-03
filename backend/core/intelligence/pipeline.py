@@ -118,11 +118,11 @@ async def process_thread_intelligence(
         thread.intel_json           = final_intel
         thread.intel_generated_at   = datetime.now(timezone.utc)
         
-        # ── 6a. Process Tags ──────────────────────────────────────────
-        await _process_tags(user_id, thread, tags_list, db)
-
-        # ── 6b. Process Contacts ──────────────────────────────────────
+        # ── 6a. Process Contacts FIRST (so tags can be linked) ─────────
         await _process_contacts(user_id, messages, db)
+
+        # ── 6b. Process Tags (Gemini tags + Contact tags) ─────────────
+        await _process_tags(user_id, thread, tags_list, db)
 
         # ── 6c. Process Suggested Draft ───────────────────────────────
         if suggested_draft:
@@ -157,7 +157,13 @@ async def process_thread_intelligence(
 # ─────────────────────────────────────────────────────────────────────────────
 
 async def _load_thread(thread_id: str, user_id: str, db: AsyncSession) -> Optional[Thread]:
-    stmt = select(Thread).where(Thread.id == thread_id, Thread.user_id == user_id)
+    """Load thread with tags eagerly to avoid lazy-load in async context."""
+    from sqlalchemy.orm import selectinload
+    stmt = (
+        select(Thread)
+        .where(Thread.id == thread_id, Thread.user_id == user_id)
+        .options(selectinload(Thread.tags))
+    )
     return (await db.execute(stmt)).scalars().first()
 
 
@@ -185,29 +191,53 @@ _PRIORITY_MAP = {
 
 
 async def _process_tags(user_id: str, thread: Thread, tags_list: list[str], db: AsyncSession) -> None:
-    """Get or create tags and attach them to the thread."""
-    if not tags_list:
-        return
-        
-    for tag_name in tags_list:
-        if not tag_name:
-            continue
-        
-        stmt = select(Tag).where(Tag.user_id == user_id, Tag.name.ilike(tag_name))
-        existing_tag = (await db.execute(stmt)).scalars().first()
-        
-        if not existing_tag:
-            existing_tag = Tag(
-                id=str(uuid.uuid4()),
-                user_id=user_id,
-                name=tag_name,
-                is_auto_applied=True
-            )
-            db.add(existing_tag)
+    """Get or create tags and attach them to the thread. Also propagates contact tags."""
+    # 1. Add tags suggested by Gemini
+    if tags_list:
+        for tag_name in tags_list:
+            if not tag_name:
+                continue
             
-        # Add to thread if not already present
-        if existing_tag not in thread.tags:
-            thread.tags.append(existing_tag)
+            stmt = select(Tag).where(Tag.user_id == user_id, Tag.name.ilike(tag_name))
+            existing_tag = (await db.execute(stmt)).scalars().first()
+            
+            if not existing_tag:
+                existing_tag = Tag(
+                    id=str(uuid.uuid4()),
+                    user_id=user_id,
+                    name=tag_name,
+                    is_auto_applied=True
+                )
+                db.add(existing_tag)
+                
+            if existing_tag not in thread.tags:
+                thread.tags.append(existing_tag)
+                
+    # 2. Add tags from the thread's contacts (CRM propagation)
+    from sqlalchemy.orm import selectinload
+    import re
+    email_regex = re.compile(r"<([^>]+)>|([^\s<>]+@[^\s<>]+)")
+    
+    # Seen participants to avoid redundant DB lookups
+    seen_emails = set()
+    for participant in (thread.participants or []):
+        match = email_regex.search(participant)
+        if not match: continue
+        email = (match.group(1) or match.group(2)).lower()
+        if email in seen_emails: continue
+        seen_emails.add(email)
+        
+        stmt = select(Contact).where(
+            Contact.user_id == user_id, 
+            Contact.email_address == email
+        ).options(selectinload(Contact.tags))
+        contact = (await db.execute(stmt)).scalars().first()
+        
+        if contact and contact.tags:
+            for tag in contact.tags:
+                if tag not in thread.tags:
+                    thread.tags.append(tag)
+                    logger.debug(f"Propagated contact tag '{tag.name}' to thread {thread.id}")
 
 
 async def _process_contacts(user_id: str, messages: list[dict], db: AsyncSession) -> None:

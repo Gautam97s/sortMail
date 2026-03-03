@@ -40,12 +40,41 @@ export function useContactThreads(contactId: string) {
 export function useToggleUnsubscribe() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (contactId: string) => {
+        mutationFn: async ({ contactId, email }: { contactId: string; email: string }) => {
             const { data } = await api.post(endpoints.contactUnsubscribe(contactId));
+            return data;
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['contacts'] });
+            queryClient.invalidateQueries({ queryKey: ['contact', variables.email] });
+        },
+    });
+}
+
+export function useAddContactTag() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ contactId, name, color_hex }: { contactId: string; name: string; color_hex?: string }) => {
+            const { data } = await api.post(endpoints.contactTags(contactId), { name, color_hex });
+            return data;
+        },
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['contacts'] });
+            queryClient.invalidateQueries({ queryKey: ['contact'] }); // Invalidate all contact details to be safe
+        },
+    });
+}
+
+export function useRemoveContactTag() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ contactId, tagId }: { contactId: string; tagId: string }) => {
+            const { data } = await api.delete(endpoints.contactTagRemove(contactId, tagId));
             return data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['contacts'] });
+            queryClient.invalidateQueries({ queryKey: ['contact'] });
         },
     });
 }

@@ -124,6 +124,23 @@ export default function ContactsPage() {
                                         {contact.company && (
                                             <p className="text-xs text-muted-foreground truncate">{contact.company}</p>
                                         )}
+                                        {/* Tags */}
+                                        {contact.tags && contact.tags.length > 0 && (
+                                            <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                                                {contact.tags.slice(0, 2).map(tag => (
+                                                    <span
+                                                        key={tag.id}
+                                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
+                                                        style={{ backgroundColor: tag.color_hex || '#E2E8F0', color: '#1E293B' }}
+                                                    >
+                                                        {tag.name}
+                                                    </span>
+                                                ))}
+                                                {contact.tags.length > 2 && (
+                                                    <span className="text-[10px] text-muted-foreground">+{contact.tags.length - 2}</span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="text-right shrink-0 space-y-1.5" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
@@ -143,7 +160,7 @@ export default function ContactsPage() {
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
-                                                toggleUnsubscribe(contact.id);
+                                                toggleUnsubscribe({ contactId: contact.id, email: contact.email_address });
                                             }}
                                             disabled={isPending}
                                         >

@@ -8,9 +8,10 @@ import uuid
 from datetime import datetime, timezone
 from sqlalchemy import Column, String, DateTime, Integer, Boolean, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import relationship
 
 from core.storage.database import Base
-
+from models.tag import contact_tags
 
 class Contact(Base):
     """A lightweight CRM model to track user interactions."""
@@ -35,6 +36,9 @@ class Contact(Base):
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    # Relationships
+    tags = relationship("Tag", secondary=contact_tags, back_populates="contacts")
     
     __table_args__ = (
         # Ex: UniqueConstraint("user_id", "email_address")

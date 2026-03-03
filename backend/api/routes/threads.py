@@ -40,6 +40,9 @@ from core.storage.database import get_db
 from api.dependencies import get_current_user
 from models.user import User
 from models.thread import Thread
+from models.email import Email
+from models.contact import Contact
+from sqlalchemy import and_, or_
 from core.credits.credit_service import CreditService, InsufficientCreditsError, RateLimitExceededError
 
 @router.get("", response_model=List[ThreadListItem])
@@ -54,10 +57,28 @@ async def list_threads(
     List email threads for current user.
     
     Returns threads sorted by last_updated descending.
+    Filters out threads where the most recent sender is an unsubscribed contact.
     """
+    # Subquery to find the latest sender for each thread (Postgres specific DISTINCT ON)
+    from sqlalchemy import func
+    
+    # Simple join approach: Get threads where the last_email_at matches an email sender's received_at
+    # This is slightly optimistic but works well for most cases without complex DISTINCT ON emulation in asyncpg
+    from sqlalchemy import cast, String
     stmt = (
         select(Thread)
-        .where(Thread.user_id == current_user.id)
+        .outerjoin(Email, and_(Email.thread_id == Thread.id, Email.received_at == Thread.last_email_at))
+        .outerjoin(Contact, and_(
+            Contact.user_id == current_user.id,
+            or_(
+                Email.sender.ilike(func.concat('%', Contact.email_address, '%')),
+                cast(Email.recipients, String).ilike(func.concat('%', Contact.email_address, '%'))
+            )
+        ))
+        .where(
+            Thread.user_id == current_user.id,
+            or_(Contact.is_unsubscribed == False, Contact.is_unsubscribed == None)
+        )
         .order_by(desc(Thread.last_email_at))
         .offset(offset)
         .limit(limit)

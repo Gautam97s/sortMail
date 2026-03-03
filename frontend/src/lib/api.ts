@@ -51,6 +51,8 @@ export const endpoints = {
     contactByEmail: (email: string) => `/api/contacts/by-email/${email}`,
     contactThreads: (id: string) => `/api/contacts/${id}/threads`,
     contactUnsubscribe: (id: string) => `/api/contacts/${id}/unsubscribe`,
+    contactTags: (id: string) => `/api/contacts/${id}/tags`,
+    contactTagRemove: (id: string, tagId: string) => `/api/contacts/${id}/tags/${tagId}`,
     tags: '/api/tags',
     draftApprove: (id: string) => `/api/drafts/${id}/approve`,
     draftSchedule: (id: string) => `/api/drafts/${id}/schedule`,
