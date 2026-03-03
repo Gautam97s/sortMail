@@ -191,7 +191,11 @@ function DashboardContent() {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between mb-0.5">
                                                         <p className="text-sm font-semibold text-ink truncate group-hover:text-accent transition-colors">
-                                                            {thread.participants?.[0]?.split('@')[0] || "Unknown"}
+                                                            {(() => {
+                                                                const p = thread.participants?.[0] || "Unknown";
+                                                                const nameMatch = p.match(/^"?([^"<]+)"?\s*</);
+                                                                return nameMatch ? nameMatch[1].trim() : p.split('@')[0].replace(/[._]/g, ' ');
+                                                            })()}
                                                         </p>
                                                         <span className="text-[10px] font-mono text-muted uppercase tracking-tighter shrink-0 ml-4">
                                                             {new Date(thread.last_updated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}

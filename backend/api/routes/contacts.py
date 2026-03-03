@@ -110,7 +110,7 @@ async def list_contact_threads(
         .join(Email, Email.thread_id == Thread.id)
         .where(
             Thread.user_id == current_user.id,
-            Email.sender == contact.email_address
+            Email.sender.ilike(f"%{contact.email_address}%")
         )
         .distinct()
         .order_by(desc(Thread.last_email_at))
