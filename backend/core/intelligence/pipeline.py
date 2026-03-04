@@ -346,12 +346,12 @@ async def _create_task(
         except ValueError:
             pass
 
-    raw_type = (item.get("task_type") or "general").lower()
-    ALLOWED_TASK_TYPES = {"general", "email", "follow_up", "meeting"}
+    raw_type = (item.get("task_type") or "reply").lower()
+    ALLOWED_TASK_TYPES = {"reply", "review", "schedule", "followup"}
     
     if raw_type not in ALLOWED_TASK_TYPES:
-        logger.warning(f"Invalid task type '{raw_type}', defaulting to '{TaskType.GENERAL.value}'")
-        final_task_type = TaskType.GENERAL
+        logger.warning(f"Invalid task type '{raw_type}', defaulting to '{TaskType.REPLY.value}'")
+        final_task_type = TaskType.REPLY
     else:
         final_task_type = TaskType(raw_type)
     logger.debug(f"raw_type: {raw_type}")
