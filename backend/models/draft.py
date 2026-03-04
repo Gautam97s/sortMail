@@ -8,27 +8,25 @@ import uuid
 from datetime import datetime, timezone
 from sqlalchemy import Column, String, DateTime, Text, Boolean, ForeignKey, Enum, Integer
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 import enum
 
 from core.storage.database import Base
 
 
 class DraftTone(str, enum.Enum):
-    PROFESSIONAL = "professional"
-    FRIENDLY = "friendly"
-    CONCISE = "concise"
-    FORMAL = "formal"
-    ASSERTIVE = "assertive"
-    CUSTOM = "custom"
+    BRIEF = "BRIEF"
+    NORMAL = "NORMAL"
+    FORMAL = "FORMAL"
 
 ToneType = DraftTone  # Alias for backward compatibility
 
 
 class DraftStatus(str, enum.Enum):
-    GENERATED = "generated"
-    EDITED = "edited"
-    SENT = "sent"
-    DISCARDED = "discarded"
+    GENERATED = "GENERATED"
+    EDITED = "EDITED"
+    SENT = "SENT"
+    DISCARDED = "DISCARDED"
 
 
 class DraftFeedback(str, enum.Enum):
@@ -48,10 +46,11 @@ class Draft(Base):
     reply_to_email_id = Column(String, ForeignKey("emails.id"), nullable=True)
     
     # Draft content
-    tone = Column(String(50), default=DraftTone.PROFESSIONAL.value, nullable=False)
+    tone = Column(PG_ENUM(DraftTone, name="tonetype", create_type=False), default=DraftTone.NORMAL, nullable=False)
     custom_instructions = Column(Text, nullable=True)
     subject = Column(String, nullable=False)
-    body = Column(Text, nullable=False)
+    content = Column(Text, nullable=False, default="")
+    body = Column(Text, nullable=True)
     
     generation_model = Column(String, nullable=False)
     tokens_used = Column(Integer, nullable=True)

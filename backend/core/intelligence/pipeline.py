@@ -318,8 +318,9 @@ async def _create_draft(user_id: str, thread_id: str, content: str, db: AsyncSes
         user_id=user_id,
         thread_id=thread_id,
         subject="Re: Thread", # Placeholder, relies on frontend to pull thread subject
+        content=content,
         body=content,
-        tone=DraftTone.PROFESSIONAL.value,
+        tone=DraftTone.NORMAL.value,
         generation_model="llama-3.3-70b-instruct",
         status=DraftStatus.GENERATED.value
     )
