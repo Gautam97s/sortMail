@@ -21,12 +21,29 @@ async def get_dashboard_briefing(user_id: str, db: AsyncSession, min_urgency: in
     into a structured briefing for the dashboard.
     """
     try:
+        from sqlalchemy import exists, or_, and_
+        from models.email import Email
+        from models.contact import Contact
+        from sqlalchemy import func
+
+        sender_is_unsubscribed = exists(
+            select(Contact.id).where(
+                Contact.user_id == user_id,
+                Contact.is_unsubscribed == True,
+                Email.sender.ilike(func.concat('%', Contact.email_address, '%'))
+            ).correlate(Email)
+        )
+
         # Fetch high urgency threads that haven't been archived/deleted
-        stmt = select(Thread).where(
+        stmt = select(Thread).outerjoin(Email, and_(Email.thread_id == Thread.id, Email.received_at == Thread.last_email_at)).where(
             Thread.user_id == user_id,
             Thread.urgency_score >= min_urgency,
             Thread.is_archived == False,
-            Thread.is_trash == False
+            Thread.is_trash == False,
+            or_(
+                Email.id == None,
+                ~sender_is_unsubscribed
+            )
         ).order_by(desc(Thread.urgency_score)).limit(10)
         
         result = await db.execute(stmt)

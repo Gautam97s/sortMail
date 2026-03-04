@@ -39,46 +39,12 @@ async def get_dashboard_stats(
     """
     Get aggregated dashboard statistics and briefing.
     """
-    # 1. Stats
-    # Unread
-    unread_stmt = select(func.count()).where(
-        Thread.user_id == current_user.id,
-        Thread.is_unread > 0
-    )
-    unread_count = (await db.execute(unread_stmt)).scalar() or 0
+    from sqlalchemy import exists, cast, Boolean
     
-    # Urgent
-    urgent_stmt = select(func.count()).where(
-        Thread.user_id == current_user.id,
-        Thread.urgency_score >= 80
-    )
-    urgent_count = (await db.execute(urgent_stmt)).scalar() or 0
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    current_date = datetime.now(timezone.utc).date()
     
-    # Tasks Due (Pending and deadline exists)
-    tasks_due_stmt = select(func.count()).where(
-        Task.user_id == current_user.id,
-        Task.status == TaskStatus.PENDING,
-        Task.due_date != None
-    )
-    tasks_due_count = (await db.execute(tasks_due_stmt)).scalar() or 0
-    
-    # Awaiting Reply (Mock or logic: last message is from user)
-    # This requires complex join (Thread -> Message order by sent_at desc limit 1).
-    # For MVP, let's keep it 0 or use a simpler proxy if possible?
-    # Maybe use `Thread.last_message_is_from_user` if we had it.
-    awaiting_reply_count = 0 
-    
-    # 2. Briefing (Mock / LLM Placeholder)
-    briefing = BriefingDTO(
-        summary=f"You have {unread_count} unread emails. {urgent_count} require immediate attention.",
-        suggested_actions=["Review urgent threads", "Check calendar"]
-    )
-    
-    # 3. Recent Threads — same unsubscribe logic as list_threads endpoint.
-    # Use NOT EXISTS correlated subquery on sender (plain String) to avoid any
-    # JSONB CAST issues with email.recipients.
-    from sqlalchemy import exists
-
+    # Common filter: Sender is unsubscribed
     sender_is_unsubscribed = exists(
         select(Contact.id).where(
             Contact.user_id == current_user.id,
@@ -87,6 +53,7 @@ async def get_dashboard_stats(
         ).correlate(Email)
     )
 
+    # 1. Load Recent Threads
     threads_stmt = (
         select(Thread)
         .outerjoin(Email, and_(Email.thread_id == Thread.id, Email.received_at == Thread.last_email_at))
@@ -116,7 +83,7 @@ async def get_dashboard_stats(
         for t in recent_threads_db
     ]
     
-    # 4. Priority Tasks
+    # 2. Load Priority Tasks
     tasks_stmt = (
         select(Task)
         .where(
@@ -137,7 +104,6 @@ async def get_dashboard_stats(
             title=t.title,
             description=t.description,
             task_type=t.task_type or "other", # Default to other
-            # Map model fields to contract fields with safe defaults
             priority=t.priority_level or "can_wait", # Default to can_wait
             priority_score=t.priority_score,
             priority_explanation=t.metadata_json.get("priority_explanation", ""), 
@@ -150,17 +116,93 @@ async def get_dashboard_stats(
         )
         for t in tasks_db
     ]
+
+    # 3. Stats
+    # Unread count
+    unread_stmt = select(func.count()).where(
+        Thread.user_id == current_user.id,
+        Thread.is_unread > 0
+    )
+    unread_count = (await db.execute(unread_stmt)).scalar() or 0
+    
+    # Urgent count (excluding unsubscribed)
+    urgent_stmt = select(func.count(Thread.id)).outerjoin(Email, and_(Email.thread_id == Thread.id, Email.received_at == Thread.last_email_at)).where(
+        Thread.user_id == current_user.id,
+        Thread.urgency_score >= 80,
+        or_(
+            Email.id == None,
+            ~sender_is_unsubscribed
+        )
+    )
+    urgent_count = (await db.execute(urgent_stmt)).scalar() or 0
+    
+    # Tasks Due (Pending and deadline is today or earlier)
+    tasks_due_stmt = select(func.count()).where(
+        Task.user_id == current_user.id,
+        Task.status == TaskStatus.PENDING,
+        Task.due_date != None,
+        Task.due_date <= current_date
+    )
+    tasks_due_count = (await db.execute(tasks_due_stmt)).scalar() or 0
+    
+    # Awaiting Reply (follow_up_needed in intel_json)
+    awaiting_reply_stmt = select(func.count(Thread.id)).where(
+        Thread.user_id == current_user.id,
+        Thread.intel_json['follow_up_needed'].astext == 'true'
+    )
+    awaiting_reply_count = (await db.execute(awaiting_reply_stmt)).scalar() or 0
+
+    # Daily emails received count (excluding unsubscribed)
+    emails_today_stmt = select(func.count(Email.id)).outerjoin(Thread, Email.thread_id == Thread.id).where(
+        Thread.user_id == current_user.id,
+        Email.received_at >= today_start,
+        ~sender_is_unsubscribed
+    )
+    emails_today_count = (await db.execute(emails_today_stmt)).scalar() or 0
+    
+    # 4. Synthesize Intelligent Briefing Summary
+    summary_sentences = [f"You received {emails_today_count} new emails today."]
+    
+    if urgent_count > 0:
+        summary_sentences.append(f"{urgent_count} threads require immediate attention.")
+    
+    if recent_threads_db:
+        # Get the highest urgency top thread
+        top_thread = max(recent_threads_db, key=lambda t: t.urgency_score or 0)
+        summary_sentences.append(f"Top priority email: '{top_thread.subject or '(No Subject)'}'.")
+
+    if tasks_due_count > 0:
+        summary_sentences.append(f"You have {tasks_due_count} tasks due.")
+
+    if tasks_db:
+        # Give an example task
+        summary_sentences.append(f"Most urgent task: '{tasks_db[0].title}'.")
+
+    suggested_actions = []
+    if urgent_count > 0:
+        suggested_actions.append("Review urgent emails")
+    if tasks_due_count > 0:
+        suggested_actions.append("Complete due tasks")
+    if awaiting_reply_count > 0:
+        suggested_actions.append("Follow up on waiting threads")
+
+    if not suggested_actions:
+        suggested_actions = ["Inbox zero! Enjoy your day."]
+
+    briefing = BriefingDTO(
+        summary=" ".join(summary_sentences),
+        suggested_actions=suggested_actions[:3]
+    )
     
     return DashboardData(
         stats=DashboardStats(
             unread=unread_count,
-            unread_delta="+2 since yesterday", # Mock delta
+            unread_delta=f"{emails_today_count} today", 
             urgent=urgent_count,
             tasks_due=tasks_due_count,
             awaiting_reply=awaiting_reply_count
         ),
         briefing=briefing,
-        # Convert Pydantic models to dicts because Contract uses List[dict] to avoid circular imports
         recent_threads=[t.model_dump() for t in recent_threads],
         priority_tasks=[t.model_dump() for t in priority_tasks]
     )
