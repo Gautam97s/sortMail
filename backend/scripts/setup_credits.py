@@ -23,8 +23,8 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from datetime import date, datetime, timezone
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update
 from sqlalchemy import select, update
 import uuid
 
@@ -178,8 +178,7 @@ async def ensure_all_users_have_credits(db: AsyncSession):
 
 
 async def main(rounak_email: str):
-    engine = create_async_engine(settings.DATABASE_URL, echo=False)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    from core.storage.database import engine, async_session
 
     async with async_session() as db:
         print("\n📋 Step 1: Seeding credit_pricing table...")
