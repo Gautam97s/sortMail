@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, and_, or_, cast
+from sqlalchemy import select, func, desc, and_, or_
 
 from pydantic import BaseModel
 
@@ -74,20 +74,28 @@ async def get_dashboard_stats(
         suggested_actions=["Review urgent threads", "Check calendar"]
     )
     
-    # 3. Recent Threads (respects unsubscribe filter — same logic as list_threads)
+    # 3. Recent Threads — same unsubscribe logic as list_threads endpoint.
+    # Use NOT EXISTS correlated subquery on sender (plain String) to avoid any
+    # JSONB CAST issues with email.recipients.
+    from sqlalchemy import exists
+
+    sender_is_unsubscribed = exists(
+        select(Contact.id).where(
+            Contact.user_id == current_user.id,
+            Contact.is_unsubscribed == True,
+            Email.sender.ilike(func.concat('%', Contact.email_address, '%'))
+        ).correlate(Email)
+    )
+
     threads_stmt = (
         select(Thread)
         .outerjoin(Email, and_(Email.thread_id == Thread.id, Email.received_at == Thread.last_email_at))
-        .outerjoin(Contact, and_(
-            Contact.user_id == current_user.id,
-            or_(
-                Email.sender.ilike(func.concat('%', Contact.email_address, '%')),
-                cast(Email.recipients, String).ilike(func.concat('%', Contact.email_address, '%'))
-            )
-        ))
         .where(
             Thread.user_id == current_user.id,
-            or_(Contact.is_unsubscribed == False, Contact.is_unsubscribed == None)
+            or_(
+                Email.id == None,        # thread has no emails yet
+                ~sender_is_unsubscribed  # sender is NOT an unsubscribed contact
+            )
         )
         .order_by(desc(Thread.last_email_at))
         .limit(5)

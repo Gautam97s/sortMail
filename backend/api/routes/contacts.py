@@ -109,27 +109,30 @@ class ThreadListItemMeta(BaseModel):
 @router.get("/{contact_id}/threads", response_model=list[ThreadListItemMeta])
 async def list_contact_threads(
     contact_id: str,
+    direction: str = "all",  # "from" | "to" | "all"
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List threads for a specific contact."""
-    # First get the contact to get the email
+    """List threads for a specific contact.
+
+    direction=from  → threads where this contact is the sender
+    direction=to    → threads where this contact is a recipient
+    direction=all   → both (default)
+    """
     stmt = select(Contact).where(Contact.id == contact_id, Contact.user_id == current_user.id)
     contact = (await db.execute(stmt)).scalars().first()
-    
+
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found")
-        
+
     from models.thread import Thread
     from models.email import Email
+    from sqlalchemy import text as sa_text
 
     email_addr = contact.email_address.lower()
 
-    # emails.recipients is JSONB: [{email, name, type}, ...].
-    # We extract each element's 'email' key via jsonb_array_elements and
-    # compare case-insensitively.  text() avoids any SQLAlchemy CAST issues.
-    from sqlalchemy import text as sa_text
-
+    # Build the direction-aware WHERE condition
+    sender_match = Email.sender.ilike(f"%{email_addr}%")
     recipient_match = sa_text(
         "EXISTS ("
         "  SELECT 1 FROM jsonb_array_elements(emails.recipients) AS r"
@@ -137,16 +140,18 @@ async def list_contact_threads(
         ")"
     ).bindparams(ea=email_addr)
 
+    if direction == "from":
+        direction_filter = sender_match
+    elif direction == "to":
+        direction_filter = recipient_match
+    else:  # "all"
+        direction_filter = or_(sender_match, recipient_match)
+
     email_ids_stmt = (
         select(Email.thread_id)
         .where(
             Email.user_id == current_user.id,
-            or_(
-                # Sender: ILIKE handles "Name <email>" format
-                Email.sender.ilike(f"%{email_addr}%"),
-                # Recipients: case-insensitive extraction from JSONB array of objects
-                recipient_match,
-            )
+            direction_filter,
         )
         .distinct()
         .subquery()
@@ -162,7 +167,7 @@ async def list_contact_threads(
         .limit(50)
     )
     threads = (await db.execute(stmt)).scalars().all()
-    
+
     return [
         ThreadListItemMeta(
             thread_id=t.id,
@@ -175,6 +180,7 @@ async def list_contact_threads(
         )
         for t in threads
     ]
+
 
 @router.post("/{contact_id}/unsubscribe")
 async def toggle_unsubscribe(
