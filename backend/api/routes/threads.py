@@ -113,6 +113,7 @@ async def list_threads(
     result = await db.execute(stmt)
     threads = result.scalars().all()
     
+    user_email = current_user.email.lower() if current_user.email else ""
     return [
         ThreadListItem(
             thread_id=t.id,
@@ -122,7 +123,8 @@ async def list_threads(
             urgency_score=t.urgency_score or 0,
             last_updated=t.last_email_at or datetime.now(timezone.utc),
             has_attachments=t.has_attachments or False,
-            participants=list(t.participants or []),
+            # Sort participants so the user themselves appears last, putting the other sender at index 0
+            participants=sorted(list(t.participants or []), key=lambda p: user_email in p.lower()),
             is_unread=t.is_unread or 0,
         )
         for t in threads
@@ -332,11 +334,14 @@ async def get_thread(
         for a in attachments
     ]
     
+    user_email = current_user.email.lower() if current_user.email else ""
+    sorted_participants = sorted(list(thread.participants or []), key=lambda p: user_email in p.lower())
+
     email_thread = EmailThreadV1(
         thread_id=thread.id,
         external_id=thread.external_id,
         subject=thread.subject or "(No Subject)",
-        participants=thread.participants or [],
+        participants=sorted_participants,
         messages=normalized_messages,
         attachments=normalized_attachments,
         last_updated=thread.last_email_at or datetime.now(timezone.utc),
