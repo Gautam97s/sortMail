@@ -140,7 +140,17 @@ async def google_callback(
             db.add(user)
             await db.commit()
             await db.refresh(user)
-            
+
+            # ── Grant 50 welcome credits to new user ─────────────────────
+            try:
+                from core.credits.credit_service import CreditService
+                await CreditService.get_or_create_user_credits(db, user.id)
+                await db.commit()
+                logger.info(f"✅ Granted 50 welcome credits to new user: {user.email}")
+            except Exception as ce:
+                logger.warning(f"Credit grant failed for {user.email}: {ce}")
+            # ─────────────────────────────────────────────────────────────
+
         else:
             user.name = user_info.name
             user.picture_url = user_info.picture
