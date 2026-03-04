@@ -42,7 +42,8 @@ from models.user import User
 from models.thread import Thread
 from models.email import Email
 from models.contact import Contact
-from sqlalchemy import and_, or_, func, any_
+from sqlalchemy import and_, or_, func, any_, cast, String
+from sqlalchemy.dialects.postgresql import ARRAY
 from core.credits.credit_service import CreditService, InsufficientCreditsError, RateLimitExceededError
 
 @router.get("", response_model=List[ThreadListItem])
@@ -64,7 +65,6 @@ async def list_threads(
     
     # Simple join approach: Get threads where the last_email_at matches an email sender's received_at
     # This is slightly optimistic but works well for most cases without complex DISTINCT ON emulation in asyncpg
-    from sqlalchemy import cast, String
     stmt = (
         select(Thread)
         .outerjoin(Email, and_(Email.thread_id == Thread.id, Email.received_at == Thread.last_email_at))
@@ -72,7 +72,7 @@ async def list_threads(
             Contact.user_id == current_user.id,
             or_(
                 Email.sender.ilike(func.concat('%', Contact.email_address, '%')),
-                func.lower(Contact.email_address) == any_(Email.recipients)
+                func.lower(Contact.email_address) == any_(cast(Email.recipients, ARRAY(String)))
             )
         ))
         .where(
