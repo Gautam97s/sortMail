@@ -278,6 +278,23 @@ async def get_thread(
     else:
         attachments = []
     # 4. Construct Encapsulated Objects
+    from models.task import Task, TaskStatus as DBTaskStatus
+    from models.draft import Draft, DraftStatus
+    
+    task_stmt = select(Task).where(
+        Task.source_thread_id == thread_id, 
+        Task.status.in_([DBTaskStatus.PENDING, DBTaskStatus.IN_PROGRESS])
+    )
+    task_res = await db.execute(task_stmt)
+    db_tasks = task_res.scalars().all()
+    
+    draft_stmt = select(Draft).where(
+        Draft.thread_id == thread_id,
+        Draft.status == DraftStatus.GENERATED.value
+    ).order_by(Draft.created_at.desc()).limit(1)
+    draft_res = await db.execute(draft_stmt)
+    db_draft = draft_res.scalars().first()
+
     normalized_messages = []
     for m in messages:
         to_addrs = [r.get("email") for r in m.recipients if r.get("type") == "to"] if m.recipients else []
@@ -351,11 +368,44 @@ async def get_thread(
         is_starred=thread.is_starred or False,
     )
     
-    # 5. Fetch Tasks / Drafts (Stubs for now, or real if table exists)
-    # Assuming Task model exists, import it globally if so.
-    # For now return empty list to unblock.
-    tasks = [] 
+    # 5. Fetch Tasks / Drafts
+    
+    def _map_priority(level: str) -> str:
+        level = (level or "").lower()
+        if level in ["urgent", "critical", "do_now"]: return "do_now"
+        if level in ["high", "do_today"]: return "do_today"
+        return "can_wait"
+
+    tasks = [
+        TaskDTOv1(
+            task_id=t.id,
+            thread_id=t.source_thread_id,
+            user_id=t.user_id,
+            title=t.title,
+            description=t.description,
+            task_type=t.task_type.value if hasattr(t.task_type, 'value') else str(t.task_type).lower(),
+            priority=_map_priority(t.priority_level),
+            priority_score=t.priority_score or 0,
+            status=t.status.value if hasattr(t.status, 'value') else str(t.status).lower(),
+            created_at=t.created_at or datetime.now(timezone.utc),
+            updated_at=t.updated_at or datetime.now(timezone.utc),
+        ) for t in db_tasks
+    ]
+    
     draft = None
+    if db_draft:
+        placeholders = db_draft.metadata_json.get("placeholders", []) if db_draft.metadata_json else []
+        draft = DraftDTOv1(
+            draft_id=db_draft.id,
+            thread_id=db_draft.thread_id,
+            user_id=db_draft.user_id,
+            content=db_draft.body,
+            tone=db_draft.tone,
+            placeholders=placeholders,
+            has_unresolved_placeholders=len(placeholders) > 0,
+            created_at=db_draft.created_at or datetime.now(timezone.utc),
+            schema_version=db_draft.generation_model or "unknown"
+        )
     
     return ThreadDetailResponse(
         thread=email_thread,
