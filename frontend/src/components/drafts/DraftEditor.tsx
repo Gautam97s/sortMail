@@ -122,7 +122,17 @@ export function DraftEditor({
                             {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
                             {copied ? 'Copied' : 'Copy Text'}
                         </Button>
-                        <Button variant="default" size="sm" className="bg-primary hover:bg-primary/90 text-white h-9 px-4 shadow-sm" disabled={!content}>
+                        <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-primary hover:bg-primary/90 text-white h-9 px-4 shadow-sm"
+                            disabled={!content || !originalThread?.external_id}
+                            onClick={() => {
+                                if (originalThread?.external_id) {
+                                    window.open(`https://mail.google.com/mail/u/0/#inbox/${originalThread.external_id}`, '_blank');
+                                }
+                            }}
+                        >
                             <ExternalLink className="h-4 w-4 mr-2" />
                             Open in Gmail
                         </Button>

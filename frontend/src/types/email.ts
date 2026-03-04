@@ -12,6 +12,7 @@ export type IntentType =
 
 export interface ThreadListItem {
     thread_id: string;
+    external_id: string;
     subject: string;
     summary: string;
     intent: IntentType;
