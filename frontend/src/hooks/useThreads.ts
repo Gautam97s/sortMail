@@ -13,7 +13,8 @@ export function useThreads(intent?: string, q?: string) {
             const { data } = await api.get(endpoints.threads, { params });
             return data;
         },
-        staleTime: 1000 * 60 * 5,
+        // Intent/search queries always fetch fresh; all-tab is cached for speed
+        staleTime: (intent || q) ? 0 : 1000 * 60 * 5,
         gcTime: 1000 * 60 * 10,
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,

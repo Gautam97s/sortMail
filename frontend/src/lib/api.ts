@@ -76,6 +76,7 @@ export const endpoints = {
     onboardingSteps: '/api/onboarding/steps',
     onboardingTips: '/api/onboarding/tips',
     userProfile: '/api/app/profile',
-    navCounts: '/api/app/nav-counts',
+    navCounts: '/api/threads/counts',
+    search: '/api/search',
     appStatus: '/api/app/status',
 };
