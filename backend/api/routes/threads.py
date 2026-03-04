@@ -42,8 +42,7 @@ from models.user import User
 from models.thread import Thread
 from models.email import Email
 from models.contact import Contact
-from sqlalchemy import and_, or_, func, any_, cast, String
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import and_, or_, func, exists
 from core.credits.credit_service import CreditService, InsufficientCreditsError, RateLimitExceededError
 
 @router.get("", response_model=List[ThreadListItem])
@@ -60,24 +59,33 @@ async def list_threads(
     Returns threads sorted by last_updated descending.
     Filters out threads where the most recent sender is an unsubscribed contact.
     """
-    # Subquery to find the latest sender for each thread (Postgres specific DISTINCT ON)
-    from sqlalchemy import func
-    
-    # Simple join approach: Get threads where the last_email_at matches an email sender's received_at
-    # This is slightly optimistic but works well for most cases without complex DISTINCT ON emulation in asyncpg
+
+
+    sender_is_unsubscribed = exists(
+        select(Contact.id).where(
+            Contact.user_id == current_user.id,
+            Contact.is_unsubscribed == True,
+            # sender may be "Name <email>" — ILIKE with % handles both formats
+            Email.sender.ilike(func.concat('%', Contact.email_address, '%'))
+        ).correlate(Email)
+    )
+
     stmt = (
         select(Thread)
-        .outerjoin(Email, and_(Email.thread_id == Thread.id, Email.received_at == Thread.last_email_at))
-        .outerjoin(Contact, and_(
-            Contact.user_id == current_user.id,
-            or_(
-                Email.sender.ilike(func.concat('%', Contact.email_address, '%')),
-                func.lower(Contact.email_address) == any_(cast(Email.recipients, ARRAY(String)))
+        # LEFT JOIN to get the most recent email for each thread
+        .outerjoin(
+            Email,
+            and_(
+                Email.thread_id == Thread.id,
+                Email.received_at == Thread.last_email_at
             )
-        ))
+        )
         .where(
             Thread.user_id == current_user.id,
-            or_(Contact.is_unsubscribed == False, Contact.is_unsubscribed == None)
+            or_(
+                Email.id == None,          # thread has no emails yet – always show
+                ~sender_is_unsubscribed    # sender is NOT a known unsubscribed contact
+            )
         )
         .order_by(desc(Thread.last_email_at))
         .offset(offset)

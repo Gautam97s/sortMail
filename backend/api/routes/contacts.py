@@ -2,8 +2,7 @@ import logging
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc, or_, func, any_, cast, String
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import select, desc, or_, func
 
 from core.storage.database import get_db
 from models.user import User
@@ -126,19 +125,27 @@ async def list_contact_threads(
 
     email_addr = contact.email_address.lower()
 
-    # Fast query using array membership and indexed sender comparison.
-    # ANY(recipients) is index-friendly; avoids CAST(array AS VARCHAR) ILIKE
-    # which cannot use any index and does a full table scan.
-    # We find thread_ids from emails first, then fetch threads by PK.
+    # emails.recipients is JSONB: [{email, name, type}, ...].
+    # We extract each element's 'email' key via jsonb_array_elements and
+    # compare case-insensitively.  text() avoids any SQLAlchemy CAST issues.
+    from sqlalchemy import text as sa_text
+
+    recipient_match = sa_text(
+        "EXISTS ("
+        "  SELECT 1 FROM jsonb_array_elements(emails.recipients) AS r"
+        "  WHERE lower(r->>'email') = :ea"
+        ")"
+    ).bindparams(ea=email_addr)
+
     email_ids_stmt = (
         select(Email.thread_id)
         .where(
             Email.user_id == current_user.id,
             or_(
-                # Sender: use = for exact match or ILIKE for name <email> format
+                # Sender: ILIKE handles "Name <email>" format
                 Email.sender.ilike(f"%{email_addr}%"),
-                # Recipients: exact array membership — fast, uses GIN index if present
-                func.lower(email_addr) == any_(cast(Email.recipients, ARRAY(String))),
+                # Recipients: case-insensitive extraction from JSONB array of objects
+                recipient_match,
             )
         )
         .distinct()
