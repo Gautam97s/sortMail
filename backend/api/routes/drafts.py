@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
 from core.storage.database import get_db
+from models.draft import ToneType
 from api.dependencies import get_current_user
 from models.user import User
 from models.draft import Draft, DraftStatus, DraftTone
