@@ -64,7 +64,7 @@ Respond ONLY with this JSON structure (no markdown, no extra text):
   "reply_deadline": "YYYY-MM-DD or null",
   "topics": ["budget", "contract"],
   "tags": ["Invoice", "Meeting"],
-  "suggested_draft": "Draft a concise professional reply if needed, otherwise null.",
+  "suggested_draft": "Always write a concise, professional reply to the latest message. Do not return null.",
   "meeting_detected": {{
     "has_meeting": false,
     "date": "YYYY-MM-DD or null",

@@ -9,8 +9,6 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
-from contracts import DraftDTOv1, ToneType
-from contracts.mocks import create_mock_draft
 from core.storage.database import get_db
 from api.dependencies import get_current_user
 from models.user import User
@@ -18,7 +16,10 @@ from models.draft import Draft, DraftStatus, DraftTone
 from core.credits.credit_service import CreditService, InsufficientCreditsError, RateLimitExceededError
 from sqlalchemy import select, desc, and_, or_, func, exists
 import logging
+import uuid
 from datetime import datetime, timezone
+from core.intelligence.pipeline import _load_thread, _load_messages
+from core.intelligence.llama_engine import _call_llama
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class ScheduleDraftRequest(BaseModel):
     scheduled_for_date: str # ISO format expected
 
 
-@router.post("/", response_model=DraftDTOv1)
+@router.post("/", response_model=DraftResponse)
 async def generate_draft(
     request: DraftRequest,
     db: AsyncSession = Depends(get_db),
@@ -69,22 +70,63 @@ async def generate_draft(
 
     # TODO: Implement real draft generation with LLM
     try:
-        # Simulate AI processing...
-        draft = create_mock_draft()
-        draft.thread_id = request.thread_id
-        draft.tone = request.tone
+        # Load real thread and context
+        thread = await _load_thread(request.thread_id, current_user.id, db)
+        if not thread:
+            raise HTTPException(status_code=404, detail="Thread not found")
+            
+        messages = await _load_messages(request.thread_id, db)
+        messages_text = ""
+        for m in messages:
+            sender = m.get("from", "Unknown")
+            body = m.get("body", "").strip()[:500]
+            messages_text += f"From: {sender}\n{body}\n\n"
+            
+        tone_val = request.tone.value if hasattr(request.tone, 'value') else request.tone
+        prompt = f"""Write a professional email reply for the following thread.
+Tone: {tone_val}
+Additional Instructions: {request.additional_context or 'None'}
+
+Thread Context:
+{messages_text}
+
+Provide ONLY the raw email body text. Do not include subject lines or enclosed Markdown formatting. Keep it concise."""
+
+        chat_messages = [{"role": "user", "content": prompt}]
+        generated_text = (await _call_llama(chat_messages, max_tokens=1000)).strip()
+        
+        draft = Draft(
+            id=str(uuid.uuid4()),
+            user_id=current_user.id,
+            thread_id=request.thread_id,
+            subject=f"Re: {thread.subject}",
+            content=generated_text,
+            body=generated_text,
+            tone=request.tone,
+            generation_model="llama-3.3-70b-instruct",
+            status=DraftStatus.GENERATED.value
+        )
+        db.add(draft)
         
         # 2. Deduct Credits (only on success)
         await CreditService.deduct_credits(
             db, 
             current_user.id, 
             OPERATION_TYPE, 
-            related_entity_id=None, # or draft.id if we had it persistence
+            related_entity_id=draft.id,
             metadata={"thread_id": request.thread_id, "tone": request.tone}
         )
-        await db.commit() # Commit deduction
+        await db.commit() # Commit deduction and draft insertion
         
-        return draft
+        return {
+            "id": draft.id,
+            "thread_id": draft.thread_id,
+            "subject": draft.subject,
+            "body": draft.body,
+            "tone": draft.tone,
+            "status": draft.status,
+            "created_at": draft.created_at.isoformat() if draft.created_at else ""
+        }
     except InsufficientCreditsError:
         await db.rollback()
         raise HTTPException(status_code=402, detail="Insufficient credits.")
@@ -96,16 +138,30 @@ async def generate_draft(
         raise HTTPException(status_code=500, detail=f"Draft generation failed: {str(e)}")
 
 
-@router.get("/{draft_id}", response_model=DraftDTOv1)
-async def get_draft(draft_id: str):
+@router.get("/{draft_id}", response_model=DraftResponse)
+async def get_draft(
+    draft_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     """Get an existing draft."""
-    # TODO: Replace with real DB query
-    draft = create_mock_draft()
-    draft.draft_id = draft_id
-    return draft
+    stmt = select(Draft).where(Draft.id == draft_id, Draft.user_id == current_user.id)
+    draft = (await db.execute(stmt)).scalars().first()
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    
+    return {
+        "id": draft.id,
+        "thread_id": draft.thread_id,
+        "subject": draft.subject,
+        "body": draft.body,
+        "tone": draft.tone,
+        "status": draft.status,
+        "created_at": draft.created_at.isoformat() if draft.created_at else ""
+    }
 
 
-@router.post("/{draft_id}/regenerate", response_model=DraftDTOv1)
+@router.post("/{draft_id}/regenerate", response_model=DraftResponse)
 async def regenerate_draft(
     draft_id: str,
     tone: Optional[ToneType] = None,
@@ -120,20 +176,61 @@ async def regenerate_draft(
          raise HTTPException(status_code=402, detail="Insufficient credits.")
 
     try:
-        # TODO: Implement regeneration
-        draft = create_mock_draft()
-        draft.draft_id = draft_id
+        # 1. Fetch existing draft to get thread_id reference
+        stmt = select(Draft).where(Draft.id == draft_id, Draft.user_id == current_user.id)
+        draft = (await db.execute(stmt)).scalars().first()
+        if not draft:
+            raise HTTPException(status_code=404, detail="Draft not found")
+
+        # 2. Load context
+        thread = await _load_thread(draft.thread_id, current_user.id, db)
+        if not thread:
+            raise HTTPException(status_code=404, detail="Source thread not found")
+        messages = await _load_messages(draft.thread_id, db)
+        
+        # 3. Formulate Prompt
+        messages_text = ""
+        for m in messages:
+            sender = m.get("from", "Unknown")
+            body = m.get("body", "").strip()[:500]
+            messages_text += f"From: {sender}\n{body}\n\n"
+            
+        target_tone = tone or draft.tone
+        tone_val = target_tone.value if hasattr(target_tone, 'value') else target_tone
+        prompt = f"""Rewrite a professional email reply for the following thread.
+Tone: {tone_val}
+
+Thread Context:
+{messages_text}
+
+Provide ONLY the raw email body text. Do not include subject lines or enclosed Markdown formatting. Keep it concise."""
+
+        # 4. Generate
+        chat_messages = [{"role": "user", "content": prompt}]
+        generated_text = (await _call_llama(chat_messages, max_tokens=1000)).strip()
+        
+        # 5. Update draft
+        draft.content = generated_text
+        draft.body = generated_text
         if tone:
             draft.tone = tone
-            
-        # 2. Deduct
+
+        # 6. Deduct
         await CreditService.deduct_credits(
             db, user_id=current_user.id, operation_type=OPERATION_TYPE,
-            metadata={"draft_id": draft_id, "action": "regenerate"}
+            metadata={"draft_id": draft_id, "action": "regenerate", "tone": tone_val}
         )
         await db.commit()
         
-        return draft
+        return {
+            "id": draft.id,
+            "thread_id": draft.thread_id,
+            "subject": draft.subject,
+            "body": draft.body,
+            "tone": draft.tone,
+            "status": draft.status,
+            "created_at": draft.created_at.isoformat() if draft.created_at else ""
+        }
     except InsufficientCreditsError as e:
         await db.rollback()
         raise HTTPException(status_code=402, detail=str(e))
