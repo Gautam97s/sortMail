@@ -25,22 +25,27 @@ import { FilterTab, ThreadListItem } from '@/types/dashboard';
 
 export default function InboxPage() {
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [activeTab, setActiveTab] = useState<FilterTab>('all');
 
+    // Debounce search input — avoids API call on every keystroke
+    React.useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(search), 400);
+        return () => clearTimeout(t);
+    }, [search]);
+
     // Intent tabs drive server-side filtering via ?intent= param
-    const { data: threads, isLoading, error } = useThreads(activeTab === 'all' ? undefined : activeTab, search || undefined);
+    const { data: threads, isLoading, error } = useThreads(
+        activeTab === 'all' ? undefined : activeTab,
+        debouncedSearch || undefined
+    );
 
-    // Smart background sync: checks if stale → incremental Gmail sync → invalidates cache
+    // Smart background sync
     const { syncState, triggerSync } = useSmartSync();
-
-    // Real-time SSE: auto-refresh when backend publishes intel_ready / new_emails
     useRealtimeEvents();
 
     const isSyncing = syncState === 'syncing' || syncState === 'checking';
-
-    // Backend handles search — just use threads directly
     const filtered = threads ?? [];
-
 
     return (
         <AppShell title="Inbox" subtitle={`${threads?.length || 0} threads`}>
@@ -73,7 +78,11 @@ export default function InboxPage() {
                 )}
 
                 {/* ─── Tabs ───────────────────────────── */}
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as FilterTab)} className="w-full">
+                <Tabs value={activeTab} onValueChange={(v) => {
+                    setActiveTab(v as FilterTab);
+                    setSearch('');
+                    setDebouncedSearch('');
+                }} className="w-full">
                     <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 border-b border-border/40">
                         <TabsList className="bg-transparent h-auto p-0 gap-6 md:gap-8 min-w-max">
                             {[
