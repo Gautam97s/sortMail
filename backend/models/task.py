@@ -16,17 +16,16 @@ from core.storage.database import Base
 
 class TaskStatus(str, enum.Enum):
     PENDING = "pending"
-    TODO = "todo"
     IN_PROGRESS = "in_progress"
-    DONE = "done"
-    CANCELLED = "cancelled"
+    COMPLETED = "completed"
+    DISMISSED = "dismissed"
 
 
 class TaskType(str, enum.Enum):
-    GENERAL = "general"
-    EMAIL = "email"
-    FOLLOW_UP = "follow_up"
-    MEETING = "meeting"
+    REPLY = "reply"
+    REVIEW = "review"
+    SCHEDULE = "schedule"
+    FOLLOWUP = "followup"
 
 
 class PriorityLevel(str, enum.Enum):
@@ -51,8 +50,8 @@ class Task(Base):
     # Task details
     title = Column(String, nullable=False)
     description = Column(Text)
-    status = Column(PG_ENUM(TaskStatus, name="taskstatus", create_type=False, values_callable=lambda obj: [e.value for e in obj]), default=TaskStatus.PENDING, nullable=False)
-    task_type = Column(PG_ENUM(TaskType, name="tasktype", create_type=False, values_callable=lambda obj: [e.value for e in obj]), default=TaskType.GENERAL, nullable=False)
+    status = Column(PG_ENUM(TaskStatus, name="taskstatus", create_type=False), default=TaskStatus.PENDING, nullable=False)
+    task_type = Column(PG_ENUM(TaskType, name="tasktype", create_type=False), default=TaskType.REPLY, nullable=False)
     
     # Priority
     priority_level = Column(String, nullable=True) # urgent, high, medium, low
