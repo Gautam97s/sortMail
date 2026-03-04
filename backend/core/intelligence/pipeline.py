@@ -133,13 +133,30 @@ async def process_thread_intelligence(
 
         # ── 6.5 Embed thread into ChromaDB if valuable ─────────────────
         from core.intelligence.embedding_strategy import embed_thread_if_valuable
-        messages_text = "\\n".join([m.get("body", "") for m in messages])
+        messages_text = "\n".join([m.get("body", "") for m in messages])
         await embed_thread_if_valuable(thread, user_id, messages_text, db)
 
+        # ── 6.7 Check if sender is unsubscribed ────────────────────────
+        # If the thread sender is unsubscribed, skip auto-creating tasks.
+        is_unsubscribed = False
+        import re
+        email_regex = re.compile(r"<([^>]+)>|([^\s<>]+@[^\s<>]+)")
+        for p in list(thread.participants or []):
+            match = email_regex.search(p)
+            if match:
+                email = (match.group(1) or match.group(2)).lower()
+                stmt_unsub = select(Contact.is_unsubscribed).where(
+                    Contact.user_id == user_id, 
+                    Contact.email_address == email
+                )
+                if (await db.execute(stmt_unsub)).scalar():
+                    is_unsubscribed = True
+                    break
 
         # ── 7. Auto-create Tasks from action items ────────────────────
-        for item in action_items:
-            await _create_task(user_id, thread_id, item, db)
+        if not is_unsubscribed:
+            for item in action_items:
+                await _create_task(user_id, thread_id, item, db)
 
         # ── 8. Publish SSE event → frontend invalidates cache ─────────
         await _publish_intel_ready(user_id, thread_id, final_intel)
