@@ -142,7 +142,7 @@ export default function InboxPage() {
 }
 
 
-function ThreadRow({ thread, isLast }: { thread: ThreadListItem; isLast: boolean }) {
+function ThreadRow({ thread, isLast }: { thread: ThreadListItem & { tags?: string[] }; isLast: boolean }) {
     // Parse sender from thread.participants
     const firstParticipant = (thread as any).participants?.[0] ?? '';
     const sender = (() => {
@@ -225,6 +225,11 @@ function ThreadRow({ thread, isLast }: { thread: ThreadListItem; isLast: boolean
                                 {isFyi && (
                                     <Badge variant="secondary" className="text-[9px] px-1.5 py-0 rounded-sm font-bold uppercase tracking-wider bg-paper-deep text-muted">FYI</Badge>
                                 )}
+                                {thread.tags?.map(tag => (
+                                    <Badge key={tag} variant="secondary" className="text-[9px] px-1.5 py-0 rounded-sm font-bold uppercase tracking-wider bg-paper-deep text-muted border-border/50">
+                                        {tag}
+                                    </Badge>
+                                ))}
                                 {thread.has_attachments && (
                                     <FileText className="h-3.5 w-3.5 text-muted/30" />
                                 )}

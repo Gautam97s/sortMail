@@ -28,6 +28,7 @@ class ThreadListItem(BaseModel):
     has_attachments: bool
     participants: list = []   # needed by inbox ThreadRow for sender display
     is_unread: int = 0        # 0 = read, 1 = unread
+    tags: List[str] = []      # contact and thread flags/tags
 
 
 from fastapi import APIRouter, HTTPException, Query, Depends
@@ -105,6 +106,7 @@ async def list_threads(
                 Email.received_at == Thread.last_email_at
             )
         )
+        .options(selectinload(Thread.tags))
         .where(*filters)
         .order_by(desc(Thread.last_email_at))
         .offset(offset)
@@ -126,6 +128,7 @@ async def list_threads(
             # Sort participants so the user themselves appears last, putting the other sender at index 0
             participants=sorted(list(t.participants or []), key=lambda p: user_email in p.lower()),
             is_unread=t.is_unread or 0,
+            tags=[tag.name for tag in t.tags] if t.tags else [],
         )
         for t in threads
     ]
