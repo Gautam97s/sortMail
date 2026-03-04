@@ -67,22 +67,22 @@ export function DraftControls({
                 <div className="space-y-3">
                     <Label className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono">Tone & Style</Label>
                     <RadioGroup value={tone} onValueChange={onToneChange} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-2">
-                        <label className={`flex items-center space-x-3 p-2.5 md:p-3 rounded-lg border cursor-pointer transition-all ${tone === 'brief' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
-                            <RadioGroupItem value="brief" id="brief" />
+                        <label className={`flex items-center space-x-3 p-2.5 md:p-3 rounded-lg border cursor-pointer transition-all ${tone === 'BRIEF' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
+                            <RadioGroupItem value="BRIEF" id="BRIEF" />
                             <div className="flex flex-col">
                                 <span className="text-sm font-medium text-ink">Brief</span>
                                 <span className="text-[10px] md:text-xs text-muted-foreground">Short, to the point</span>
                             </div>
                         </label>
-                        <label className={`flex items-center space-x-3 p-2.5 md:p-3 rounded-lg border cursor-pointer transition-all ${tone === 'normal' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
-                            <RadioGroupItem value="normal" id="normal" />
+                        <label className={`flex items-center space-x-3 p-2.5 md:p-3 rounded-lg border cursor-pointer transition-all ${tone === 'NORMAL' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
+                            <RadioGroupItem value="NORMAL" id="NORMAL" />
                             <div className="flex flex-col">
                                 <span className="text-sm font-medium text-ink">Professional</span>
                                 <span className="text-[10px] md:text-xs text-muted-foreground">Standard tone</span>
                             </div>
                         </label>
-                        <label className={`flex items-center space-x-3 p-2.5 md:p-3 rounded-lg border cursor-pointer transition-all ${tone === 'formal' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
-                            <RadioGroupItem value="formal" id="formal" />
+                        <label className={`flex items-center space-x-3 p-2.5 md:p-3 rounded-lg border cursor-pointer transition-all ${tone === 'FORMAL' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
+                            <RadioGroupItem value="FORMAL" id="FORMAL" />
                             <div className="flex flex-col">
                                 <span className="text-sm font-medium text-ink">Formal</span>
                                 <span className="text-[10px] md:text-xs text-muted-foreground">Detailed</span>

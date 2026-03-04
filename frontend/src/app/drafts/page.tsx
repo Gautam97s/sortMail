@@ -25,7 +25,7 @@ import { useThreads } from "@/hooks/useThreads";
 export default function DraftsPage() {
     // ── Generator state ──────────────────────────────────────────────
     const [selectedThreadId, setSelectedThreadId] = useState("");
-    const [tone, setTone] = useState("normal");
+    const [tone, setTone] = useState("NORMAL");
     const [instructions, setInstructions] = useState("");
     const [draftContent, setDraftContent] = useState("");
     const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
