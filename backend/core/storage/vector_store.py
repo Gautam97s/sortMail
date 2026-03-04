@@ -119,6 +119,36 @@ class VectorStore:
             logger.error(f"ChromaDB search failed: {e}")
             return {'documents': [[]], 'metadatas': [[]], 'distances': [[]]}
     
+    async def query(
+        self,
+        query_embeddings: List[List[float]],
+        n_results: int = 5,
+        where: Optional[dict] = None,
+        include: Optional[List[str]] = None,
+    ) -> dict:
+        """Query the collection using Chroma's native API (query_embeddings list).
+        Always requires a 'where' filter to enforce user-level tenant isolation.
+        """
+        if not self._collection:
+            return {'ids': [[]], 'documents': [[]], 'metadatas': [[]], 'distances': [[]]}
+
+        if not where or "user_id" not in where:
+            logger.error("ChromaDB query attempted WITHOUT user_id filter — blocked for security.")
+            return {'ids': [[]], 'documents': [[]], 'metadatas': [[]], 'distances': [[]]}
+
+        try:
+            def _query():
+                return self._collection.query(
+                    query_embeddings=query_embeddings,
+                    n_results=n_results,
+                    where=where,
+                    include=include or ['documents', 'metadatas', 'distances']
+                )
+            return await asyncio.to_thread(_query)
+        except Exception as e:
+            logger.error(f"ChromaDB query failed: {e}")
+            return {'ids': [[]], 'documents': [[]], 'metadatas': [[]], 'distances': [[]]}
+
     async def delete(self, id: str):
         """Delete a document."""
         if not self._collection:
@@ -129,6 +159,7 @@ class VectorStore:
             await asyncio.to_thread(_delete)
         except Exception as e:
             logger.error(f"Failed to delete from Chroma: {e}")
+
 
 # Singleton instance for internal python usage
 vector_store = VectorStore()

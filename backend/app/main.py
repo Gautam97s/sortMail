@@ -166,6 +166,8 @@ from pydantic import BaseModel
 from typing import Optional
 from fastapi import Depends, HTTPException
 from core.storage.vector_store import get_chroma_collection
+from api.dependencies import get_current_user
+from models.user import User
 
 class RequestBody(BaseModel):
     ids: list[str]
@@ -173,7 +175,16 @@ class RequestBody(BaseModel):
     metadatas: list[dict]
 
 @app.post("/api/documents/")
-async def add_documents(request: RequestBody, col=Depends(get_chroma_collection)):
+async def add_documents(
+    request: RequestBody,
+    current_user: User = Depends(get_current_user),  # enforce auth
+    col=Depends(get_chroma_collection)
+):
+    # Enforce user_id in every metadata dict so documents can never
+    # cross user boundaries when queried with the user_id where-filter.
+    for meta in request.metadatas:
+        meta["user_id"] = current_user.id
+
     try:
         col.add(
             ids=request.ids,
