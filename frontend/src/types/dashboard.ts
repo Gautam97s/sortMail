@@ -260,6 +260,7 @@ export interface Tag {
 export interface AiDraft {
     id: string;
     thread_id: string;
+    external_id: string;
     subject: string;
     body: string;
     tone: string;
