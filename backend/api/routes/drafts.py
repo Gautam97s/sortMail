@@ -287,7 +287,8 @@ async def list_drafts(
     )
 
     stmt = (
-        select(Draft)
+        select(Draft, Thread.external_id)
+        .join(Thread, Thread.id == Draft.thread_id)
         .where(
             Draft.user_id == current_user.id,
             Draft.status == DraftStatus.GENERATED.value,
@@ -295,20 +296,21 @@ async def list_drafts(
         )
         .order_by(desc(Draft.created_at))
     )
-    drafts = (await db.execute(stmt)).scalars().all()
+    results = (await db.execute(stmt)).all()
 
-    result = []
-    for d in drafts:
-        result.append({
+    final_result = []
+    for d, ext_id in results:
+        final_result.append({
             "id": d.id,
             "thread_id": d.thread_id,
+            "external_id": ext_id or "",
             "subject": d.subject,
-            "body": d.body,
-            "tone": d.tone,
+            "body": d.body or d.content,
+            "tone": d.tone.value if hasattr(d.tone, "value") else str(d.tone),
             "status": d.status,
             "created_at": d.created_at.isoformat() if d.created_at else ""
         })
-    return result
+    return final_result
 
 @router.post("/{draft_id}/approve")
 async def approve_draft_for_send(
