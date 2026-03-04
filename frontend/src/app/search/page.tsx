@@ -193,7 +193,7 @@ export default function SearchPage() {
                         <div className="w-16 h-16 bg-paper-mid rounded-full flex items-center justify-center mb-4">
                             <X className="w-8 h-8 text-muted/40" />
                         </div>
-                        <h2 className="font-display text-lg text-ink mb-1">No results for "{q}"</h2>
+                        <h2 className="font-display text-lg text-ink mb-1">No results for &quot;{q}&quot;</h2>
                         <p className="text-muted text-sm">Try different keywords.</p>
                     </div>
                 )}
@@ -202,7 +202,7 @@ export default function SearchPage() {
                 {hasResults && !isLoading && (
                     <div className="space-y-6">
                         <p className="text-xs text-muted font-mono uppercase tracking-widest">
-                            {data!.total} result{data!.total !== 1 ? "s" : ""} for "{q}"
+                            {data!.total} result{data!.total !== 1 ? "s" : ""} for &quot;{q}&quot;
                         </p>
 
                         {threads.length > 0 && (
