@@ -12,9 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from models.attachment import Attachment, AttachmentStatus
-from google import genai
-from google.genai import types
-from app.config import settings
+import re
+import asyncio
+from core.intelligence.llama_engine import _call_llama
+
 
 logger = logging.getLogger(__name__)
 
@@ -69,33 +70,58 @@ DOCUMENT TEXT TO ANALYZE:
 Return ONLY valid JSON.
 """
     
-    try:
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        response = await client.aio.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.1
-            )
-        )
-        
-        raw_json = response.text
-        intel_dict = json.loads(raw_json)
-        
-        # 3. Save back to DB
-        attachment.intel_json = intel_dict
-        attachment.extracted_text = safe_text[:2000] # Save a snippet
-        attachment.status = AttachmentStatus.INDEXED
-        
-        await db.commit()
-        logger.info(f"✅ Generated intelligence for attachment {attachment.id}")
-        return intel_dict
-        
-    except Exception as e:
-        logger.error(f"Failed to analyze attachment {attachment.id}: {e}")
-        attachment.status = AttachmentStatus.FAILED
-        await db.commit()
-        return None
+    messages = [
+        {"role": "system", "content": "You are a senior data extraction AI. Output strictly valid JSON and nothing else. No markdown formatting, no comments."},
+        {"role": "user", "content": prompt}
+    ]
+    
+    for attempt in range(4):
+        try:
+            raw_json = await _call_llama(messages, max_tokens=2048, temperature=0.1)
+            
+            # Clean up any potential markdown fences
+            raw_json = re.sub(r'^```(?:json)?\s*|\s*```$', '', raw_json.strip(), flags=re.DOTALL).strip()
+            # Extract JSON if there's surrounding text
+            json_match = re.search(r'\{.*\}', raw_json, re.DOTALL)
+            if json_match:
+                raw_json = json_match.group(0)
+            
+            intel_dict = json.loads(raw_json)
+            
+            # 3. Save back to DB
+            attachment.intel_json = intel_dict
+            attachment.extracted_text = safe_text[:2000] # Save a snippet
+            attachment.status = AttachmentStatus.INDEXED
+            
+            await db.commit()
+            logger.info(f"✅ Generated intelligence for attachment {attachment.id}")
+            return intel_dict
+            
+        except json.JSONDecodeError as e:
+            logger.warning(f"Attachment analysis JSON parse failed attempt {attempt+1}/4 for {attachment.id}: {e}")
+            if attempt == 3:
+                break
+            await asyncio.sleep(1)
+            
+        except Exception as e:
+            error_str = str(e)
+            logger.warning(f"Attachment analysis failed attempt {attempt+1}/4 for {attachment.id}: {error_str}")
+            
+            if "429" in error_str or "rate" in error_str.lower():
+                wait = 2 ** attempt
+                logger.warning(f"Rate limited — waiting {wait}s")
+                await asyncio.sleep(wait)
+                continue
+                
+            if attempt == 3:
+                break
+            await asyncio.sleep(1)
+            
+    # Fallback / Failure
+    logger.error(f"Failed to analyze attachment {attachment.id} after 4 attempts.")
+    attachment.status = AttachmentStatus.FAILED
+    await db.commit()
+    return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
