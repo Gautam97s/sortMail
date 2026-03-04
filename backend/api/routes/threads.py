@@ -20,6 +20,7 @@ router = APIRouter(redirect_slashes=False)
 class ThreadListItem(BaseModel):
     """Lightweight thread for list view."""
     thread_id: str
+    external_id: str
     subject: str
     summary: str
     intent: str
@@ -120,6 +121,7 @@ async def list_threads(
     return [
         ThreadListItem(
             thread_id=t.id,
+            external_id=t.external_id,
             subject=t.subject or "(No Subject)",
             summary=t.summary or "Pending analysis...",
             intent=t.intent or "processing",

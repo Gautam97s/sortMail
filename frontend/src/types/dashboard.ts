@@ -182,6 +182,7 @@ export interface WaitingForDTOv1 {
 /** Mirrors backend: api/routes/threads.py → ThreadListItem */
 export interface ThreadListItem {
     thread_id: string;
+    external_id: string;
     subject: string;
     summary: string;
     intent: string;
