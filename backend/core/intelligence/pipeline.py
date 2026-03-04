@@ -5,7 +5,7 @@ Orchestrates the full AI analysis of a saved thread.
 
 Flow:
   1. Load thread + messages from DB
-  2. Run gemini_engine.run_intelligence() — single Gemini Flash call
+   2. Run llama_engine.run_intelligence() — single Llama 3.3 70B call via HF API
   3. Each module extracts its slice from the Gemini JSON:
        - summarizer        → summary, key_points, suggested_action
        - intent_classifier → intent, urgency_score, follow_up
@@ -27,8 +27,8 @@ from sqlalchemy import select
 from models.thread import Thread
 from models.task import Task, TaskStatus, TaskType, PriorityLevel
 
-# Intelligence modules — each is a pure extractor, no extra LLM calls
-from .gemini_engine import run_intelligence
+# Intelligence engine — Llama 3.3 70B via HF Inference API
+from .llama_engine import run_intelligence
 from .summarizer import extract_summary, extract_key_points, extract_suggested_action, extract_suggested_draft
 from .intent_classifier import extract_intent, extract_priority_level, should_follow_up
 from .deadline_extractor import extract_deadlines, extract_expected_reply_by
@@ -303,7 +303,7 @@ async def _create_draft(user_id: str, thread_id: str, content: str, db: AsyncSes
         subject="Re: Thread", # Placeholder, relies on frontend to pull thread subject
         body=content,
         tone=DraftTone.PROFESSIONAL.value,
-        generation_model="gemini-2.5-flash",
+        generation_model="llama-3.3-70b-instruct",
         status=DraftStatus.GENERATED.value
     )
     db.add(draft)

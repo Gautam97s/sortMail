@@ -55,9 +55,11 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRY_HOURS: int = 24
     
-    LLM_PROVIDER: str = "gemini"  # "gemini" or "openai"
+    # LLM: Gemini for embeddings, Llama 3.3 70B (HF) for intelligence
+    LLM_PROVIDER: str = "gemini"  # "gemini" | "openai" — used for embeddings only
     GEMINI_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
+    HF_TOKEN: str = ""  # Hugging Face token — required for Llama 3.3 70B inference
     
     # Chroma Cloud
     CHROMA_API_KEY: str = ""
