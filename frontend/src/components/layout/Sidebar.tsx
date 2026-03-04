@@ -37,6 +37,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuGroup } from "@/components/ui/dropdown-menu";
 import { useUser } from "@/hooks/useUser";
+import { useNavCounts } from "@/hooks/useThreads";
 
 interface SidebarProps {
     collapsed?: boolean;
@@ -48,18 +49,18 @@ interface SidebarProps {
 export default function Sidebar({ collapsed = false, onToggle, isOpen = false, onClose }: SidebarProps) {
     const pathname = usePathname();
     const { data: user, isLoading: isUserLoading } = useUser();
-    const counts = { inbox: 0, drafts: 0, actions: 0, tasks: 0, followups: 0 };
+    const { data: counts } = useNavCounts();
     const status = { state: "online", lastSync: "Just now", activeRules: 0, tasksCompleted: 0, isOnline: true };
 
     const navItems = [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-        { label: "Inbox", href: "/inbox", icon: Inbox, badge: counts.inbox },
+        { label: "Inbox", href: "/inbox", icon: Inbox, badge: counts?.inbox },
         { label: "Search", href: "/search", icon: Search },
         { label: "Contacts", href: "/contacts", icon: Users },
-        { label: "Tasks", href: "/tasks", icon: CheckSquare, badge: counts.tasks },
-        { label: "Drafts", href: "/drafts", icon: FileEdit },
+        { label: "Tasks", href: "/tasks", icon: CheckSquare },
+        { label: "Drafts", href: "/drafts", icon: FileEdit, badge: counts?.drafts },
         { label: "Tags", href: "/tags", icon: Tag },
-        { label: "Follow-ups", href: "/followups", icon: Clock, badge: counts.followups },
+        { label: "Follow-ups", href: "/followups", icon: Clock },
         { label: "Calendar", href: "/calendar", icon: Calendar },
     ];
 
