@@ -6,7 +6,7 @@ from sqlalchemy.future import select
 from core.storage.database import async_session as AsyncSessionLocal
 from models.thread import Thread
 from models.email import Email
-from core.intelligence.gemini_engine import run_intelligence
+from core.intelligence.llama_engine import run_intelligence
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
