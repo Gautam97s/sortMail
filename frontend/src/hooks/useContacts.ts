@@ -25,11 +25,12 @@ export function useContact(email: string) {
     });
 }
 
-export function useContactThreads(contactId: string) {
+export function useContactThreads(contactId: string, direction: 'from' | 'to' | 'all' = 'all') {
     return useQuery<ThreadListItem[]>({
-        queryKey: ['contact-threads', contactId],
+        queryKey: ['contact-threads', contactId, direction],
         queryFn: async () => {
-            const { data } = await api.get(endpoints.contactThreads(contactId));
+            const params = direction !== 'all' ? `?direction=${direction}` : '';
+            const { data } = await api.get(`${endpoints.contactThreads(contactId)}${params}`);
             return data;
         },
         enabled: !!contactId,

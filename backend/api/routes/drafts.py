@@ -16,7 +16,7 @@ from api.dependencies import get_current_user
 from models.user import User
 from models.draft import Draft, DraftStatus, DraftTone
 from core.credits.credit_service import CreditService, InsufficientCreditsError, RateLimitExceededError
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, and_, or_, func, exists
 import logging
 from datetime import datetime, timezone
 
@@ -156,14 +156,44 @@ async def list_drafts(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List all pending AI drafts for the current user."""
+    """List all pending AI drafts for the current user.
+
+    Excludes drafts for threads whose latest sender is an unsubscribed contact.
+    """
+    from models.thread import Thread
+    from models.email import Email
+    from models.contact import Contact
+
+    # Correlated NOT EXISTS: same pattern as /api/threads
+    sender_is_unsubscribed = exists(
+        select(Contact.id).where(
+            Contact.user_id == current_user.id,
+            Contact.is_unsubscribed == True,
+            Email.sender.ilike(func.concat('%', Contact.email_address, '%'))
+        ).correlate(Email)
+    )
+
+    unsub_thread_ids = (
+        select(Thread.id)
+        .join(Email, and_(Email.thread_id == Thread.id, Email.received_at == Thread.last_email_at))
+        .where(
+            Thread.user_id == current_user.id,
+            sender_is_unsubscribed
+        )
+        .scalar_subquery()
+    )
+
     stmt = (
         select(Draft)
-        .where(Draft.user_id == current_user.id, Draft.status == DraftStatus.GENERATED.value)
+        .where(
+            Draft.user_id == current_user.id,
+            Draft.status == DraftStatus.GENERATED.value,
+            Draft.thread_id.not_in(unsub_thread_ids)
+        )
         .order_by(desc(Draft.created_at))
     )
     drafts = (await db.execute(stmt)).scalars().all()
-    
+
     result = []
     for d in drafts:
         result.append({
