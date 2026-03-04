@@ -3,17 +3,41 @@ import { api, endpoints } from '@/lib/api';
 import { ThreadListItem } from '@/types/dashboard';
 
 
-export function useThreads(filter?: string) {
+export function useThreads(intent?: string, q?: string) {
     return useQuery({
-        queryKey: ['threads', filter],
+        queryKey: ['threads', intent, q],
         queryFn: async (): Promise<ThreadListItem[]> => {
-            const { data } = await api.get(endpoints.threads, { params: { filter } });
+            const params: Record<string, string> = {};
+            if (intent && intent !== 'all') params.intent = intent;
+            if (q) params.q = q;
+            const { data } = await api.get(endpoints.threads, { params });
             return data;
         },
-        staleTime: 1000 * 60 * 5,       // Cache for 5 minutes — no API call on navigation
-        gcTime: 1000 * 60 * 10,          // Keep in memory 10 minutes after unmount
-        refetchOnWindowFocus: false,      // Don't refetch when tab gets focus
-        refetchOnReconnect: false,        // Don't refetch on reconnect
-        retry: 1,                         // Only retry once on failure
+        staleTime: 1000 * 60 * 5,
+        gcTime: 1000 * 60 * 10,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+        retry: 1,
+    });
+}
+
+export interface NavCounts {
+    inbox: number;
+    actions: number;
+    urgent: number;
+    fyi: number;
+    drafts: number;
+}
+
+export function useNavCounts() {
+    return useQuery<NavCounts>({
+        queryKey: ['nav-counts'],
+        queryFn: async () => {
+            const { data } = await api.get('/api/threads/counts');
+            return data;
+        },
+        staleTime: 1000 * 60 * 2,   // Refresh every 2 minutes
+        refetchOnWindowFocus: true,
+        retry: 1,
     });
 }

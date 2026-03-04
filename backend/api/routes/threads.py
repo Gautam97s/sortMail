@@ -48,8 +48,10 @@ from core.credits.credit_service import CreditService, InsufficientCreditsError,
 @router.get("", response_model=List[ThreadListItem])
 @router.get("/", response_model=List[ThreadListItem], include_in_schema=False)
 async def list_threads(
-    limit: int = Query(default=20, le=50),
+    limit: int = Query(default=40, le=100),
     offset: int = Query(default=0, ge=0),
+    intent: Optional[str] = Query(default=None, description="Filter by intent: urgent, action_required, fyi"),
+    q: Optional[str] = Query(default=None, description="Search query (subject + summary)"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -70,6 +72,29 @@ async def list_threads(
         ).correlate(Email)
     )
 
+    # Build WHERE filters
+    filters = [
+        Thread.user_id == current_user.id,
+        or_(
+            Email.id == None,          # thread has no emails yet – always show
+            ~sender_is_unsubscribed    # sender is NOT a known unsubscribed contact
+        )
+    ]
+
+    # Intent filter (urgent / action_required / fyi)
+    if intent and intent != 'all':
+        filters.append(Thread.intent == intent)
+
+    # Full-text search across subject + summary
+    if q:
+        q_like = f'%{q}%'
+        filters.append(
+            or_(
+                Thread.subject.ilike(q_like),
+                Thread.summary.ilike(q_like),
+            )
+        )
+
     stmt = (
         select(Thread)
         # LEFT JOIN to get the most recent email for each thread
@@ -80,13 +105,7 @@ async def list_threads(
                 Email.received_at == Thread.last_email_at
             )
         )
-        .where(
-            Thread.user_id == current_user.id,
-            or_(
-                Email.id == None,          # thread has no emails yet – always show
-                ~sender_is_unsubscribed    # sender is NOT a known unsubscribed contact
-            )
-        )
+        .where(*filters)
         .order_by(desc(Thread.last_email_at))
         .offset(offset)
         .limit(limit)
@@ -110,9 +129,52 @@ async def list_threads(
     ]
 
 
+class NavCounts(BaseModel):
+    inbox: int = 0         # unread threads
+    actions: int = 0       # action_required threads
+    urgent: int = 0        # urgent threads
+    fyi: int = 0           # fyi threads
+    drafts: int = 0        # pending drafts
 
 
-from typing import List, Optional, Dict, Any
+@router.get("/counts", response_model=NavCounts)
+async def get_nav_counts(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Lightweight counts for sidebar badges — avoids loading full thread list."""
+    from models.draft import Draft, DraftStatus as DS
+    from sqlalchemy import case, literal_column
+
+    result = await db.execute(
+        select(
+            func.count().filter(Thread.is_unread > 0).label("inbox"),
+            func.count().filter(Thread.intent == "action_required").label("actions"),
+            func.count().filter(Thread.intent == "urgent").label("urgent"),
+            func.count().filter(Thread.intent == "fyi").label("fyi"),
+        ).where(Thread.user_id == current_user.id)
+    )
+    row = result.one()
+
+    # Draft count (generated, not yet sent)
+    draft_count_res = await db.execute(
+        select(func.count()).where(
+            Draft.user_id == current_user.id,
+            Draft.status == DS.GENERATED.value,
+        )
+    )
+    draft_count = draft_count_res.scalar() or 0
+
+    return NavCounts(
+        inbox=row.inbox or 0,
+        actions=row.actions or 0,
+        urgent=row.urgent or 0,
+        fyi=row.fyi or 0,
+        drafts=draft_count,
+    )
+
+
+
 from contracts.ingestion import EmailThreadV1, EmailMessage, AttachmentRef
 from contracts.intelligence import ThreadIntelV1
 from contracts.workflow import TaskDTOv1, DraftDTOv1

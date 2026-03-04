@@ -19,26 +19,27 @@ const FILTER_OPTIONS = [
 
 export default function SearchPage() {
     const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedQuery, setDebouncedQuery] = useState("");
     const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
-    // Use the live production threads endpoint for search
-    const { data: allThreads = [], isLoading } = useThreads();
-    const [results, setResults] = useState<ThreadListItem[]>([]);
+    // Debounce the search to avoid hammering the API on every keystroke
+    React.useEffect(() => {
+        const t = setTimeout(() => setDebouncedQuery(searchQuery), 350);
+        return () => clearTimeout(t);
+    }, [searchQuery]);
 
-    const handleSearch = (query: string) => {
-        setSearchQuery(query);
-        if (query.trim() && allThreads.length > 0) {
-            const lowerQuery = query.toLowerCase();
-            const filtered = allThreads.filter(
-                (thread) =>
-                    thread.subject.toLowerCase().includes(lowerQuery) ||
-                    (thread.summary && thread.summary.toLowerCase().includes(lowerQuery))
-            );
-            setResults(filtered);
-        } else {
-            setResults([]);
-        }
-    };
+    // Hit the backend directly with the search query
+    const { data: allThreads = [], isLoading } = useThreads(undefined, debouncedQuery || undefined);
+
+    // Apply client-side chip filters on top of backend results
+    const results = React.useMemo(() => {
+        if (!debouncedQuery) return [];
+        let r = allThreads;
+        if (activeFilters.includes('has_attachments')) r = r.filter(t => t.has_attachments);
+        if (activeFilters.includes('urgent')) r = r.filter(t => t.urgency_score >= 70);
+        if (activeFilters.includes('unread')) r = r.filter(t => (t as any).is_unread > 0);
+        return r;
+    }, [allThreads, debouncedQuery, activeFilters]);
 
     const toggleFilter = (filterId: string) => {
         setActiveFilters((prev) =>
@@ -51,7 +52,7 @@ export default function SearchPage() {
     const clearFilters = () => {
         setActiveFilters([]);
         setSearchQuery("");
-        setResults([]);
+        setDebouncedQuery("");
     };
 
     const getIntentColor = (intent: string) => {
@@ -84,12 +85,12 @@ export default function SearchPage() {
                             type="text"
                             placeholder="Search emails, tasks..."
                             value={searchQuery}
-                            onChange={(e) => handleSearch(e.target.value)}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-10 pr-10 h-10 md:h-12 text-sm md:text-base border-border focus:ring-accent"
                         />
                         {searchQuery && (
                             <button
-                                onClick={() => handleSearch("")}
+                                onClick={() => { setSearchQuery(""); setDebouncedQuery(""); }}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink transition-colors"
                             >
                                 <X className="w-4 h-4" />

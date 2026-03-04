@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,8 +27,8 @@ export default function InboxPage() {
     const [search, setSearch] = useState('');
     const [activeTab, setActiveTab] = useState<FilterTab>('all');
 
-    // DB-first: threads load instantly from cache/DB
-    const { data: threads, isLoading, error } = useThreads(activeTab === 'all' ? undefined : activeTab);
+    // Intent tabs drive server-side filtering via ?intent= param
+    const { data: threads, isLoading, error } = useThreads(activeTab === 'all' ? undefined : activeTab, search || undefined);
 
     // Smart background sync: checks if stale → incremental Gmail sync → invalidates cache
     const { syncState, triggerSync } = useSmartSync();
@@ -38,18 +38,8 @@ export default function InboxPage() {
 
     const isSyncing = syncState === 'syncing' || syncState === 'checking';
 
-    const filtered = useMemo(() => {
-        if (!threads) return [];
-        let items = threads;
-        if (search) {
-            const q = search.toLowerCase();
-            items = items.filter((t: ThreadListItem) =>
-                t.subject.toLowerCase().includes(q) ||
-                t.summary.toLowerCase().includes(q)
-            );
-        }
-        return items;
-    }, [search, threads]);
+    // Backend handles search — just use threads directly
+    const filtered = threads ?? [];
 
 
     return (
