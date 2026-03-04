@@ -26,6 +26,10 @@ class IntentType(str, Enum):
     FYI = "fyi"
     SCHEDULING = "scheduling"
     URGENT = "urgent"
+    QUESTION = "question"
+    SOCIAL = "social"
+    NEWSLETTER = "newsletter"
+    OTHER = "other"
     UNKNOWN = "unknown"
 
 
