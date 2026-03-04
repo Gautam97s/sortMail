@@ -129,7 +129,9 @@ export function DraftEditor({
                             disabled={!content || !originalThread?.external_id}
                             onClick={() => {
                                 if (originalThread?.external_id) {
-                                    window.open(`https://mail.google.com/mail/u/0/#inbox/${originalThread.external_id}`, '_blank');
+                                    // Use #all/ instead of #inbox/ to ensure it finds the thread even if archived
+                                    const gmailId = originalThread.external_id.replace('thread-', '');
+                                    window.open(`https://mail.google.com/mail/u/0/#all/${gmailId}`, '_blank');
                                 }
                             }}
                         >

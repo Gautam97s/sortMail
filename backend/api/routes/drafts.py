@@ -37,6 +37,7 @@ class DraftRequest(BaseModel):
 class DraftResponse(BaseModel):
     id: str
     thread_id: str
+    external_id: str
     subject: str
     body: str
     tone: str
@@ -122,6 +123,7 @@ Provide ONLY the raw email body text. Do not include subject lines or enclosed M
         return {
             "id": draft.id,
             "thread_id": draft.thread_id,
+            "external_id": thread.external_id,
             "subject": draft.subject,
             "body": draft.body,
             "tone": draft.tone,
@@ -151,9 +153,11 @@ async def get_draft(
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found")
     
+    thread = await _load_thread(draft.thread_id, current_user.id, db)
     return {
         "id": draft.id,
         "thread_id": draft.thread_id,
+        "external_id": thread.external_id if thread else "",
         "subject": draft.subject,
         "body": draft.body,
         "tone": draft.tone,
@@ -226,6 +230,7 @@ Provide ONLY the raw email body text. Do not include subject lines or enclosed M
         return {
             "id": draft.id,
             "thread_id": draft.thread_id,
+            "external_id": thread.external_id,
             "subject": draft.subject,
             "body": draft.body,
             "tone": draft.tone,
