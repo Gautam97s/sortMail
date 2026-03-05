@@ -14,23 +14,6 @@ from datetime import datetime, timezone
 from contracts import ThreadIntelV1
 from contracts.mocks import create_mock_thread_intel
 
-router = APIRouter(redirect_slashes=False)
-
-
-class ThreadListItem(BaseModel):
-    """Lightweight thread for list view."""
-    thread_id: str
-    external_id: str
-    subject: str
-    summary: str
-    intent: str
-    urgency_score: int
-    last_updated: datetime
-    has_attachments: bool
-    participants: list = []   # needed by inbox ThreadRow for sender display
-    is_unread: int = 0        # 0 = read, 1 = unread
-    tags: List[str] = []      # contact and thread flags/tags
-
 
 from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,6 +30,23 @@ from models.email import Email
 from models.contact import Contact
 from sqlalchemy import and_, or_, func, exists
 from core.credits.credit_service import CreditService, InsufficientCreditsError, RateLimitExceededError
+
+router = APIRouter(redirect_slashes=False)
+
+
+class ThreadListItem(BaseModel):
+    """Lightweight thread for list view."""
+    thread_id: str
+    external_id: str
+    subject: str
+    summary: str
+    intent: str
+    urgency_score: int
+    last_updated: datetime
+    has_attachments: bool
+    participants: list = []   # needed by inbox ThreadRow for sender display
+    is_unread: int = 0        # 0 = read, 1 = unread
+    tags: List[str] = []      # contact and thread flags/tags
 
 @router.get("", response_model=List[ThreadListItem])
 @router.get("/", response_model=List[ThreadListItem], include_in_schema=False)
@@ -117,6 +117,26 @@ async def list_threads(
     result = await db.execute(stmt)
     threads = result.scalars().all()
     
+    # Efficiently fetch sender contact tags to avoid N+1
+    sender_emails = []
+    for t in threads:
+        if t.participants:
+            # First participant is usually the sender (sorted earlier if needed)
+            p = t.participants[0]
+            email_match = re.search(r'<(.+?)>', p)
+            email = email_match.group(1).lower() if email_match else p.lower().strip()
+            sender_emails.append(email)
+            
+    contact_map = {}
+    if sender_emails:
+        contact_stmt = select(Contact).where(
+            Contact.user_id == current_user.id,
+            Contact.email_address.in_(sender_emails)
+        ).options(selectinload(Contact.tags))
+        c_result = await db.execute(contact_stmt)
+        for c in c_result.scalars().all():
+            contact_map[c.email_address.lower()] = [tag.name for tag in c.tags]
+
     user_email = current_user.email.lower() if current_user.email else ""
     return [
         ThreadListItem(
@@ -131,7 +151,10 @@ async def list_threads(
             # Sort participants so the user themselves appears last, putting the other sender at index 0
             participants=sorted(list(t.participants or []), key=lambda p: user_email in p.lower()),
             is_unread=t.is_unread or 0,
-            tags=[tag.name for tag in t.tags] if t.tags else [],
+            tags=list(set(
+                ([tag.name for tag in t.tags] if t.tags else []) +
+                (contact_map.get((re.search(r'<(.+?)>', t.participants[0]).group(1).lower() if t.participants and re.search(r'<(.+?)>', t.participants[0]) else t.participants[0].lower().strip() if t.participants else ""), []))
+            )),
         )
         for t in threads
     ]

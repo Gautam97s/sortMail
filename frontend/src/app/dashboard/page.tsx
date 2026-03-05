@@ -209,9 +209,16 @@ function DashboardContent() {
 
                                                 {/* Indicators */}
                                                 <div className="flex flex-col items-end gap-1 shrink-0 pt-1">
-                                                    {thread.urgency_score >= 70 && (
-                                                        <Badge variant="destructive" className="text-[9px] px-1.5 py-0 rounded-sm font-bold uppercase">Urgent</Badge>
-                                                    )}
+                                                    <div className="flex items-center gap-1">
+                                                        {thread.urgency_score >= 70 && (
+                                                            <Badge variant="destructive" className="text-[9px] px-1.5 py-0 rounded-sm font-bold uppercase">Urgent</Badge>
+                                                        )}
+                                                        {thread.tags?.slice(0, 2).map(tag => (
+                                                            <Badge key={tag} variant="outline" className="text-[8px] px-1 py-0 rounded-sm font-mono border-border text-muted uppercase tracking-tighter">
+                                                                {tag}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
                                                     {thread.has_attachments && (
                                                         <FileText className="h-3.5 w-3.5 text-muted/40" />
                                                     )}
