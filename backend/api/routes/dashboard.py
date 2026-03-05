@@ -73,6 +73,7 @@ async def get_dashboard_stats(
     recent_threads = [
         ThreadListItem(
             thread_id=t.id,
+            external_id=t.external_id or "",
             subject=t.subject or "(No Subject)",
             summary=t.summary or "Pending analysis...",
             intent=t.intent or "processing",
