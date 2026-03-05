@@ -8,6 +8,7 @@ import { ThreadListItem, EmailThreadV1 } from '@/types/dashboard';
 export function mapThreadToListItem(backendData: any): ThreadListItem {
     return {
         thread_id: backendData.id || backendData.thread_id,
+        external_id: backendData.external_id || "",
         subject: backendData.subject,
         summary: backendData.summary || "No summary available",
         urgency_score: backendData.urgency_score || 0,
