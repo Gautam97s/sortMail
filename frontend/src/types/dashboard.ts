@@ -192,6 +192,8 @@ export interface ThreadListItem {
     days_waiting: number;
     is_read: boolean;
     participants: string[];
+    is_unread?: number; // compat with backend
+    tags: string[];
 }
 
 /** Dashboard aggregate (to be added as backend endpoint) */
