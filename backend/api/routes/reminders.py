@@ -40,15 +40,25 @@ async def list_reminders(
     for t in threads:
         last_sent = t.last_email_at or now
         days_waiting = (now - last_sent).days if now > last_sent else 0
+        
+        # Get primary recipient (first participant that isn't the current user)
+        recipient = "Unknown"
+        if t.participants:
+            for p in t.participants:
+                if current_user.email not in p:
+                    recipient = p
+                    break
+                    
         reminders.append(WaitingForDTOv1(
-            waiting_id=t.id,  # using thread id as waiting id for now
+            waiting_id=t.id,
             thread_id=t.id,
             user_id=str(t.user_id),
             last_sent_at=last_sent,
             days_waiting=days_waiting,
-            subject=t.subject or "(No Subject)",
-            snippet=t.summary or "Waiting for reply...",
-            is_dismissed=False
+            recipient=recipient,
+            thread_subject=t.subject or "(No Subject)",
+            thread_summary=t.summary or "Waiting for reply...",
+            reminded=False
         ))
     return reminders
 
