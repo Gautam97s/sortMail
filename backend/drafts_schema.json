@@ -1,0 +1,147 @@
+[
+  {
+    "column_name": "id",
+    "data_type": "character varying",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "user_id",
+    "data_type": "character varying",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "thread_id",
+    "data_type": "character varying",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "content",
+    "data_type": "text",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "tone",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "placeholders_json",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "has_unresolved_placeholders",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "references_attachments",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "references_deadlines",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "is_sent",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "model_version",
+    "data_type": "character varying",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "sent_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "reply_to_email_id",
+    "data_type": "character varying",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "custom_instructions",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "generation_model",
+    "data_type": "character varying",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "tokens_used",
+    "data_type": "integer",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "cost_cents",
+    "data_type": "integer",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "status",
+    "data_type": "character varying",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "copied_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "feedback",
+    "data_type": "character varying",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "feedback_comment",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "metadata_json",
+    "data_type": "jsonb",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "version",
+    "data_type": "integer",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "deleted_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "subject",
+    "data_type": "character varying",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "body",
+    "data_type": "text",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "user_edited",
+    "data_type": "boolean",
+    "is_nullable": "YES"
+  }
+]
