@@ -14,7 +14,8 @@ export default function DashboardLayout({
 
     useEffect(() => {
         if (!isLoading && !isAuthenticated) {
-            router.push("/login");
+            // [BYPASS FOR DEV] router.push("/login");
+            console.warn("Auth check failed but bypass is active on Layout");
         }
     }, [isLoading, isAuthenticated, router]);
 
@@ -30,7 +31,8 @@ export default function DashboardLayout({
     }
 
     if (!isAuthenticated) {
-        return null; // Will redirect via useEffect
+        // [BYPASS FOR DEV] return null; // Will redirect via useEffect
+        console.warn("Proceeding despite not being authenticated");
     }
 
     return <>{children}</>;

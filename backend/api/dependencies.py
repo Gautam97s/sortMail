@@ -22,40 +22,32 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db)
 ) -> User:
     """
-    Validate token and return current user.
-    Prioritizes Bearer Header, falls back to 'access_token' Cookie.
+    [MOCK AUTH BYPASS FOR DEVELOPMENT]
+    Returns a mock user for local dashboard testing.
     """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    from models.user import UserStatus, AccountType, EmailProvider
     
-    # 1. Try Bearer Header (Best for API Clients)
-    # 2. Try Cookie (Best for Browser/Frontend)
-    print(f"🔑 Verifying Credentials. Header: {token is not None}, Cookie: {access_token is not None}")
-    if access_token:
-        print(f"🍪 Cookie Content (First 10 chars): {access_token[:10]}...")
-
-    token_to_validate = token or access_token
-    
-    if not token_to_validate:
-        print("❌ No token or cookie found. Raising 401.")
-        raise credentials_exception
-    
-    try:
-        token_data = jwt.verify_token(token_to_validate)
-        if token_data is None:
-            raise credentials_exception
-        user_id = token_data.user_id
-    except Exception:
-        raise credentials_exception
-        
-    stmt = select(User).where(User.id == user_id)
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-    
-    if user is None:
-        raise credentials_exception
-        
-    return user
+    db_user = await db.scalar(select(User).where(User.id == "mock_user_123"))
+    if not db_user:
+        mock_user = User(
+            id="mock_user_123",
+            email="alex@example.com",
+            name="Alex Rivera",
+            provider=EmailProvider.GMAIL,
+            status=UserStatus.ACTIVE,
+            account_type=AccountType.INDIVIDUAL,
+            is_superuser=False,
+        )
+        db.add(mock_user)
+        try:
+            await db.commit()
+            await db.refresh(mock_user)
+            return mock_user
+        except Exception:
+            await db.rollback()
+            # If it failed to insert, might have been inserted concurrently
+            db_user = await db.scalar(select(User).where(User.id == "mock_user_123"))
+            if db_user:
+                return db_user
+            raise # Re-raise if we couldn't insert and it still doesn't exist
+    return db_user

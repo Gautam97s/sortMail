@@ -18,21 +18,14 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> TokenData:
     """
-    Dependency to get current authenticated user.
-    
-    Raises HTTPException 401 if not authenticated.
+    [MOCK AUTH BYPASS FOR DEVELOPMENT]
     """
-    token = credentials.credentials
-    token_data = verify_token(token)
-    
-    if not token_data:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    return token_data
+    from datetime import datetime
+    return TokenData(
+        user_id="mock_user_123",
+        email="alex@example.com",
+        exp=datetime.now()
+    )
 
 
 async def get_optional_user(

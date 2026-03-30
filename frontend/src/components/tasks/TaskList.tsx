@@ -19,7 +19,7 @@ const STATUS_BADGES: Record<string, { label: string; className: string }> = {
 export function TaskList({ tasks, onTaskClick }: TaskListProps) {
     if (tasks.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-16 text-muted bg-paper-mid/30 rounded-xl border border-dashed border-border/60">
+            <div className="flex flex-col items-center justify-center py-16 text-muted bg-white/30 backdrop-blur-md rounded-2xl border border-dashed border-white/50 shadow-sm">
                 <LayoutList className="h-12 w-12 opacity-20 mb-4" />
                 <p className="font-mono text-sm uppercase tracking-widest opacity-60">No tasks found</p>
                 <p className="text-xs opacity-50 mt-1">Try adjusting your filters</p>
@@ -30,12 +30,12 @@ export function TaskList({ tasks, onTaskClick }: TaskListProps) {
     return (
         <div className="flex flex-col gap-3">
             {tasks.map((task) => (
-                <Card
+                <div
                     key={task.task_id}
-                    className="cursor-pointer hover:bg-paper-mid/50 transition-all duration-200 group border-border shadow-sm overflow-hidden"
+                    className="glass-card cursor-pointer hover:bg-white/50 hover:shadow-lg transition-all duration-300 group overflow-hidden"
                     onClick={() => onTaskClick(task.task_id)}
                 >
-                    <CardContent className="p-3 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4 relative overflow-hidden">
+                    <div className="p-3 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4 relative overflow-hidden">
                         {/* Urgent highlight */}
                         {task.priority === 'do_now' && (
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-danger opacity-80" />
@@ -68,7 +68,7 @@ export function TaskList({ tasks, onTaskClick }: TaskListProps) {
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between sm:justify-end gap-6 md:gap-10 shrink-0 sm:pl-6 sm:border-l border-border/40 h-full pt-3 sm:pt-0 border-t sm:border-t-0 mt-2 sm:mt-0">
+                        <div className="flex items-center justify-between sm:justify-end gap-6 md:gap-10 shrink-0 sm:pl-6 sm:border-l border-white/30 h-full pt-3 sm:pt-0 border-t sm:border-t-0 mt-2 sm:mt-0">
                             <div className="text-left sm:text-right min-w-0 sm:min-w-[100px]">
                                 {task.deadline ? (
                                     <div className="flex flex-row-reverse sm:flex-col items-center sm:items-end gap-2 sm:gap-0">
@@ -86,8 +86,8 @@ export function TaskList({ tasks, onTaskClick }: TaskListProps) {
                             </div>
                             <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-border group-hover:text-accent transition-all group-hover:translate-x-1 shrink-0" />
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             ))}
         </div>
     );

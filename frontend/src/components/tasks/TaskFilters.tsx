@@ -39,19 +39,19 @@ export function TaskFilters({
                     placeholder="Search tasks..."
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    className="pl-9 bg-surface-card h-10 text-sm"
+                    className="pl-9 bg-white/40 border-white/50 backdrop-blur-md text-ink placeholder:text-muted h-10 text-sm focus:ring-accent/50 transition-all shadow-sm"
                 />
             </div>
 
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
                 <Select value={priorityFilter} onValueChange={onPriorityChange}>
-                    <SelectTrigger className="w-full sm:w-[180px] bg-surface-card h-10 md:h-10 px-3 md:px-4 rounded-xl border-border/50 text-xs md:text-sm">
+                    <SelectTrigger className="w-full sm:w-[180px] bg-white/40 backdrop-blur-md h-10 md:h-10 px-3 md:px-4 rounded-xl border-white/50 text-xs md:text-sm text-ink shadow-sm hover:bg-white/50 transition-all">
                         <div className="flex items-center gap-2 md:gap-2.5 truncate">
-                            <Filter className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground shrink-0" />
+                            <Filter className="h-3.5 w-3.5 md:h-4 md:w-4 text-accent shrink-0" />
                             <SelectValue placeholder="Priority" />
                         </div>
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/50 shadow-xl">
+                    <SelectContent className="rounded-xl border-white/40 bg-white/80 backdrop-blur-xl shadow-xl">
                         <SelectItem value="all">All Priorities</SelectItem>
                         <SelectItem value="do_now">Do Now</SelectItem>
                         <SelectItem value="do_today">Do Today</SelectItem>
@@ -60,10 +60,10 @@ export function TaskFilters({
                 </Select>
 
                 <Select value={statusFilter} onValueChange={onStatusChange}>
-                    <SelectTrigger className="w-full sm:w-[160px] bg-surface-card h-10 md:h-10 px-3 md:px-4 rounded-xl border-border/50 text-xs md:text-sm">
+                    <SelectTrigger className="w-full sm:w-[160px] bg-white/40 backdrop-blur-md h-10 md:h-10 px-3 md:px-4 rounded-xl border-white/50 text-xs md:text-sm text-ink shadow-sm hover:bg-white/50 transition-all">
                         <SelectValue placeholder="Status" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/50 shadow-xl">
+                    <SelectContent className="rounded-xl border-white/40 bg-white/80 backdrop-blur-xl shadow-xl">
                         <SelectItem value="all">All Statuses</SelectItem>
                         <SelectItem value="pending">Todo</SelectItem>
                         <SelectItem value="in_progress">In Progress</SelectItem>

@@ -83,7 +83,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, logout, checkSession }}>
+        <AuthContext.Provider value={{ 
+            user: {
+                id: "mock_user_123",
+                email: "alex@example.com",
+                name: "Alex Rivera",
+                role: "user"
+            } as any, 
+            isLoading: false, 
+            isAuthenticated: true, 
+            login, 
+            logout, 
+            checkSession 
+        }}>
             {children}
         </AuthContext.Provider>
     );

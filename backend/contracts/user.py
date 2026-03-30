@@ -28,7 +28,7 @@ class UserDTO(BaseModel):
     is_superuser: bool
     credits: int = 0                 # from UserCredits.credits_balance
     plan: str = "free"               # from UserCredits.plan
-    created_at: datetime
+    created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
     class Config:
