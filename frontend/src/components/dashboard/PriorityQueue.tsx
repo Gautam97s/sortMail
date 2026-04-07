@@ -12,7 +12,7 @@ interface PriorityQueueProps {
 }
 
 export default function PriorityQueue({ tasks, limit = 4 }: PriorityQueueProps) {
-    const todoTasks = tasks.filter((t) => t.status === "todo").slice(0, limit);
+    const todoTasks = tasks.filter((t) => t.status === "TODO").slice(0, limit);
 
     return (
         <div className="card overflow-hidden">
@@ -31,9 +31,9 @@ export default function PriorityQueue({ tasks, limit = 4 }: PriorityQueueProps) 
                     >
                         <div className="w-1 h-full min-h-[32px] rounded-full mt-1" style={{
                             backgroundColor:
-                                task.priority === "urgent" ? "var(--priority-urgent)" :
-                                    task.priority === "high" ? "var(--priority-high)" :
-                                        task.priority === "medium" ? "var(--priority-medium)" :
+                                task.priority === "URGENT" ? "var(--priority-urgent)" :
+                                    task.priority === "HIGH" ? "var(--priority-high)" :
+                                        task.priority === "MEDIUM" ? "var(--priority-medium)" :
                                             "var(--priority-low)"
                         }} />
 

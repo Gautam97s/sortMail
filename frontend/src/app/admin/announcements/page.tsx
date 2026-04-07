@@ -21,9 +21,9 @@ import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
 const mockAnnouncements = [
-    { id: 'a1', title: 'Scheduled Maintenance', type: 'Banner', status: 'Active', target: 'All Users', views: '2.4k', clicks: '142' },
-    { id: 'a2', title: 'New AI Features Released!', type: 'Modal', status: 'Scheduled', target: 'Pro Users', views: '0', clicks: '0' },
-    { id: 'a3', title: 'Q1 Partnership Update', type: 'Email + Banner', status: 'Expired', target: 'Enterprise', views: '842', clicks: '56' },
+    { id: 'a1', title: 'Scheduled Maintenance', type: 'BANNER', status: 'ACTIVE', target: 'ALL_USERS', views: '2.4k', clicks: '142' },
+    { id: 'a2', title: 'New AI Features Released!', type: 'MODAL', status: 'SCHEDULED', target: 'PRO_USERS', views: '0', clicks: '0' },
+    { id: 'a3', title: 'Q1 Partnership Update', type: 'EMAIL_BANNER', status: 'EXPIRED', target: 'ENTERPRISE', views: '842', clicks: '56' },
 ];
 
 export default function AnnouncementsPage() {
@@ -176,14 +176,14 @@ export default function AnnouncementsPage() {
 
 function AnnouncementStatus({ status }: { status: string }) {
     const styles: Record<string, string> = {
-        'Active': 'bg-success/10 text-success border-success/20',
-        'Scheduled': 'bg-accent/10 text-accent border-accent/20',
-        'Expired': 'bg-paper-mid text-ink-light border-border-light',
+        'ACTIVE': 'bg-success/10 text-success border-success/20',
+        'SCHEDULED': 'bg-accent/10 text-accent border-accent/20',
+        'EXPIRED': 'bg-paper-mid text-ink-light border-border-light',
     };
     const icon = {
-        'Active': <CheckCircle2 size={10} />,
-        'Scheduled': <Clock size={10} />,
-        'Expired': <AlertCircle size={10} />,
+        'ACTIVE': <CheckCircle2 size={10} />,
+        'SCHEDULED': <Clock size={10} />,
+        'EXPIRED': <AlertCircle size={10} />,
     }[status];
 
     return (

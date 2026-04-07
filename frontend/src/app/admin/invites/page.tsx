@@ -21,10 +21,10 @@ import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
 const mockInvites = [
-    { id: 'i1', email: 'guest@philosophy.com', status: 'Pending', sentAt: '2024-02-28', expiresAt: '2024-03-05', invitedBy: 'Marcus A.' },
-    { id: 'i2', email: 'neo@neb.io', status: 'Accepted', sentAt: '2024-02-20', expiresAt: '-', invitedBy: 'Isabella R.' },
-    { id: 'i3', email: 'trinity@matrix.net', status: 'Expired', sentAt: '2024-01-15', expiresAt: '2024-01-22', invitedBy: 'Marcus A.' },
-    { id: 'i4', email: 'morpheus@zion.gov', status: 'Pending', sentAt: '2024-02-26', expiresAt: '2024-03-03', invitedBy: 'Sarah C.' },
+    { id: 'i1', email: 'guest@philosophy.com', status: 'PENDING', sentAt: '2024-02-28', expiresAt: '2024-03-05', invitedBy: 'Marcus A.' },
+    { id: 'i2', email: 'neo@neb.io', status: 'ACCEPTED', sentAt: '2024-02-20', expiresAt: '-', invitedBy: 'Isabella R.' },
+    { id: 'i3', email: 'trinity@matrix.net', status: 'EXPIRED', sentAt: '2024-01-15', expiresAt: '2024-01-22', invitedBy: 'Marcus A.' },
+    { id: 'i4', email: 'morpheus@zion.gov', status: 'PENDING', sentAt: '2024-02-26', expiresAt: '2024-03-03', invitedBy: 'Sarah C.' },
 ];
 
 export default function InvitesManagementPage() {
@@ -171,14 +171,14 @@ function InviteStat({ label, value, sub, icon: Icon, color }: any) {
 
 function InviteStatus({ status }: { status: string }) {
     const styles: Record<string, string> = {
-        'Accepted': 'bg-success/10 text-success border-success/20',
-        'Pending': 'bg-warning/10 text-warning border-warning/20',
-        'Expired': 'bg-danger/10 text-danger border-danger/20',
+        'ACCEPTED': 'bg-success/10 text-success border-success/20',
+        'PENDING': 'bg-warning/10 text-warning border-warning/20',
+        'EXPIRED': 'bg-danger/10 text-danger border-danger/20',
     };
     const icon = {
-        'Accepted': <CheckCircle2 size={10} />,
-        'Pending': <Clock size={10} />,
-        'Expired': <XCircle size={10} />,
+        'ACCEPTED': <CheckCircle2 size={10} />,
+        'PENDING': <Clock size={10} />,
+        'EXPIRED': <XCircle size={10} />,
     }[status];
 
     return (

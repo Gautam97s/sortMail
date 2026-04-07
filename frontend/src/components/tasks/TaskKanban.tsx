@@ -25,9 +25,9 @@ const COLUMN_CONFIG: Record<string, { label: string; icon: string; color: string
 
 export const TaskKanban: React.FC<TaskKanbanProps> = ({ tasks, onTaskClick }) => {
     const columns: Record<string, TaskDTOv1[]> = {
-        todo: tasks.filter(t => t.status === 'todo'),
-        in_progress: tasks.filter(t => t.status === 'in_progress'),
-        done: tasks.filter(t => t.status === 'done'),
+        todo: tasks.filter(t => t.status === 'PENDING'),
+        in_progress: tasks.filter(t => t.status === 'IN_PROGRESS'),
+        done: tasks.filter(t => t.status === 'COMPLETED'),
     };
 
     return (
@@ -58,7 +58,7 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ tasks, onTaskClick }) =>
                                 onClick={() => onTaskClick(task.task_id)}
                                 className="group bg-white rounded-[28px] border border-outline-variant/10 p-5 shadow-sm hover:border-primary-fixed/30 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden"
                             >
-                                <div className={`absolute top-0 left-0 w-1.5 h-full ${task.priority === 'do_now' ? 'bg-error' : task.priority === 'do_soon' ? 'bg-tertiary-fixed' : 'bg-primary-fixed'}`} />
+                                <div className={`absolute top-0 left-0 w-1.5 h-full ${task.priority === 'DO_NOW' ? 'bg-error' : task.priority === 'DO_TODAY' ? 'bg-tertiary-fixed' : 'bg-primary-fixed'}`} />
                                 
                                 <div className="space-y-4 relative z-10">
                                     <div className="flex items-start justify-between gap-4">

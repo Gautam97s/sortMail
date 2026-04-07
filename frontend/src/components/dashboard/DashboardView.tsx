@@ -141,7 +141,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ data }) => {
                         {priority_tasks.slice(0, 3).map((task: TaskDTOv1) => (
                             <div key={task.task_id} className="activity-item bg-white border border-outline-variant/10 p-5 rounded-[24px] flex items-center justify-between hover:border-primary-fixed/30 hover:shadow-lg transition-all cursor-pointer group">
                                 <div className="flex items-center gap-5 flex-1 min-w-0">
-                                    <div className={`h-1.5 w-10 rounded-full shrink-0 ${task.priority === 'do_now' ? 'bg-error animate-pulse' : 'bg-primary-fixed'}`} />
+                                    <div className={`h-1.5 w-10 rounded-full shrink-0 ${task.priority === 'DO_NOW' ? 'bg-error animate-pulse' : 'bg-primary-fixed'}`} />
                                     <div className="min-w-0 flex-1">
                                         <h4 className="text-sm font-bold text-on-surface truncate tracking-tight group-hover:text-primary transition-colors">{task.title}</h4>
                                         <div className="flex items-center gap-2 mt-0.5">

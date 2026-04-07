@@ -85,7 +85,7 @@ export default function SummaryPanel({ intel, onActionComplete, onAskAI }: Summa
                             <ActionItemCard
                                 key={i}
                                 title={point}
-                                priority={intel.urgency_score > 70 ? 'do_now' : 'do_today'}
+                                priority={intel.urgency_score > 70 ? 'DO_NOW' : 'DO_TODAY'}
                                 isAIGenerated
                                 onComplete={() => onActionComplete?.(i)}
                             />

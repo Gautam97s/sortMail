@@ -231,15 +231,15 @@ function DashboardContent() {
                         <div className="space-y-6">
                             {priority_tasks.length > 0 ? priority_tasks.slice(0, 6).map((task: TaskDTOv1) => (
                                 <div key={task.task_id} className="flex items-start gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
-                                    <div className={`mt-1 w-5 h-5 rounded-md border-2 border-primary/20 bg-white flex items-center justify-center transition-colors ${task.status === 'completed' ? 'bg-primary border-primary' : 'group-hover:border-primary/50'}`}>
-                                        {task.status === 'completed' && <MaterialSymbol icon="check" className="text-white text-xs" />}
+                                    <div className={`mt-1 w-5 h-5 rounded-md border-2 border-primary/20 bg-white flex items-center justify-center transition-colors ${task.status === 'COMPLETED' ? 'bg-primary border-primary' : 'group-hover:border-primary/50'}`}>
+                                        {task.status === 'COMPLETED' && <MaterialSymbol icon="check" className="text-white text-xs" />}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className={`text-sm font-bold leading-snug truncate ${task.status === 'completed' ? 'line-through text-outline' : 'text-on-surface'}`}>
+                                        <p className={`text-sm font-bold leading-snug truncate ${task.status === 'COMPLETED' ? 'line-through text-outline' : 'text-on-surface'}`}>
                                             {task.title}
                                         </p>
                                         <div className="flex items-center gap-3 mt-1 text-[10px] font-bold uppercase tracking-widest">
-                                            <span className={task.priority === 'do_now' ? 'text-error' : 'text-on-surface-variant'}>
+                                            <span className={task.priority === 'DO_NOW' ? 'text-error' : 'text-on-surface-variant'}>
                                                 {task.priority.replace('_', ' ')}
                                             </span>
                                             {task.deadline && (

@@ -15,9 +15,9 @@ interface ActionItemCardProps {
 }
 
 const priorityConfig = {
-    do_now: { label: 'Do Now', variant: 'destructive' as const, color: 'text-danger' },
-    do_today: { label: 'Today', variant: 'default' as const, color: 'text-amber-500' },
-    can_wait: { label: 'Can Wait', variant: 'secondary' as const, color: 'text-success' },
+    DO_NOW: { label: 'Do Now', variant: 'destructive' as const, color: 'text-danger' },
+    DO_TODAY: { label: 'Today', variant: 'default' as const, color: 'text-amber-500' },
+    CAN_WAIT: { label: 'Can Wait', variant: 'secondary' as const, color: 'text-success' },
 };
 
 export default function ActionItemCard({ title, priority, deadline, isAIGenerated, onComplete }: ActionItemCardProps) {

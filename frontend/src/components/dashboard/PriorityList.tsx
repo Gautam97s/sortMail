@@ -56,7 +56,7 @@ const PriorityList: React.FC<PriorityListProps> = ({ emails, onOpenAction }) => 
             <div className="flex justify-between items-end mb-10 relative z-10">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">Priority Action List</h1>
-                    <p className="text-zinc-400">AI-sorted by urgency. {emails.filter(e => e.urgency === 'High').length} items require immediate attention.</p>
+                    <p className="text-zinc-400">AI-sorted by urgency. {emails.filter(e => e.urgency === Urgency.HIGH).length} items require immediate attention.</p>
                 </div>
                 <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors shadow-[0_0_15px_rgba(79,70,229,0.3)]">
                     <Zap size={16} /> Auto-Process Top 3
@@ -73,10 +73,10 @@ const PriorityList: React.FC<PriorityListProps> = ({ emails, onOpenAction }) => 
                             <div className="flex items-center gap-4">
                                 <div className="relative">
                                     <Image src={email.avatar} alt={email.sender} width={48} height={48} className="w-12 h-12 rounded-full border border-zinc-600" />
-                                    <div className={`absolute -bottom-1 -right-1 p-1 rounded-full border border-[#18181B] ${email.urgency === 'High' ? 'bg-rose-500 text-white' :
-                                        email.urgency === 'Medium' ? 'bg-amber-500 text-black' : 'bg-emerald-500 text-white'
+                                    <div className={`absolute -bottom-1 -right-1 p-1 rounded-full border border-[#18181B] ${email.urgency === Urgency.HIGH ? 'bg-rose-500 text-white' :
+                                        email.urgency === Urgency.MEDIUM ? 'bg-amber-500 text-black' : 'bg-emerald-500 text-white'
                                         }`}>
-                                        {email.urgency === 'High' ? <AlertCircle size={10} /> : email.urgency === 'Medium' ? <Clock size={10} /> : <CheckCircle2 size={10} />}
+                                        {email.urgency === Urgency.HIGH ? <AlertCircle size={10} /> : email.urgency === Urgency.MEDIUM ? <Clock size={10} /> : <CheckCircle2 size={10} />}
                                     </div>
                                 </div>
                                 <div>

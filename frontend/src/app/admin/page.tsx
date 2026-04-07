@@ -129,10 +129,10 @@ export default function AdminDashboardPage() {
                                 </thead>
                                 <tbody className="divide-y divide-border-light">
                                     {[
-                                        { name: 'Marcus Aurelius', email: 'marcus@stoic.com', plan: 'Enterprise', usage: '89%', status: 'Online', id: '1' },
-                                        { name: 'Sarah Connor', email: 'sarah.c@resistance.org', plan: 'Pro', usage: '12%', status: 'Offline', id: '2' },
-                                        { name: 'Thomas Anderson', email: 'neo@neb.io', plan: 'Pro', usage: '94%', status: 'Online', id: '3' },
-                                        { name: 'Ellen Ripley', email: 'ripley@weyland.corp', plan: 'Free', usage: '2%', status: 'Offline', id: '4' },
+                                        { name: 'Marcus Aurelius', email: 'marcus@stoic.com', plan: 'ENTERPRISE', usage: '89%', status: 'ONLINE', id: '1' },
+                                        { name: 'Sarah Connor', email: 'sarah.c@resistance.org', plan: 'PRO', usage: '12%', status: 'OFFLINE', id: '2' },
+                                        { name: 'Thomas Anderson', email: 'neo@neb.io', plan: 'PRO', usage: '94%', status: 'ONLINE', id: '3' },
+                                        { name: 'Ellen Ripley', email: 'ripley@weyland.corp', plan: 'FREE', usage: '2%', status: 'OFFLINE', id: '4' },
                                     ].map((user) => (
                                         <tr key={user.id} className="hover:bg-paper-mid/50 transition-colors group">
                                             <td className="px-6 py-4">
@@ -157,7 +157,7 @@ export default function AdminDashboardPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-1.5">
-                                                    <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'Online' ? 'bg-success animate-pulse' : 'bg-muted'}`} />
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'ONLINE' ? 'bg-success animate-pulse' : 'bg-muted'}`} />
                                                     <span className="text-xs text-ink-light">{user.status}</span>
                                                 </div>
                                             </td>
@@ -223,9 +223,9 @@ export default function AdminDashboardPage() {
 
 function Badge({ plan }: { plan: string }) {
     const colors: Record<string, string> = {
-        'Enterprise': 'bg-indigo-100 text-indigo-700 border-indigo-200',
-        'Pro': 'bg-accent/10 text-accent border-accent/20',
-        'Free': 'bg-paper-mid text-ink-light border-border-light',
+        'ENTERPRISE': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+        'PRO': 'bg-accent/10 text-accent border-accent/20',
+        'FREE': 'bg-paper-mid text-ink-light border-border-light',
     };
     return (
         <span className={`text-[9px] font-mono font-bold uppercase tracking-tighter px-1.5 py-0.5 rounded border ${colors[plan] || colors['Free']}`}>

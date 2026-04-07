@@ -22,39 +22,39 @@ from pydantic import BaseModel, Field
 
 class PriorityLevel(str, Enum):
     """Human-readable priority levels for UI display."""
-    DO_NOW = "do_now"
-    DO_TODAY = "do_today"
-    CAN_WAIT = "can_wait"
+    DO_NOW = "DO_NOW"
+    DO_TODAY = "DO_TODAY"
+    CAN_WAIT = "CAN_WAIT"
 
 
 class EffortLevel(str, Enum):
     """Estimated effort required for a task."""
-    QUICK = "quick"       # < 5 minutes
-    DEEP_WORK = "deep_work"  # > 30 minutes
+    QUICK = "QUICK"       # < 5 minutes
+    DEEP_WORK = "DEEP_WORK"  # > 30 minutes
 
 
 class TaskType(str, Enum):
     """Type of action required."""
-    REPLY = "reply"
-    REVIEW = "review"
-    SCHEDULE = "schedule"
-    FOLLOWUP = "followup"
-    OTHER = "other"
+    REPLY = "REPLY"
+    REVIEW = "REVIEW"
+    SCHEDULE = "SCHEDULE"
+    FOLLOWUP = "FOLLOWUP"
+    OTHER = "OTHER"
 
 
 class TaskStatus(str, Enum):
     """Current status of a task."""
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    DISMISSED = "dismissed"
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    DISMISSED = "DISMISSED"
 
 
 class ToneType(str, Enum):
     """Tone options for draft generation."""
-    BRIEF = "brief"
-    NORMAL = "normal"
-    FORMAL = "formal"
+    BRIEF = "BRIEF"
+    NORMAL = "NORMAL"
+    FORMAL = "FORMAL"
 
 
 # ============================================================================

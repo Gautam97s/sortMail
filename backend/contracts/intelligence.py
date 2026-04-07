@@ -22,15 +22,15 @@ from pydantic import BaseModel, Field
 
 class IntentType(str, Enum):
     """Classification of email intent."""
-    ACTION_REQUIRED = "action_required"
-    FYI = "fyi"
-    SCHEDULING = "scheduling"
-    URGENT = "urgent"
-    QUESTION = "question"
-    SOCIAL = "social"
-    NEWSLETTER = "newsletter"
-    OTHER = "other"
-    UNKNOWN = "unknown"
+    ACTION_REQUIRED = "ACTION_REQUIRED"
+    FYI = "FYI"
+    SCHEDULING = "SCHEDULING"
+    URGENT = "URGENT"
+    QUESTION = "QUESTION"
+    SOCIAL = "SOCIAL"
+    NEWSLETTER = "NEWSLETTER"
+    OTHER = "OTHER"
+    UNKNOWN = "UNKNOWN"
 
 
 class ExtractedDeadline(BaseModel):

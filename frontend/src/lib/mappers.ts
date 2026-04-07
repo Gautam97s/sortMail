@@ -13,7 +13,7 @@ export function mapThreadToListItem(backendData: any): ThreadListItem {
         summary: backendData.summary || "No summary available",
         urgency_score: backendData.urgency_score || 0,
         days_waiting: backendData.days_waiting || 0,
-        intent: backendData.intent || 'fyi',
+        intent: backendData.intent || 'FYI',
         has_attachments: backendData.has_attachments || false,
         last_updated: backendData.last_updated || new Date().toISOString(),
         is_read: backendData.is_read !== undefined ? backendData.is_read : (backendData.is_unread === 0),

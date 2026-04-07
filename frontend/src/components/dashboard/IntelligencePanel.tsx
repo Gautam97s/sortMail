@@ -154,12 +154,12 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
             title: item,
             description: '',
             sourceEmailId: email.id,
-            status: 'todo'
+            status: 'TODO'
         };
         onAddTask(newTask);
     };
 
-    const handleDraft = async (tone: 'formal' | 'casual' | 'meeting') => {
+    const handleDraft = async (tone: 'FORMAL' | 'BRIEF' | 'NORMAL') => {
         if (!email) return;
         setDraftLoading(true);
         setActiveTab('draft');
@@ -268,7 +268,7 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
                                     </div>
 
                                     <button
-                                        onClick={() => handleDraft('formal')}
+                                        onClick={() => handleDraft('FORMAL')}
                                         className="att-detail-item w-full h-11 bg-on-surface text-surface text-[10px] font-black uppercase tracking-widest rounded-xl hover:shadow-xl hover:shadow-black/10 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
                                     >
                                         <MaterialSymbol icon="auto_fix" className="text-lg" />
@@ -358,7 +358,7 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
                                 <div className="space-y-1">
                                     <h4 className="text-[10px] font-black text-primary uppercase tracking-widest">Matrix Recommendation</h4>
                                     <p className="text-xs font-semibold text-on-surface opacity-80 leading-relaxed italic">
-                                        Subject demonstrates {email.urgency.toLowerCase()} urgency. Initial response suggested within 4 solar hours to maintain relationship integrity.
+                                        Subject demonstrates {email.urgency.toUpperCase()} urgency. Initial response suggested within 4 solar hours to maintain relationship integrity.
                                     </p>
                                 </div>
                             </div>
@@ -367,9 +367,9 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
                             <div className="grid grid-cols-3 gap-3">
                                 {[
-                                    { id: 'formal', label: 'Elevated', icon: 'gavel' },
-                                    { id: 'casual', label: 'Incise', icon: 'bolt' },
-                                    { id: 'meeting', label: 'Matrix', icon: 'event' }
+                                    { id: 'FORMAL', label: 'Elevated', icon: 'gavel' },
+                                    { id: 'BRIEF', label: 'Incise', icon: 'bolt' },
+                                    { id: 'NORMAL', label: 'Matrix', icon: 'event' }
                                 ].map((t) => (
                                     <button 
                                         key={t.id}

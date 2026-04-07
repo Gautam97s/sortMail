@@ -15,13 +15,13 @@ const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string
     </span>
 );
 
-function FollowUpGroup({ title, items, status }: { title: string; items: WaitingForDTOv1[]; status: 'overdue' | 'pending' | 'snoozed' }) {
-    if (items.length === 0 && status !== 'snoozed') return null;
+function FollowUpGroup({ title, items, status }: { title: string; items: WaitingForDTOv1[]; status: 'OVERDUE' | 'PENDING' | 'SNOOZED' }) {
+    if (items.length === 0 && status !== 'SNOOZED') return null;
 
     const config = {
-        overdue: { icon: 'error', color: 'text-error', bg: 'bg-error-container', label: 'Critical Delay' },
-        pending: { icon: 'schedule', color: 'text-tertiary', bg: 'bg-tertiary-container', label: 'Awaiting' },
-        snoozed: { icon: 'notifications_paused', color: 'text-outline', bg: 'bg-surface-container', label: 'Suspended' }
+        OVERDUE: { icon: 'error', color: 'text-error', bg: 'bg-error-container', label: 'Critical Delay' },
+        PENDING: { icon: 'schedule', color: 'text-tertiary', bg: 'bg-tertiary-container', label: 'Awaiting' },
+        SNOOZED: { icon: 'notifications_paused', color: 'text-outline', bg: 'bg-surface-container', label: 'Suspended' }
     }[status];
 
     return (
@@ -144,17 +144,17 @@ export default function FollowupsPage() {
                     <FollowUpGroup
                         title="Critical Nudges"
                         items={overdue}
-                        status="overdue"
+                        status="OVERDUE"
                     />
                     <FollowUpGroup
                         title="Active Monitoring"
                         items={pending}
-                        status="pending"
+                        status="PENDING"
                     />
                     <FollowUpGroup
                         title="Suspended Persistent"
                         items={snoozed}
-                        status="snoozed"
+                        status="SNOOZED"
                     />
                 </div>
             </div>

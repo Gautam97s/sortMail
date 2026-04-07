@@ -21,10 +21,10 @@ import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
 const mockTickets = [
-    { id: 'tk1', user: 'Marcus Aurelius', subject: 'Pro Plan Billing Issue', status: 'Open', priority: 'High', lastUpdate: '12m ago' },
-    { id: 'tk2', user: 'Sarah Connor', subject: 'AI Summary not generating', status: 'In Progress', priority: 'Critical', lastUpdate: '45m ago' },
-    { id: 'tk3', user: 'Thomas Anderson', subject: 'Bulk Invite Help', status: 'Resolved', priority: 'Medium', lastUpdate: '2h ago' },
-    { id: 'tk4', user: 'Ellen Ripley', subject: 'Account Deletion Request', status: 'Open', priority: 'Low', lastUpdate: '4h ago' },
+    { id: 'tk1', user: 'Marcus Aurelius', subject: 'Pro Plan Billing Issue', status: 'OPEN', priority: 'HIGH', lastUpdate: '12m ago' },
+    { id: 'tk2', user: 'Sarah Connor', subject: 'AI Summary not generating', status: 'IN_PROGRESS', priority: 'CRITICAL', lastUpdate: '45m ago' },
+    { id: 'tk3', user: 'Thomas Anderson', subject: 'Bulk Invite Help', status: 'RESOLVED', priority: 'MEDIUM', lastUpdate: '2h ago' },
+    { id: 'tk4', user: 'Ellen Ripley', subject: 'Account Deletion Request', status: 'OPEN', priority: 'LOW', lastUpdate: '4h ago' },
 ];
 
 export default function SupportOversightPage() {
@@ -178,9 +178,9 @@ function SupportStat({ label, value, sub, icon: Icon, color }: any) {
 
 function TicketStatus({ status }: { status: string }) {
     const styles: Record<string, string> = {
-        'Open': 'bg-danger/10 text-danger border-danger/20',
-        'In Progress': 'bg-info/10 text-info border-info/20',
-        'Resolved': 'bg-success/10 text-success border-success/20',
+        'OPEN': 'bg-danger/10 text-danger border-danger/20',
+        'IN_PROGRESS': 'bg-info/10 text-info border-info/20',
+        'RESOLVED': 'bg-success/10 text-success border-success/20',
     };
     return (
         <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded border inline-block ${styles[status]}`}>
@@ -191,10 +191,10 @@ function TicketStatus({ status }: { status: string }) {
 
 function TicketPriority({ priority }: { priority: string }) {
     const styles: Record<string, string> = {
-        'Critical': 'text-danger font-bold',
-        'High': 'text-warning font-bold',
-        'Medium': 'text-info font-medium',
-        'Low': 'text-ink-light font-normal',
+        'CRITICAL': 'text-danger font-bold',
+        'HIGH': 'text-warning font-bold',
+        'MEDIUM': 'text-info font-medium',
+        'LOW': 'text-ink-light font-normal',
     };
     return (
         <span className={`text-[10px] font-mono uppercase ${styles[priority]}`}>

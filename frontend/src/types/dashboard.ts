@@ -15,14 +15,14 @@
 
 // ─── Enums (match backend exactly) ───────────────────────────
 
-export type IntentType = 'action_required' | 'fyi' | 'scheduling' | 'urgent' | 'unknown';
-export type PriorityLevel = 'do_now' | 'do_today' | 'can_wait';
-export type EffortLevel = 'quick' | 'deep_work';
-export type TaskType = 'reply' | 'review' | 'schedule' | 'followup' | 'other';
-export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'dismissed';
-export type ToneType = 'brief' | 'normal' | 'formal';
+export type IntentType = 'ACTION_REQUIRED' | 'FYI' | 'SCHEDULING' | 'URGENT' | 'QUESTION' | 'SOCIAL' | 'NEWSLETTER' | 'OTHER' | 'UNKNOWN';
+export type PriorityLevel = 'DO_NOW' | 'DO_TODAY' | 'CAN_WAIT';
+export type EffortLevel = 'QUICK' | 'DEEP_WORK';
+export type TaskType = 'REPLY' | 'REVIEW' | 'SCHEDULE' | 'FOLLOWUP' | 'OTHER';
+export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'DISMISSED';
+export type ToneType = 'BRIEF' | 'NORMAL' | 'FORMAL';
 
-export type FilterTab = 'all' | 'urgent' | 'action_required' | 'fyi';
+export type FilterTab = 'ALL' | 'URGENT' | 'ACTION_REQUIRED' | 'FYI';
 
 // ─── Ingestion Contracts ─────────────────────────────────────
 
@@ -58,7 +58,7 @@ export interface EmailThreadV1 {
     messages: EmailMessage[];
     attachments: AttachmentRef[];
     last_updated: string;
-    provider: 'gmail' | 'outlook';
+    provider: 'GMAIL' | 'OUTLOOK';
 }
 
 // ─── Intelligence Contracts ──────────────────────────────────
@@ -273,17 +273,17 @@ export interface AiDraft {
 // ─── Legacy Compat (for old dashboard components) ────────────
 
 export enum View {
-    DASHBOARD = 'Dashboard',
-    PRIORITY = 'Priority',
-    STATS = 'Stats',
-    WAITING = 'Waiting',
-    INBOX = 'Inbox',
+    DASHBOARD = 'DASHBOARD',
+    PRIORITY = 'PRIORITY',
+    STATS = 'STATS',
+    WAITING = 'WAITING',
+    INBOX = 'INBOX',
 }
 
 export enum Urgency {
-    HIGH = 'High',
-    MEDIUM = 'Medium',
-    LOW = 'Low',
+    HIGH = 'HIGH',
+    MEDIUM = 'MEDIUM',
+    LOW = 'LOW',
 }
 
 export interface LegacyEmail {
@@ -332,7 +332,7 @@ export interface LegacyAttachment {
 // ─── Legacy Types (used by Phase 1 components) ───────────────
 // These keep old components compiling. New pages use API-shaped types above.
 
-export type Priority = 'urgent' | 'high' | 'medium' | 'low';
+export type Priority = 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
 
 export interface Email {
     id: string;
@@ -374,7 +374,7 @@ export interface Task {
     id: string;
     title: string;
     priority: Priority;
-    status: 'todo' | 'in_progress' | 'done';
+    status: 'TODO' | 'IN_PROGRESS' | 'DONE';
     dueDate?: string;
     sourceSender?: string;
     isAIGenerated?: boolean;
