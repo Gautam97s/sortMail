@@ -14,21 +14,21 @@ from core.storage.database import Base
 
 
 class ProviderType(str, enum.Enum):
-    GMAIL = "gmail"
-    OUTLOOK = "outlook"
+    GMAIL = "GMAIL"
+    OUTLOOK = "OUTLOOK"
 
 class AccountStatus(str, enum.Enum):
-    ACTIVE = "active"
-    REVOKED = "revoked"
-    EXPIRED = "expired"
-    DISCONNECTED = "disconnected"
-    ERROR = "error"
+    ACTIVE = "ACTIVE"
+    REVOKED = "REVOKED"
+    EXPIRED = "EXPIRED"
+    DISCONNECTED = "DISCONNECTED"
+    ERROR = "ERROR"
 
 class SyncStatus(str, enum.Enum):
-    IDLE = "idle"
-    SYNCING = "syncing"
-    FAILED = "failed"
-    REVOKED = "revoked"
+    IDLE = "IDLE"
+    SYNCING = "SYNCING"
+    FAILED = "FAILED"
+    REVOKED = "REVOKED"
 
 
 class ConnectedAccount(Base):

@@ -167,7 +167,7 @@ class IngestionService:
             logger.error(f"Token revoked for account {account_id}")
             from sqlalchemy import update
             stmt = update(ConnectedAccount).where(ConnectedAccount.id == account_id).values(
-                sync_status="revoked", sync_error="Access revoked"
+                sync_status=SyncStatus.REVOKED, sync_error="Access revoked"
             )
             await self.db.execute(stmt)
             await self.db.commit()

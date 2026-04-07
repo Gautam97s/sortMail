@@ -23,19 +23,19 @@ function KanbanColumn({ title, tasks, icon: Icon, onTaskClick }: { title: string
                 </Badge>
             </div>
 
-            <div className="flex flex-col gap-2.5 md:gap-3 overflow-y-auto pr-2 pb-4 scrollbar-thin flex-1 bg-surface/30 rounded-xl p-2.5 md:p-3 border border-border/50">
+            <div className="flex flex-col gap-2.5 md:gap-3 overflow-y-auto pr-2 pb-4 scrollbar-thin flex-1 bg-white/20 backdrop-blur-md rounded-2xl p-2.5 md:p-3 border border-white/40 shadow-inner">
                 {tasks.map((task) => (
-                    <Card
+                    <div
                         key={task.task_id}
-                        className="cursor-pointer hover:shadow-md transition-all duration-200 border-l-4 group"
+                        className="glass-card cursor-pointer hover:shadow-lg hover:bg-white/50 transition-all duration-300 border-l-4 group"
                         style={{ borderLeftColor: task.priority === 'do_now' ? 'var(--danger)' : 'transparent' }}
                         onClick={() => onTaskClick(task.task_id)}
                     >
-                        <CardContent className="p-3 md:p-4 space-y-2.5 md:space-y-3">
+                        <div className="p-3 md:p-4 space-y-2.5 md:space-y-3">
                             <div className="flex justify-between items-start gap-2">
                                 <PriorityBadge priority={task.priority} />
                                 {task.effort === 'deep_work' && (
-                                    <span className="text-[10px] uppercase font-mono font-medium text-muted-foreground bg-paper-mid px-1.5 py-0.5 rounded tracking-wider">
+                                    <span className="text-[10px] uppercase font-mono font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded tracking-wider border border-accent/20 shadow-sm">
                                         Deep Work
                                     </span>
                                 )}
@@ -50,7 +50,7 @@ function KanbanColumn({ title, tasks, icon: Icon, onTaskClick }: { title: string
                                 </p>
                             </div>
 
-                            <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border-light">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-white/30">
                                 <div className="flex items-center gap-1.5 font-medium">
                                     {task.deadline ? (
                                         <>
@@ -70,8 +70,8 @@ function KanbanColumn({ title, tasks, icon: Icon, onTaskClick }: { title: string
                                     </span>
                                 )}
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 ))}
                 {tasks.length === 0 && (
                     <div className="h-32 flex items-center justify-center text-muted-foreground text-sm italic border-2 border-dashed border-border-light rounded-lg bg-white/50">

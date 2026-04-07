@@ -23,7 +23,9 @@ if (typeof window !== 'undefined') {
                 const currentPath = window.location.pathname;
 
                 if (!publicPaths.some(path => currentPath.startsWith(path)) && currentPath !== '/') {
-                    window.location.href = '/login';
+                    // [BYPASS REDIRECT FOR DEV] 
+                    // window.location.href = '/login';
+                    console.warn("Intercepted 401 but redirect is bypassed for dev.");
                 }
             }
             return Promise.reject(error);

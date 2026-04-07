@@ -30,27 +30,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
-    // Fetch user from backend using HttpOnly Cookie
     const checkSession = async () => {
         try {
-            console.log("🔍 Checking Session... Cookies visible to JS:", document.cookie);
-            // Using fetch explicitly here to debug, or use api.get('/auth/me')
+            console.log("🔍 Checking Session...");
             const res = await fetch(`${API_URL}/api/auth/me`, {
                 method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                // IMPORTANT: This tells the browser to send cookies cross-origin
+                headers: { "Content-Type": "application/json" },
                 credentials: "include"
             });
 
             if (res.ok) {
                 const userData = await res.json();
-                console.log("✅ Session Valid:", userData.email);
                 setUser(userData);
                 return true;
             } else {
-                console.warn("❌ Session Check Failed:", res.status, res.statusText);
                 setUser(null);
                 return false;
             }
@@ -68,7 +61,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const login = () => {
-        // Redirect to Backend Google Auth Endpoint
         window.location.href = `${API_URL}/api/auth/google`;
     };
 
@@ -83,7 +75,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, logout, checkSession }}>
+        <AuthContext.Provider value={{ 
+            user, 
+            isLoading, 
+            isAuthenticated: !!user, 
+            login, 
+            logout, 
+            checkSession 
+        }}>
             {children}
         </AuthContext.Provider>
     );

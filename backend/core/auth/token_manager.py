@@ -17,7 +17,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.connected_account import ConnectedAccount, ProviderType, SyncStatus
+from models.connected_account import ConnectedAccount, ProviderType, SyncStatus, AccountStatus
 from core.auth import oauth_google
 from core.encryption import encrypt_token, decrypt_token
 from core.redis import get_redis
@@ -47,7 +47,7 @@ async def get_valid_google_token(user_id: str) -> str:
         if not account:
             raise ValueError(f"No connected Gmail account for user {user_id}")
             
-        if account.status == "revoked":
+        if account.status == AccountStatus.REVOKED:
             raise TokenRevokedError("Account access has been revoked by user")
 
         # Check expiration (refresh if < 5 mins remaining or no expiration set)
@@ -110,7 +110,7 @@ async def _refresh_google_token(db: AsyncSession, account: ConnectedAccount) -> 
         except Exception as e:
             logger.error(f"Google token refresh failed for user {account.user_id}: {e}")
             if "invalid_grant" in str(e) or "revoked" in str(e):
-                account.status = "revoked"
+                account.status = AccountStatus.REVOKED
                 account.sync_status = SyncStatus.FAILED
                 account.sync_error = "Token revoked during refresh"
                 await db.commit()

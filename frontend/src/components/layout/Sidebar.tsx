@@ -6,37 +6,15 @@ import { usePathname } from "next/navigation";
 import {
     LayoutDashboard,
     Inbox,
-    Search,
     Users,
     CheckSquare,
     FileEdit,
     Clock,
     Calendar,
-    Settings,
-    LogOut,
     ChevronLeft,
     ChevronRight,
-    LifeBuoy,
-    Share2,
-    Zap,
-    ShieldCheck,
-    HelpCircle,
-    FileText,
-    ChevronUp,
-    Bell,
-    Sun,
-    MoreHorizontal,
-    FileSearch,
-    Sparkles,
-    FolderOpen,
     Tag
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuGroup } from "@/components/ui/dropdown-menu";
-import { useUser } from "@/hooks/useUser";
 import { useNavCounts } from "@/hooks/useThreads";
 
 interface SidebarProps {
@@ -48,34 +26,30 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed = false, onToggle, isOpen = false, onClose }: SidebarProps) {
     const pathname = usePathname();
-    const { data: user, isLoading: isUserLoading } = useUser();
     const { data: counts } = useNavCounts();
     const status = { state: "online", lastSync: "Just now", activeRules: 0, tasksCompleted: 0, isOnline: true };
 
     const navItems = [
         { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { label: "Inbox", href: "/inbox", icon: Inbox, badge: counts?.inbox },
-        { label: "Search", href: "/search", icon: Search },
         { label: "Contacts", href: "/contacts", icon: Users },
-        { label: "Tasks", href: "/tasks", icon: CheckSquare },
         { label: "Drafts", href: "/drafts", icon: FileEdit, badge: counts?.drafts },
         { label: "Tags", href: "/tags", icon: Tag },
         { label: "Follow-ups", href: "/followups", icon: Clock },
-        { label: "Calendar", href: "/calendar", icon: Calendar },
     ];
 
     return (
         <aside
             className={`
-                flex flex-col bg-paper-deep text-ink transition-all duration-300 ease-in-out shrink-0 overflow-hidden border-r border-border
+                flex flex-col glass-card text-ink shrink-0 overflow-hidden border-r border-white/20 shadow-[10px_0_30px_rgba(0,0,0,0.05)] z-50 rounded-none
                 ${isOpen ? 'drawer open' : 'drawer'} md:relative md:translate-x-0
             `}
             style={{ width: collapsed ? 'var(--sidebar-col)' : 'var(--sidebar-w)' }}
         >
             {/* Logo */}
             <div className="flex items-center gap-3 px-4 h-[56px] shrink-0 border-b border-border">
-                <div className="w-8 h-8 rounded bg-accent flex items-center justify-center shrink-0 shadow-sm">
-                    <span className="font-display italic text-white text-xl translate-y-[-1px]">S</span>
+                <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                    <span className="font-display italic text-accent font-bold text-2xl translate-y-[-1px]">S</span>
                 </div>
                 {!collapsed && (
                     <span className="font-display italic text-xl text-ink tracking-wide">
@@ -100,18 +74,18 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
                                 }
                             }}
                             className={`
-                                flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 group
-                    ${isActive ? "bg-accent/10 text-accent" : "text-muted hover:bg-paper-mid hover:text-ink"}
-                    ${collapsed ? "justify-center" : ""}
+                                flex items-center gap-3 py-2.5 rounded-xl transition-all duration-200 group
+                                ${isActive ? `bg-accent text-white shadow-lg shadow-accent/30 ${!collapsed ? 'translate-x-1' : ''}` : "text-muted"}
+                                ${collapsed ? "justify-center px-0" : "px-3"}
                             `}
                             title={collapsed ? item.label : undefined}
                         >
-                            <Icon size={18} strokeWidth={2} className="shrink-0" />
+                            <Icon size={18} strokeWidth={2.5} className="shrink-0" />
                             {!collapsed && (
                                 <>
-                                    <span className="flex-1 text-[13px] font-medium tracking-wide truncate">{item.label}</span>
-                                    {item.badge && (
-                                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-sm bg-accent/20 text-accent min-w-[20px] text-center">
+                                    <span className="flex-1 text-[13px] font-semibold tracking-wide truncate">{item.label}</span>
+                                    {item.badge && item.badge > 0 && (
+                                        <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-sm min-w-[20px] text-center ${isActive ? 'bg-white/20 text-white' : 'bg-accent/20 text-accent'}`}>
                                             {item.badge}
                                         </span>
                                     )}
@@ -123,7 +97,7 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
             </nav>
 
             {/* Bottom Section */}
-            <div className="py-4 px-3 space-y-1 mt-auto border-t border-border bg-paper-mid/30">
+            <div className="py-4 px-3 space-y-1 mt-auto border-t border-white/20 bg-white/10">
                 {/* Connection Status */}
                 {!collapsed && (
                     <div className="flex items-center gap-2 px-3 py-2 text-[11px] font-mono text-success tracking-wide uppercase">
@@ -132,62 +106,16 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
                     </div>
                 )}
 
-                {[
-                    { label: "Settings", href: "/settings", icon: Settings },
-                    { label: "Support", href: "/support", icon: LifeBuoy }
-                ].map((item) => {
-                    const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
-                    const Icon = item.icon;
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => {
-                                if (window.innerWidth < 768 && onClose) {
-                                    onClose();
-                                }
-                            }}
-                            className={`
-                                flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 group
-                                ${isActive ? "bg-accent/10 text-accent" : "text-muted hover:bg-paper-mid hover:text-ink"}
-                                ${collapsed ? "justify-center" : ""}
-                            `}
-                            title={collapsed ? item.label : undefined}
-                        >
-                            <Icon size={18} strokeWidth={2} className="shrink-0" />
-                            {!collapsed && (
-                                <span className="flex-1 text-[13px] font-medium tracking-wide truncate">{item.label}</span>
-                            )}
-                        </Link>
-                    );
-                })}
-
                 {/* Collapse Toggle */}
                 {onToggle && (
                     <button
                         onClick={onToggle}
-                        className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-muted/50 hover:text-ink hover:bg-paper-mid transition-colors cursor-pointer"
+                        className={`w-full flex items-center gap-3 py-2.5 rounded-xl text-muted hover:text-ink hover:bg-black/5 transition-colors cursor-pointer ${collapsed ? 'justify-center px-0' : 'px-3'}`}
                         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
                     >
                         {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                         {!collapsed && <span className="text-[13px] font-medium">Collapse</span>}
                     </button>
-                )}
-
-                {/* User Profile & Sign Out */}
-                {!collapsed && (
-                    <div className="mt-4 pt-4 border-t border-border flex items-center gap-3 px-1">
-                        <Avatar className="h-8 w-8 ring-1 ring-border shadow-sm">
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{user?.name?.charAt(0) || 'U'}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                            <div className="text-[12px] font-bold text-ink truncate">{user?.name}</div>
-                            <div className="text-[10px] text-muted truncate">{user?.plan} Plan</div>
-                        </div>
-                        <button className="text-muted/60 hover:text-danger transition-colors" title="Sign Out">
-                            <LogOut size={14} />
-                        </button>
-                    </div>
                 )}
             </div>
         </aside>

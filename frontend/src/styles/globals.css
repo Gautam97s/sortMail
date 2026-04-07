@@ -4,37 +4,37 @@
 
 @layer base {
   :root {
-    /* ─ Core Palette (Paper/Ink Aesthetic) ────────────────── */
-    --ink: #0a0a0f;
-    --paper: #f5f2eb;
-    --accent: #e8440a;
-    --accent-hover: #d13d09;
-    --accent-soft: #fde8e8;
-    --accent2: #2563d4;
-    --muted: #6b6b7a;
-    --border: #d4cfc4;
+    /* ─ Core Palette (Kleon Aesthetic) ────────────────── */
+    --ink: #1e1b4b; /* Deep Indigo text */
+    --paper: #f8f7ff; /* Very soft lavender/gray background */
+    --accent: #3b82f6; /* Vibrant Blue */
+    --accent-hover: #1d4ed8;
+    --accent-soft: #dbeafe;
+    --accent2: #06b6d4; /* Vibrant Cyan */
+    --muted: #64748b;
+    --border: rgba(59, 130, 246, 0.1); /* Subtle blue-tinted borders */
 
     /* ─ Surface Colors ─────────────────────────────────────── */
-    --surface: #ffffff;
-    --surface-card: #ffffff;
-    --surface-elevated: #ffffff;
-    --paper-mid: #f0ede6;
-    --paper-deep: #e6e3dc;
+    --surface: rgba(255, 255, 255, 0.7);
+    --surface-card: rgba(255, 255, 255, 0.7);
+    --surface-elevated: rgba(255, 255, 255, 0.9);
+    --paper-mid: #f1f5f9;
+    --paper-deep: #e2e8f0;
 
     /* ─ Semantic/Action Colors ─────────────────────────────── */
-    --success: #059669;
-    --warning: #d97706;
-    --danger: #dc2626;
-    --info: #2563d4;
-    --ai: #5b21b6;
-    --ai-purple: #5b21b6;
-    --ai-purple-soft: #ede9fe;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #0ea5e9;
+    --ai: #0ea5e9; /* Vibrant Blue for AI */
+    --ai-purple: #0ea5e9;
+    --ai-purple-soft: #cffafe;
 
     /* ─ Priority Tags ──────────────────────────────────────── */
     --tag-urgent: #ef4444;
     --tag-high: #f97316;
     --tag-medium: #eab308;
-    --tag-low: #22c55e;
+    --tag-low: #10b981;
 
     /* ─ Typography ─────────────────────────────────────────── */
     --ff-display: var(--font-fraunces), serif;
@@ -206,15 +206,23 @@
 
   /* ═ Card Surfaces (from spec) ════════════════════════════ */
   .card {
-    background: #ffffff;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    transition: box-shadow 200ms ease-out, transform 200ms ease-out;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 10px 40px -10px rgba(59, 130, 246, 0.08);
   }
 
+  .glass-card {
+    background: rgba(255, 255, 255, 0.35); /* More transparent so the blur shows through */
+    backdrop-filter: blur(32px); /* Higher blur radius */
+    -webkit-backdrop-filter: blur(32px);
+    box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.08); /* Soft colored shadow */
+  }
+
+
   .card:hover {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.12);
     transform: translateY(-1px);
   }
 
@@ -237,7 +245,7 @@
   }
 
   .btn-primary:hover {
-    background: #d13d09;
+    background: #1d4ed8;
     transform: scale(1.02);
   }
 
@@ -299,9 +307,9 @@
   }
 
   .badge-ai {
-    background: #ede9fe;
-    color: #5b21b6;
-    border: 1px solid #ddd6fe;
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
   }
 
   /* ═ Priority Badge Variants ═════════════════════════════ */
@@ -348,13 +356,13 @@
     align-items: center;
     gap: 4px;
     padding: 2px 8px;
-    background: #ede9fe;
-    color: var(--color-ai);
+    background: #dbeafe;
+    color: #1e40af;
     font-family: var(--ff-mono);
     font-size: 10px;
     font-weight: 600;
     border-radius: var(--radius-full);
-    border: 1px solid #ddd6fe;
+    border: 1px solid #93c5fd;
   }
 
   /* ═ Email Card ═══════════════════════════════════════════ */

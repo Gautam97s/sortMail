@@ -1,31 +1,25 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import AppShell from '@/components/layout/AppShell';
 import { useDashboard } from '@/hooks/useDashboard';
-import type { TaskDTOv1, ThreadListItem, PriorityLevel } from '@/types/dashboard';
-import {
-    Sparkles, Mail, AlertTriangle, CheckSquare, Clock,
-    ArrowUpRight, ChevronRight, Zap, FileText, Plus
-} from 'lucide-react';
-import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import TaskCreateModal from '@/components/modals/TaskCreateModal';
+import { 
+    Sparkles, Mail, AlertTriangle, CheckSquare, Clock, Zap, RefreshCw, 
+    PenSquare, RefreshCcw, PlusSquare, BarChart2, Plus, ArrowUpRight, 
+    ChevronRight, FileText, Settings, Rocket
+} from 'lucide-react';
+import type { TaskDTOv1, ThreadListItem, PriorityLevel } from '@/types/dashboard';
+import Link from 'next/link';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-
+// Priority Configuration mapping for visual styling
 const priorityConfig = {
-    do_now: { label: 'Do Now', variant: 'destructive' as const, color: 'bg-red-500' },
-    do_today: { label: 'Today', variant: 'default' as const, color: 'bg-amber-500' },
-    can_wait: { label: 'Can Wait', variant: 'secondary' as const, color: 'bg-green-500' },
+    do_now: { label: 'Do Now', color: 'bg-danger', text: 'text-danger', bgSoft: 'bg-danger/10' },
+    do_today: { label: 'Today', color: 'bg-warning', text: 'text-warning', bgSoft: 'bg-warning/10' },
+    can_wait: { label: 'Can Wait', color: 'bg-success', text: 'text-success', bgSoft: 'bg-success/10' },
 };
-
-import { Suspense } from 'react';
 
 function DashboardContent() {
     const router = useRouter();
@@ -34,24 +28,21 @@ function DashboardContent() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     useEffect(() => {
-        // Note: Auth is handled by DashboardLayout + AuthContext via HttpOnly cookies.
-        // The old localStorage token check has been removed.
-        // If a 'token' param exists in URL, it's from a legacy flow - clean it up.
         const token = searchParams.get('token');
         if (token) {
-            // Clear the token from URL (we don't use URL tokens anymore)
             router.replace('/dashboard');
         }
     }, [searchParams, router]);
 
     if (isLoading) {
         return (
-            <div className="p-6 max-w-7xl mx-auto space-y-6">
-                <div className="h-48 rounded-xl bg-paper-mid animate-pulse" />
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="h-32 rounded-xl bg-paper-mid animate-pulse" />
-                    ))}
+            <div className="p-8 space-y-8 animate-pulse">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-48">
+                    <div className="lg:col-span-2 rounded-xl bg-paper-mid" />
+                    <div className="rounded-xl bg-ai/20" />
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 h-32">
+                    {[1, 2, 3, 4].map(i => <div key={i} className="rounded-xl bg-paper-mid" />)}
                 </div>
             </div>
         );
@@ -59,8 +50,8 @@ function DashboardContent() {
 
     if (error || !data) {
         return (
-            <div className="p-6 text-center text-danger">
-                Failed to load dashboard data.
+            <div className="p-8 text-center text-danger font-medium">
+                Failed to load dashboard data. Please try refreshing.
             </div>
         );
     }
@@ -68,179 +59,270 @@ function DashboardContent() {
     const { briefing, stats, recent_threads, priority_tasks } = data;
 
     return (
-        <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
-
-            {/* ─── AI Briefing Card ────────────────── */}
-            <Card className="border-border bg-paper-mid/50">
-                <CardHeader className="p-4 md:p-6 pb-2 md:pb-3">
-                    <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-ai" />
-                        <CardTitle className="text-xs md:text-sm font-mono uppercase tracking-widest text-ai font-bold">
-                            AI Briefing
-                        </CardTitle>
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8">
+            {/* ─── Hero Section ────────────────────────────── */}
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* AI Briefing */}
+                <div className="lg:col-span-2 glass-card p-8 flex flex-col md:flex-row gap-8 relative overflow-hidden">
+                    <div className="absolute -top-10 -right-10 p-4 opacity-5 pointer-events-none">
+                        <Sparkles className="h-[200px] w-[200px] text-accent" />
                     </div>
-                    <CardDescription className="text-sm md:text-base leading-relaxed text-ink mt-2">
-                        {briefing.summary}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 md:p-6 pt-0">
-                    <div className="flex flex-wrap gap-2">
-                        {briefing.suggested_actions.map((action: string, i: number) => (
-                            <Button key={i} variant="outline" size="sm" className="h-8 md:h-9 px-3 gap-1.5 text-[10px] md:text-xs font-medium border-border/60 hover:bg-paper-mid hover:text-ink transition-colors">
-                                <Zap className="h-3 w-3 text-ai" />
-                                {action}
-                            </Button>
-                        ))}
+                    
+                    <div className="flex-1 z-10">
+                        <h2 className="text-xl font-display font-bold flex items-center gap-2 mb-4 text-ink">
+                            <Sparkles className="h-6 w-6 text-accent" />
+                            AI Morning Briefing
+                        </h2>
+                        <p className="text-muted text-base leading-relaxed mb-8">
+                            {briefing.summary}
+                        </p>
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {briefing.suggested_actions.map((action: string, i: number) => (
+                                <button key={i} className="px-4 py-2 bg-white/40 hover:bg-accent/10 border border-white/50 text-accent transition-colors rounded-xl text-xs font-bold shadow-sm">
+                                    {action}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                </CardContent>
-            </Card>
-
-            {/* ─── Stat Cards ─────────────────────── */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                {[
-                    { label: 'Unread', value: stats.unread, icon: Mail, delta: stats.unread_delta, color: 'text-ai' },
-                    { label: 'Urgent', value: stats.urgent, icon: AlertTriangle, delta: null, color: 'text-danger' },
-                    { label: 'Tasks Due', value: stats.tasks_due, icon: CheckSquare, delta: null, color: 'text-warning' },
-                    { label: 'Awaiting Reply', value: stats.awaiting_reply, icon: Clock, delta: null, color: 'text-accent' },
-                ].map((stat) => (
-                    <Card key={stat.label} className="border-border shadow-sm">
-                        <CardContent className="p-4 md:p-5">
-                            <div className="flex items-center justify-between mb-2 md:mb-3">
-                                <span className="text-[10px] md:text-xs font-mono uppercase tracking-widest text-muted">{stat.label}</span>
-                                <stat.icon className={`h-3.5 w-3.5 md:h-4 md:w-4 ${stat.color}`} />
-                            </div>
-                            <p className="font-display text-2xl md:text-3xl text-ink leading-none">{stat.value}</p>
-                            {stat.delta && (
-                                <p className="font-mono text-[9px] md:text-[10px] text-muted mt-1.5">{stat.delta}</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-
-            <div className="grid lg:grid-cols-5 gap-6">
-
-                {/* ─── Priority Tasks ─────────────── */}
-                <div className="lg:col-span-2">
-                    <Card className="border-border">
-                        <CardHeader className="pb-3 border-b border-border/50">
-                            <CardTitle className="text-[10px] md:text-xs font-mono uppercase tracking-[0.2em] text-muted font-bold">
-                                Priority Queue
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <ScrollArea className="h-[360px]">
-                                {priority_tasks.map((task: TaskDTOv1) => {
-                                    const cfg = priorityConfig[task.priority as PriorityLevel];
-                                    return (
-                                        <div key={task.task_id} className="flex items-start gap-4 px-4 md:px-5 py-3 md:py-4 border-b border-border/40 last:border-0 hover:bg-paper-mid/50 transition-colors cursor-pointer group">
-                                            <div className={`w-1 h-10 md:h-12 rounded-full ${cfg.color} shrink-0 mt-0.5 opacity-80`} />
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <Badge variant={cfg.variant} className="text-[9px] px-1.5 py-0 rounded-sm font-bold uppercase tracking-wider">
-                                                        {cfg.label}
-                                                    </Badge>
-                                                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 rounded-sm font-medium border-border text-muted">
-                                                        {task.task_type}
-                                                    </Badge>
-                                                </div>
-                                                <p className="text-sm font-semibold text-ink truncate group-hover:text-accent transition-colors">{task.title}</p>
-                                                {task.deadline && (
-                                                    <p className="text-[10px] text-muted font-mono mt-1">
-                                                        Due: {new Date(task.deadline).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <ChevronRight className="h-4 w-4 text-border group-hover:text-muted shrink-0 mt-2 transition-colors" />
-                                        </div>
-                                    );
-                                })}
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
                 </div>
 
-                {/* ─── Recent Threads ─────────────── */}
-                <div className="lg:col-span-3">
-                    <Card className="border-border">
-                        <CardHeader className="pb-3 flex flex-row items-center justify-between border-b border-border/50">
-                            <CardTitle className="text-[10px] md:text-xs font-mono uppercase tracking-[0.2em] text-muted font-bold">
-                                Recent Emails
-                            </CardTitle>
-                            <Link href="/inbox">
-                                <Button variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold tracking-widest text-accent hover:bg-accent/10 gap-1.5 transition-all">
-                                    Full Inbox <ArrowUpRight className="h-3 w-3" />
-                                </Button>
+                {/* Quick Actions */}
+                <div className="glass-card bg-accent/90 p-6 text-slate-900 overflow-hidden flex flex-col justify-between group">
+                    <div className="relative z-10">
+                        <h2 className="text-lg font-bold mb-6 font-display text-slate-900">Quick Actions</h2>
+                        <div className="grid grid-cols-2 gap-4">
+                            <button className="flex flex-col items-center justify-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all border border-white/20 hover:scale-[1.02]">
+                                <PenSquare className="h-6 w-6" />
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-900">Compose</span>
+                            </button>
+                            <button className="flex flex-col items-center justify-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all border border-white/20 hover:scale-[1.02]">
+                                <RefreshCcw className="h-6 w-6" />
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-900">Sync</span>
+                            </button>
+                            <button 
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="flex flex-col items-center justify-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all border border-white/20 hover:scale-[1.02]"
+                            >
+                                <PlusSquare className="h-6 w-6" />
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-900">Task</span>
+                            </button>
+                            <button className="flex flex-col items-center justify-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all border border-white/20 hover:scale-[1.02]">
+                                <BarChart2 className="h-6 w-6" />
+                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-900">Stats</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ─── Metrics Section ─────────────────────────── */}
+            <section className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Unread */}
+                <div className="glass-card p-6 flex items-center gap-5 group relative overflow-hidden">
+                    <div className="relative">
+                        {/* Fake circular graph/ring */}
+                        <svg className="w-16 h-16 rotate-[-90deg] text-accent2/20" viewBox="0 0 36 36">
+                            <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
+                            <path strokeDasharray="75, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" className="text-accent2 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-accent2">75%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <span className="text-2xl font-bold font-display text-ink">{stats.unread}</span>
+                        <p className="text-xs font-semibold text-muted uppercase tracking-wider mt-1">Unread Mails</p>
+                        {stats.unread_delta && <span className="text-[10px] text-accent font-bold mt-1 block">{stats.unread_delta}</span>}
+                    </div>
+                </div>
+
+                {/* Urgent */}
+                <div className="glass-card p-6 flex items-center gap-5 group relative overflow-hidden">
+                    <div className="relative">
+                        <svg className="w-16 h-16 rotate-[-90deg] text-danger/20" viewBox="0 0 36 36">
+                            <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
+                            <path strokeDasharray="30, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" className="text-danger drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-danger">30%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <span className="text-2xl font-bold font-display text-ink">{stats.urgent}</span>
+                        <p className="text-xs font-semibold text-muted uppercase tracking-wider mt-1">Urgent</p>
+                    </div>
+                </div>
+
+                {/* Tasks */}
+                <div className="glass-card p-6 flex items-center gap-5 group relative overflow-hidden">
+                    <div className="relative">
+                        <svg className="w-16 h-16 rotate-[-90deg] text-success/20" viewBox="0 0 36 36">
+                            <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
+                            <path strokeDasharray="62, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" className="text-success drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-success">62%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <span className="text-2xl font-bold font-display text-ink">{stats.tasks_due}</span>
+                        <p className="text-xs font-semibold text-muted uppercase tracking-wider mt-1">Due Tasks</p>
+                    </div>
+                </div>
+
+                {/* Waiting On */}
+                <div className="glass-card p-6 flex items-center gap-5 group relative overflow-hidden">
+                    <div className="relative">
+                        <svg className="w-16 h-16 rotate-[-90deg] text-accent/20" viewBox="0 0 36 36">
+                            <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
+                            <path strokeDasharray="88, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" className="text-accent drop-shadow-[0_0_8px_rgba(124,58,237,0.6)]" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-accent">88%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <span className="text-2xl font-bold font-display text-ink">{stats.awaiting_reply}</span>
+                        <p className="text-xs font-semibold text-muted uppercase tracking-wider mt-1">Waiting On</p>
+                    </div>
+                </div>
+            </section>
+
+            {/* ─── Main Content Grid ─────────────────────── */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                
+                {/* Urgent Threads (Mapped from recent_threads) */}
+                <div className="xl:col-span-2 space-y-8">
+                    <div className="glass-card overflow-hidden">
+                        <div className="p-6 border-b border-white/20 flex items-center justify-between bg-white/5">
+                            <h2 className="font-bold text-lg font-display text-ink">Recent Emails</h2>
+                            <Link href="/inbox" className="text-accent text-sm font-bold hover:underline flex items-center gap-1 cursor-pointer">
+                                View All <ArrowUpRight className="h-4 w-4" />
                             </Link>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <ScrollArea className="h-[360px]">
-                                {recent_threads.map((thread: ThreadListItem) => {
-                                    const sender = thread.participants?.[0] || 'Unknown';
-                                    const senderInitials = sender.split(/[.@\s]/).map((p: string) => p[0]).join("").toUpperCase().slice(0, 2);
+                        </div>
+                        
+                        <div className="divide-y divide-border/60">
+                            {recent_threads.map((thread: ThreadListItem) => {
+                                const participantStr = thread.participants?.[0] || 'Unknown';
+                                const nameMatch = participantStr.match(/^"?([^"<]+)"?\s*</);
+                                const displayName = nameMatch ? nameMatch[1].trim() : participantStr.split('@')[0].replace(/[._]/g, ' ');
+                                const initials = displayName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+                                
+                                // Simple mapping for urgency badge
+                                let urgencyTheme = { label: 'Low', bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-600 dark:text-slate-300' };
+                                if (thread.urgency_score >= 80) urgencyTheme = { label: 'High', bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-600 dark:text-red-400' };
+                                else if (thread.urgency_score >= 50) urgencyTheme = { label: 'Medium', bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-600 dark:text-amber-400' };
 
-                                    return (
-                                        <Link key={thread.thread_id} href={`/inbox/${thread.thread_id}`}>
-                                            <div className="flex items-start gap-4 px-4 md:px-5 py-3 md:py-4 border-b border-border/40 last:border-0 hover:bg-paper-mid/50 transition-colors cursor-pointer group">
-                                                {/* Avatar */}
-                                                <div className="w-9 h-9 rounded-full bg-paper-deep flex items-center justify-center text-[11px] font-bold text-muted shrink-0 border border-border/60">
-                                                    {senderInitials}
+                                return (
+                                    <Link key={thread.thread_id} href={`/inbox/${thread.thread_id}`}>
+                                        <div className="p-4 flex flex-col sm:flex-row sm:items-center hover:bg-paper-mid/50 transition-colors cursor-pointer group">
+                                            
+                                            <div className="flex items-center flex-1 min-w-0 pr-4">
+                                                <div className="size-10 rounded-full bg-white/50 border border-white/60 flex items-center justify-center font-bold text-accent text-xs mr-4 shrink-0 shadow-sm">
+                                                    {initials}
                                                 </div>
-
-                                                {/* Content */}
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between mb-0.5">
-                                                        <p className="text-sm font-semibold text-ink truncate group-hover:text-accent transition-colors">
-                                                            {(() => {
-                                                                const p = thread.participants?.[0] || "Unknown";
-                                                                const nameMatch = p.match(/^"?([^"<]+)"?\s*</);
-                                                                return nameMatch ? nameMatch[1].trim() : p.split('@')[0].replace(/[._]/g, ' ');
-                                                            })()}
-                                                        </p>
-                                                        <span className="text-[10px] font-mono text-muted uppercase tracking-tighter shrink-0 ml-4">
-                                                            {new Date(thread.last_updated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-ink/80 truncate">{thread.subject}</p>
-                                                    <p className="text-xs text-muted truncate mt-0.5">
-                                                        {thread.summary.slice(0, 80)}...
-                                                    </p>
-                                                </div>
-
-                                                {/* Indicators */}
-                                                <div className="flex flex-col items-end gap-1 shrink-0 pt-1">
-                                                    <div className="flex items-center gap-1">
-                                                        {thread.urgency_score >= 70 && (
-                                                            <Badge variant="destructive" className="text-[9px] px-1.5 py-0 rounded-sm font-bold uppercase">Urgent</Badge>
-                                                        )}
-                                                        {thread.tags?.slice(0, 2).map(tag => (
-                                                            <Badge key={tag} variant="outline" className="text-[8px] px-1 py-0 rounded-sm font-mono border-border text-muted uppercase tracking-tighter">
-                                                                {tag}
-                                                            </Badge>
-                                                        ))}
-                                                    </div>
-                                                    {thread.has_attachments && (
-                                                        <FileText className="h-3.5 w-3.5 text-muted/40" />
-                                                    )}
+                                                    <p className="text-sm font-bold text-ink truncate group-hover:text-accent transition-colors">{displayName}</p>
+                                                    <p className="text-xs text-muted truncate mt-0.5">{thread.subject}</p>
                                                 </div>
                                             </div>
-                                        </Link>
-                                    );
-                                })}
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
+
+                                            <div className="flex items-center justify-between sm:justify-end gap-4 mt-3 sm:mt-0 pl-[56px] sm:pl-0">
+                                                <div className="px-3 shrink-0">
+                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${urgencyTheme.bg} ${urgencyTheme.text} shadow-sm border border-white/40`}>
+                                                        {urgencyTheme.label}
+                                                    </span>
+                                                </div>
+                                                <div className="text-right shrink-0 w-16">
+                                                    <p className="text-[10px] font-bold text-muted uppercase tracking-tighter">
+                                                        {new Date(thread.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                            
+                            {recent_threads.length === 0 && (
+                                <div className="p-8 text-center text-muted text-sm">
+                                    No recent threads found.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tasks & Tips Sidebar */}
+                <div className="space-y-8">
+                    
+                    {/* Tasks Due Today */}
+                    <div className="glass-card p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="font-bold text-lg font-display text-ink">Tasks Due Today</h2>
+                            <span className="text-xs font-bold bg-white/50 px-2 py-0.5 rounded-md text-accent border border-white/60">
+                                {priority_tasks.length} total
+                            </span>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            {priority_tasks.length > 0 ? priority_tasks.slice(0, 5).map((task: TaskDTOv1) => {
+                                const isCompleted = task.status === 'completed';
+                                
+                                return (
+                                    <div key={task.task_id} className="flex items-start gap-3 group">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={isCompleted}
+                                            readOnly
+                                            className="mt-1 rounded border-white/50 text-accent focus:ring-accent h-4 w-4 bg-white/50 cursor-pointer shadow-sm" 
+                                        />
+                                        <div className="flex-1 min-w-0 cursor-pointer">
+                                            <p className={`text-sm font-semibold leading-tight truncate transition-colors ${isCompleted ? 'line-through text-muted/60' : 'text-ink group-hover:text-accent'}`}>
+                                                {task.title}
+                                            </p>
+                                            <p className="text-[10px] text-muted mt-0.5 font-mono uppercase tracking-tighter">
+                                                {isCompleted ? 'Completed' : task.deadline ? `Due ${new Date(task.deadline).toLocaleDateString()}` : task.priority.replace('_', ' ')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            }) : (
+                                <p className="text-sm text-muted text-center py-4">No priority tasks today.</p>
+                            )}
+                        </div>
+
+                        <button 
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="w-full mt-6 py-2.5 text-sm font-bold bg-white/40 hover:bg-white/60 text-accent transition-colors rounded-xl flex items-center justify-center gap-2 border border-white/60 shadow-sm"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Add Task
+                        </button>
+                    </div>
+
+                    {/* Smart Rules Tip */}
+                    <div className="glass-card bg-accent2/90 p-6 text-slate-900 overflow-hidden group">
+                        <div className="relative z-10">
+                            <p className="text-slate-900 flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
+                                <Zap className="h-3 w-3" /> Pro Tip
+                            </p>
+                            <h3 className="font-bold text-lg mb-3 font-display text-slate-900">Smart Rules</h3>
+                            <p className="text-slate-800 text-sm leading-relaxed mb-6 font-medium">
+                                Automate your workflow by setting up rules for incoming attachments from specific target clients.
+                            </p>
+                            <button className="px-4 py-2.5 bg-white text-accent2 hover:bg-white/90 transition-colors text-xs font-bold rounded-xl w-full flex items-center justify-center gap-2 shadow-sm">
+                                Manage Rules
+                                <ChevronRight className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <div className="absolute -bottom-4 -right-4 opacity-20 group-hover:opacity-30 group-hover:scale-110 transition-all duration-500 pointer-events-none">
+                            <Settings className="w-32 h-32" />
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            {/* ─── Floating Action Button ────────── */}
-            <Button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-12 h-12 md:w-14 md:h-14 rounded-full shadow-2xl bg-accent hover:bg-accent-hover text-white flex items-center justify-center p-0 transition-all hover:scale-105 active:scale-95 group z-40"
-                id="fab-create-task"
-            >
-                <Plus className="h-5 w-5 md:h-6 md:w-6 group-hover:rotate-90 transition-transform duration-300" />
-            </Button>
 
             {/* ─── Modals ────────────────────────── */}
             <TaskCreateModal
@@ -253,8 +335,12 @@ function DashboardContent() {
 
 export default function DashboardPage() {
     return (
-        <AppShell title="Dashboard" subtitle="Your morning briefing">
-            <Suspense fallback={<div className="p-6"><div className="h-48 rounded-xl bg-paper-mid animate-pulse" /></div>}>
+        <AppShell>
+            <Suspense fallback={
+                <div className="p-8 space-y-8 animate-pulse w-full">
+                    <div className="h-48 rounded-xl bg-paper-mid w-full" />
+                </div>
+            }>
                 <DashboardContent />
             </Suspense>
         </AppShell>

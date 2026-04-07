@@ -77,12 +77,12 @@ export default function TasksPage() {
                             <p className="text-sm md:text-base text-ink-light mt-0.5 md:mt-1 truncate">Manage your actionable items.</p>
                         </div>
                         <div className="flex items-center gap-2 md:gap-3 shrink-0">
-                            <div className="bg-surface-card p-1 rounded-lg border border-border-light flex items-center">
+                            <div className="bg-white/40 backdrop-blur-md shadow-sm p-1 rounded-lg border border-white/50 flex items-center">
                                 <Button
                                     variant={view === 'board' ? 'secondary' : 'ghost'}
                                     size="sm"
                                     onClick={() => setView('board')}
-                                    className="h-7 w-7 md:h-8 md:w-8 p-0"
+                                    className={`h-7 w-7 md:h-8 md:w-8 p-0 ${view === 'board' ? 'bg-white shadow-sm text-accent transition-all' : 'hover:bg-white/50'}`}
                                 >
                                     <LayoutGrid className="h-4 w-4" />
                                 </Button>
@@ -90,7 +90,7 @@ export default function TasksPage() {
                                     variant={view === 'list' ? 'secondary' : 'ghost'}
                                     size="sm"
                                     onClick={() => setView('list')}
-                                    className="h-7 w-7 md:h-8 md:w-8 p-0"
+                                    className={`h-7 w-7 md:h-8 md:w-8 p-0 ${view === 'list' ? 'bg-white shadow-sm text-accent transition-all' : 'hover:bg-white/50'}`}
                                 >
                                     <ListIcon className="h-4 w-4" />
                                 </Button>
