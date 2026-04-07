@@ -14,11 +14,11 @@ from core.storage.database import Base
 
 
 class FollowUpStatus(str, enum.Enum):
-    WAITING = "waiting"
-    REPLIED = "replied"
-    SNOOZED = "snoozed"
-    CANCELLED = "cancelled"
-    OVERDUE = "overdue"
+    WAITING = "WAITING"
+    REPLIED = "REPLIED"
+    SNOOZED = "SNOOZED"
+    CANCELLED = "CANCELLED"
+    OVERDUE = "OVERDUE"
 
 
 class FollowUp(Base):

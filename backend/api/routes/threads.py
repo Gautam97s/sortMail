@@ -144,7 +144,7 @@ async def list_threads(
             external_id=t.external_id,
             subject=t.subject or "(No Subject)",
             summary=t.summary or "Pending analysis...",
-            intent=t.intent or "processing",
+            intent=t.intent or "PROCESSING",
             urgency_score=t.urgency_score or 0,
             last_updated=t.last_email_at or datetime.now(timezone.utc),
             has_attachments=t.has_attachments or False,
@@ -265,11 +265,11 @@ async def get_intel_status(
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
         
-    status = "completed" if thread.summary else "processing"
+    status = "COMPLETED" if thread.summary else "PROCESSING"
     
     return {
         "status": status,
-        "summary": thread.summary if status == "completed" else None
+        "summary": thread.summary if status == "COMPLETED" else None
     }
 
 
@@ -484,7 +484,7 @@ async def refresh_thread(
         from core.ingestion.sync_service import _run_intel_safe
         asyncio.create_task(_run_intel_safe(thread_id, current_user.id, db))
         
-        return {"thread_id": thread_id, "status": "processing", "message": "Intelligence refresh queued"}
+        return {"thread_id": thread_id, "status": "PROCESSING", "message": "Intelligence refresh queued"}
     except InsufficientCreditsError as e:
         await db.rollback()
         raise HTTPException(status_code=402, detail=str(e))
@@ -518,7 +518,7 @@ async def get_thread_intel(
     # Return cached intel if present
     if thread.intel_json:
         return {
-            "status": "completed",
+            "status": "COMPLETED",
             "thread_id": thread_id,
             "intel": thread.intel_json,
         }
@@ -529,7 +529,7 @@ async def get_thread_intel(
     asyncio.create_task(_run_intel_safe(thread_id, current_user.id, db))
     
     return {
-        "status": "processing",
+        "status": "PROCESSING",
         "thread_id": thread_id,
         "message": "Intelligence is being generated. Poll /intel-status for updates.",
     }

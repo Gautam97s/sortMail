@@ -49,11 +49,11 @@ export default function SettingsAccountsPage() {
 
     const statusBadge = (status: string) => {
         switch (status) {
-            case "active": 
+            case "ACTIVE": 
                 return <div className="px-2 py-0.5 bg-primary-fixed/20 text-primary font-black text-[8px] rounded uppercase tracking-widest border border-primary/5">Active Link</div>;
-            case "error": 
+            case "ERROR": 
                 return <div className="px-2 py-0.5 bg-error-container text-error font-black text-[8px] rounded uppercase tracking-widest border border-error/5">Failure</div>;
-            case "revoked": 
+            case "REVOKED": 
                 return <div className="px-2 py-0.5 bg-tertiary-container text-tertiary font-black text-[8px] rounded uppercase tracking-widest border border-tertiary/5">Re-Auth Required</div>;
             default: 
                 return <div className="px-2 py-0.5 bg-surface-container text-outline font-black text-[8px] rounded uppercase tracking-widest border border-outline-variant/10">{status}</div>;
@@ -94,7 +94,7 @@ export default function SettingsAccountsPage() {
                         <div key={account.id} className="group bg-white rounded-[32px] border border-outline-variant/10 p-8 flex flex-col md:flex-row md:items-center gap-8 hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all">
                             <div className="flex items-center gap-6 flex-1 min-w-0">
                                 <div className="h-16 w-16 bg-surface-container rounded-[24px] flex items-center justify-center text-primary border border-outline-variant/10 group-hover:scale-110 transition-transform shadow-inner">
-                                    <MaterialSymbol icon={account.provider === 'gmail' ? 'mail' : 'alternate_email'} className="text-3xl" />
+                                    <MaterialSymbol icon={account.provider === 'GMAIL' ? 'mail' : 'alternate_email'} className="text-3xl" />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-3 mb-1.5">
@@ -104,7 +104,7 @@ export default function SettingsAccountsPage() {
                                     <div className="flex items-center gap-4 text-[10px] font-black text-outline-variant uppercase tracking-widest">
                                         <div className="flex items-center gap-1.5 px-2 py-0.5 bg-surface-container rounded">
                                             <MaterialSymbol icon="security" className="text-xs" />
-                                            {account.provider === "gmail" ? "Google Workspace" : "Microsoft 365"}
+                                            {account.provider === "GMAIL" ? "Google Workspace" : "Microsoft 365"}
                                         </div>
                                         {account.last_sync_at && (
                                             <div className="flex items-center gap-1.5 text-outline tabular-nums">
@@ -113,7 +113,7 @@ export default function SettingsAccountsPage() {
                                             </div>
                                         )}
                                     </div>
-                                    {account.sync_status === "syncing" && (
+                                    {account.sync_status === "SYNCING" && (
                                         <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest mt-2 animate-pulse">
                                             <MaterialSymbol icon="sync" className="text-xs animate-spin" />
                                             Neural Synapse Active...

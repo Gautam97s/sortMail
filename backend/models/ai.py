@@ -14,26 +14,26 @@ from core.storage.database import Base
 
 
 class AIOperationType(str, enum.Enum):
-    EMAIL_SUMMARY = "email_summary"
-    THREAD_SUMMARY = "thread_summary"
-    DRAFT_REPLY = "draft_reply"
-    TASK_GENERATION = "task_generation"
-    ATTACHMENT_SUMMARY = "attachment_summary"
-    CALENDAR_DETECTION = "calendar_detection"
+    EMAIL_SUMMARY = "EMAIL_SUMMARY"
+    THREAD_SUMMARY = "THREAD_SUMMARY"
+    DRAFT_REPLY = "DRAFT_REPLY"
+    TASK_GENERATION = "TASK_GENERATION"
+    ATTACHMENT_SUMMARY = "ATTACHMENT_SUMMARY"
+    CALENDAR_DETECTION = "CALENDAR_DETECTION"
 
 class AIQueueStatus(str, enum.Enum):
-    PENDING = "pending"
-    RESERVED = "reserved"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
+    PENDING = "PENDING"
+    RESERVED = "RESERVED"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
 
 class AIProvider(str, enum.Enum):
-    ANTHROPIC = "anthropic"
-    OPENAI = "openai"
-    GOOGLE = "google"
-    CUSTOM = "custom"
+    ANTHROPIC = "ANTHROPIC"
+    OPENAI = "OPENAI"
+    GOOGLE = "GOOGLE"
+    CUSTOM = "CUSTOM"
 
 
 class AIProcessingQueue(Base):

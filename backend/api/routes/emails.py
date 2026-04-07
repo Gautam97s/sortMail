@@ -34,7 +34,7 @@ async def sync_emails(
     from core.ingestion.sync_service import background_sync_user_emails
     
     background_tasks.add_task(background_sync_user_emails, current_user.id)
-    return {"message": "Sync started in background", "status": "syncing"}
+    return {"message": "Sync started in background", "status": "SYNCING"}
 
 
 @router.get("/sync/status")
@@ -72,7 +72,7 @@ async def sync_status(
         "has_account": True,
         "provider": account.provider.value,
         "provider_email": account.provider_email,
-        "status": account.sync_status.value if account.sync_status else "idle",
+        "status": account.sync_status.value if account.sync_status else "IDLE",
         "last_sync_at": last_sync.isoformat() + "Z" if last_sync else None,
         "initial_sync_done": account.initial_sync_done,
         "needs_sync": needs_sync,           # Key flag for frontend

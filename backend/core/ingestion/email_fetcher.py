@@ -30,9 +30,9 @@ async def fetch_threads(
     """
     Fetch email threads from provider.
     """
-    if provider == "gmail":
+    if provider == "GMAIL":
         return await _fetch_gmail_threads(user_id, access_token, max_results, client)
-    elif provider == "outlook":
+    elif provider == "OUTLOOK":
         return await _fetch_outlook_threads(access_token, max_results)
     else:
         raise ValueError(f"Unknown provider: {provider}")
@@ -48,7 +48,7 @@ async def fetch_incremental_changes(
     """
     Fetch changes since a specific history ID.
     """
-    if provider != "gmail":
+    if provider != "GMAIL":
          return await fetch_threads(user_id, provider, access_token, max_results=20, client=client)
 
     if not client:
@@ -98,7 +98,7 @@ async def fetch_incremental_changes(
             if not thread_data.get('messages'):
                 continue
                 
-            thread_contract = _parse_and_normalize_thread(thread_data, 'gmail')
+            thread_contract = _parse_and_normalize_thread(thread_data, 'GMAIL')
             results.append(thread_contract)
 
         except TokenRevokedError:
@@ -143,7 +143,7 @@ async def _fetch_gmail_threads(
             if not thread_data.get('messages'):
                 continue
                 
-            thread_contract = _parse_and_normalize_thread(thread_data, 'gmail')
+            thread_contract = _parse_and_normalize_thread(thread_data, 'GMAIL')
             results.append(thread_contract)
             
         except TokenRevokedError:

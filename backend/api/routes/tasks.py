@@ -66,7 +66,7 @@ async def list_calendar_suggestions(
             select(CalendarSuggestion)
             .where(
                 CalendarSuggestion.user_id == current_user.id,
-                CalendarSuggestion.status == "pending",
+                CalendarSuggestion.status == "PENDING",
             )
             .order_by(desc(CalendarSuggestion.suggested_time))
         )

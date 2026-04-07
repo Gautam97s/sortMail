@@ -14,15 +14,15 @@ import enum
 
 
 class ActionType(str, enum.Enum):
-    LOGIN = "login"
-    LOGOUT = "logout"
-    EMAIL_SENT = "email_sent"
-    EMAIL_READ = "email_read"
-    THREAD_ARCHIVED = "thread_archived"
-    SEARCH_PERFORMED = "search_performed"
-    RULE_CREATED = "rule_created"
-    CREDITS_PURCHASED = "credits_purchased"
-    SETTINGS_UPDATED = "settings_updated"
+    LOGIN = "LOGIN"
+    LOGOUT = "LOGOUT"
+    EMAIL_SENT = "EMAIL_SENT"
+    EMAIL_READ = "EMAIL_READ"
+    THREAD_ARCHIVED = "THREAD_ARCHIVED"
+    SEARCH_PERFORMED = "SEARCH_PERFORMED"
+    RULE_CREATED = "RULE_CREATED"
+    CREDITS_PURCHASED = "CREDITS_PURCHASED"
+    SETTINGS_UPDATED = "SETTINGS_UPDATED"
 
 
 class UserActivityLog(Base):

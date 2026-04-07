@@ -14,9 +14,9 @@ import enum
 
 
 class SearchType(str, enum.Enum):
-    KEYWORD = "keyword"
-    SEMANTIC = "semantic"
-    FILTER = "filter"
+    KEYWORD = "KEYWORD"
+    SEMANTIC = "SEMANTIC"
+    FILTER = "FILTER"
 
 
 class SearchQuery(Base):

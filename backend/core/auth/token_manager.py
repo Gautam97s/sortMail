@@ -108,8 +108,9 @@ async def _refresh_google_token(db: AsyncSession, account: ConnectedAccount) -> 
         try:
             new_tokens = await oauth_google.refresh_access_token(refresh_token)
         except Exception as e:
+            error_str = str(e).lower()
             logger.error(f"Google token refresh failed for user {account.user_id}: {e}")
-            if "invalid_grant" in str(e) or "revoked" in str(e):
+            if "invalid_grant" in error_str or "revoked" in error_str:
                 account.status = AccountStatus.REVOKED
                 account.sync_status = SyncStatus.FAILED
                 account.sync_error = "Token revoked during refresh"

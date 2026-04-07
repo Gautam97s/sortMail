@@ -14,18 +14,18 @@ import enum
 
 
 class NotificationType(str, enum.Enum):
-    EMAIL_URGENT = "email_urgent"
-    FOLLOW_UP_REMINDER = "follow_up_reminder"
-    TASK_DUE = "task_due"
-    CREDIT_LOW = "credit_low"
-    ACCOUNT_UPDATE = "account_update"
-    SYSTEM_ANNOUNCEMENT = "system_announcement"
+    EMAIL_URGENT = "EMAIL_URGENT"
+    FOLLOW_UP_REMINDER = "FOLLOW_UP_REMINDER"
+    TASK_DUE = "TASK_DUE"
+    CREDIT_LOW = "CREDIT_LOW"
+    ACCOUNT_UPDATE = "ACCOUNT_UPDATE"
+    SYSTEM_ANNOUNCEMENT = "SYSTEM_ANNOUNCEMENT"
 
 
 class NotificationPriority(str, enum.Enum):
-    HIGH = "high"
-    NORMAL = "normal"
-    LOW = "low"
+    HIGH = "HIGH"
+    NORMAL = "NORMAL"
+    LOW = "LOW"
 
 
 class Notification(Base):

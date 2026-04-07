@@ -15,28 +15,28 @@ from core.storage.database import Base
 
 
 class TaskStatus(str, enum.Enum):
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    DISMISSED = "dismissed"
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    DISMISSED = "DISMISSED"
 
 
 class TaskType(str, enum.Enum):
-    REPLY = "reply"
-    REVIEW = "review"
-    SCHEDULE = "schedule"
-    FOLLOWUP = "followup"
+    REPLY = "REPLY"
+    REVIEW = "REVIEW"
+    SCHEDULE = "SCHEDULE"
+    FOLLOWUP = "FOLLOWUP"
 
 
 class PriorityLevel(str, enum.Enum):
-    DO_NOW = "do_now"
-    DO_TODAY = "do_today"
-    CAN_WAIT = "can_wait"
+    DO_NOW = "DO_NOW"
+    DO_TODAY = "DO_TODAY"
+    CAN_WAIT = "CAN_WAIT"
 
 
 class EffortLevel(str, enum.Enum):
-    QUICK = "quick"
-    DEEP_WORK = "deep_work"
+    QUICK = "QUICK"
+    DEEP_WORK = "DEEP_WORK"
 
 
 class Task(Base):
@@ -50,15 +50,15 @@ class Task(Base):
     # Task details
     title = Column(String, nullable=False)
     description = Column(Text)
-    status = Column(PG_ENUM(TaskStatus, name="taskstatus", create_type=False), default=TaskStatus.PENDING, nullable=False)
-    task_type = Column(PG_ENUM(TaskType, name="tasktype", create_type=False), default=TaskType.REPLY, nullable=False)
+    status = Column(PG_ENUM(TaskStatus, name="TASKSTATUS", create_type=False), default=TaskStatus.PENDING, nullable=False)
+    task_type = Column(PG_ENUM(TaskType, name="TASKTYPE", create_type=False), default=TaskType.REPLY, nullable=False)
     
     # Priority
     priority_level = Column(String, nullable=True) # urgent, high, medium, low
     priority_score = Column(Integer, default=0)
     
     # Source
-    source_type = Column(String, default="user_created") # ai_generated, user_created, email_converted
+    source_type = Column(String, default="USER_CREATED") # ai_generated, user_created, email_converted
     source_email_id = Column(String, ForeignKey("emails.id"), nullable=True)
     ai_confidence = Column(Integer, nullable=True) # Scaled decimal
     

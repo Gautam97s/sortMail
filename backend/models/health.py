@@ -14,35 +14,35 @@ import enum
 
 
 class HealthStatus(str, enum.Enum):
-    HEALTHY = "healthy"
-    DEGRADED = "degraded"
-    DOWN = "down"
+    HEALTHY = "HEALTHY"
+    DEGRADED = "DEGRADED"
+    DOWN = "DOWN"
 
 
 class ComponentName(str, enum.Enum):
-    API = "api"
-    DATABASE = "database"
-    REDIS = "redis"
-    CHROMA = "chroma"
-    S3 = "s3"
-    STRIPE = "stripe"
-    GMAIL_API = "gmail_api"
-    ANTHROPIC_API = "anthropic_api"
-    CELERY_WORKERS = "celery_workers"
+    API = "API"
+    DATABASE = "DATABASE"
+    REDIS = "REDIS"
+    CHROMA = "CHROMA"
+    S3 = "S3"
+    STRIPE = "STRIPE"
+    GMAIL_API = "GMAIL_API"
+    ANTHROPIC_API = "ANTHROPIC_API"
+    CELERY_WORKERS = "CELERY_WORKERS"
 
 
 class ErrorSeverity(str, enum.Enum):
-    DEBUG = "debug"
-    INFO = "info"
-    WARNING = "warning"
-    ERROR = "error"
-    CRITICAL = "critical"
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
 
 
 class RateLimitType(str, enum.Enum):
-    PER_MINUTE = "per_minute"
-    PER_HOUR = "per_hour"
-    PER_DAY = "per_day"
+    PER_MINUTE = "PER_MINUTE"
+    PER_HOUR = "PER_HOUR"
+    PER_DAY = "PER_DAY"
 
 
 class HealthCheck(Base):

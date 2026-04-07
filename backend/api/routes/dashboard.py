@@ -76,7 +76,7 @@ async def get_dashboard_stats(
             external_id=t.external_id or "",
             subject=t.subject or "(No Subject)",
             summary=t.summary or "Pending analysis...",
-            intent=t.intent or "processing",
+            intent=t.intent or "PROCESSING",
             urgency_score=t.urgency_score or 0,
             last_updated=t.last_email_at or datetime.now(timezone.utc),
             has_attachments=t.has_attachments or False,

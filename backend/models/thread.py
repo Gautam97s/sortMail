@@ -15,10 +15,10 @@ from core.storage.database import Base
 from models.tag import thread_tags
 
 class IntelStatus(str, enum.Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 
 class Thread(Base):
@@ -31,7 +31,7 @@ class Thread(Base):
     # Thread data
     subject = Column(String)
     participants = Column(ARRAY(String))
-    provider = Column(String, nullable=False)  # "gmail" or "outlook"
+    provider = Column(String, nullable=False)  # "GMAIL" or "OUTLOOK"
     
     # Meta
     labels = Column(ARRAY(String), default=list) # e.g. ["INBOX", "UNREAD", "IMPORTANT"]
@@ -53,7 +53,7 @@ class Thread(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     
     # Relationships
-    tags = relationship("Tag", secondary=thread_tags, back_populates="threads")
+    tags = relationship("Tag", secondary=thread_tags, back_populates = "threads")
 
 
 class Message(Base):

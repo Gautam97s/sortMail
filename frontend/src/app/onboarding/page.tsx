@@ -27,7 +27,7 @@ export default function OnboardingPage() {
     ];
 
     const [preferences, setPreferences] = useState({
-        aiTone: "normal",
+        aiTone: "NORMAL",
         autoDraft: true,
         emailNotifications: true,
         pushNotifications: true,
@@ -148,7 +148,7 @@ export default function OnboardingPage() {
                                         AI Writing Style
                                     </Label>
                                     <div className="grid grid-cols-3 gap-3">
-                                        {["brief", "normal", "formal"].map((tone) => (
+                                        {["BRIEF", "NORMAL", "FORMAL"].map((tone) => (
                                             <button
                                                 key={tone}
                                                 onClick={() => setPreferences({ ...preferences, aiTone: tone })}

@@ -23,30 +23,7 @@ export default function LoginPage() {
         trustedUserCount: "12,000+"
     };
 
-    const handleGoogleLogin = async () => {
-        try {
-            setLoading("google");
-            const response = await fetch(getApiUrl("/api/auth/google"));
-            
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                const text = await response.text();
-                console.error("Non-JSON response received:", text);
-                throw new Error("Server returned an invalid response (expected JSON).");
-            }
-
-            const data = await response.json();
-            if (data.auth_url) {
-                window.location.href = data.auth_url;
-            } else {
-                console.error("No auth_url returned", data);
-                setLoading(null);
-            }
-        } catch (error) {
-            console.error("Failed to initiate Google login", error);
-            setLoading(null);
-        }
-    };
+    const handleGoogleLogin = () => handleLogin("GMAIL");
 
     useEffect(() => {
         const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
@@ -61,10 +38,10 @@ export default function LoginPage() {
         tl.fromTo(".auth-item", { y: 10, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.08, duration: 0.4 }, "-=0.3");
     }, []);
 
-    const handleLogin = (provider: "google" | "outlook") => {
-        setLoading(provider);
+    const handleLogin = (provider: "GMAIL" | "OUTLOOK") => {
+        setLoading(provider === "GMAIL" ? "google" : "outlook");
         setTimeout(() => {
-            window.location.href = getApiUrl(`/api/auth/${provider}`);
+            window.location.href = getApiUrl(`/api/auth/${provider === "GMAIL" ? "google" : "outlook"}`);
         }, 800);
     };
 
@@ -175,7 +152,7 @@ export default function LoginPage() {
                         </button>
 
                         <button
-                            onClick={() => handleLogin("outlook")}
+                            onClick={() => handleLogin("OUTLOOK")}
                             disabled={loading !== null}
                             className="auth-item w-full h-12 rounded-lg border border-border-light bg-white hover:bg-paper-mid disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-sm font-medium text-ink transition-all active:scale-[0.98]"
                         >

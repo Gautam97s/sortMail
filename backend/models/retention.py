@@ -14,33 +14,33 @@ import enum
 
 
 class GDPRRequestType(str, enum.Enum):
-    DATA_EXPORT = "data_export"
-    DATA_DELETION = "data_deletion"
-    DATA_RECTIFICATION = "data_rectification"
-    OPT_OUT = "opt_out"
+    DATA_EXPORT = "DATA_EXPORT"
+    DATA_DELETION = "DATA_DELETION"
+    DATA_RECTIFICATION = "DATA_RECTIFICATION"
+    OPT_OUT = "OPT_OUT"
 
 
 class GDPRRequestStatus(str, enum.Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 
 class ConsentType(str, enum.Enum):
-    TERMS_OF_SERVICE = "terms_of_service"
-    PRIVACY_POLICY = "privacy_policy"
-    MARKETING_EMAILS = "marketing_emails"
-    DATA_PROCESSING = "data_processing"
-    COOKIES = "cookies"
-    ANALYTICS = "analytics"
+    TERMS_OF_SERVICE = "TERMS_OF_SERVICE"
+    PRIVACY_POLICY = "PRIVACY_POLICY"
+    MARKETING_EMAILS = "MARKETING_EMAILS"
+    DATA_PROCESSING = "DATA_PROCESSING"
+    COOKIES = "COOKIES"
+    ANALYTICS = "ANALYTICS"
 
 
 class ConsentMethod(str, enum.Enum):
-    SIGNUP = "signup"
-    SETTINGS_UPDATE = "settings_update"
-    EXPLICIT_CHECKBOX = "explicit_checkbox"
-    IMPLIED = "implied"
+    SIGNUP = "SIGNUP"
+    SETTINGS_UPDATE = "SETTINGS_UPDATE"
+    EXPLICIT_CHECKBOX = "EXPLICIT_CHECKBOX"
+    IMPLIED = "IMPLIED"
 
 
 class DataRetentionPolicy(Base):

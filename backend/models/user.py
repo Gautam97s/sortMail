@@ -14,21 +14,21 @@ import enum
 from core.storage.database import Base
 
 class UserStatus(str, enum.Enum):
-    ACTIVE = "active"
-    SUSPENDED = "suspended"
-    DELETED = "deleted"
-    PENDING_VERIFICATION = "pending_verification"
+    ACTIVE = "ACTIVE"
+    SUSPENDED = "SUSPENDED"
+    DELETED = "DELETED"
+    PENDING_VERIFICATION = "PENDING_VERIFICATION"
 
 class AccountType(str, enum.Enum):
-    INDIVIDUAL = "individual"
-    TEAM_MEMBER = "team_member"
-    TEAM_ADMIN = "team_admin"
-    ENTERPRISE = "enterprise"
+    INDIVIDUAL = "INDIVIDUAL"
+    TEAM_MEMBER = "TEAM_MEMBER"
+    TEAM_ADMIN = "TEAM_ADMIN"
+    ENTERPRISE = "ENTERPRISE"
 
 
 class EmailProvider(str, enum.Enum):
-    GMAIL = "gmail"
-    OUTLOOK = "outlook"
+    GMAIL = "GMAIL"
+    OUTLOOK = "OUTLOOK"
 
 
 class User(Base):
@@ -65,7 +65,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
-    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+    sessions = relationship("UserSession", back_populates = "user", cascade="all, delete-orphan")
 
 
 class UserSession(Base):
@@ -84,26 +84,26 @@ class UserSession(Base):
     
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     
-    user = relationship("User", back_populates="sessions")
+    user = relationship("User", back_populates = "sessions")
 
 
 class SecurityEventType(str, enum.Enum):
-    LOGIN_SUCCESS = "login_success"
-    LOGIN_FAILED = "login_failed"
-    LOGOUT = "logout"
-    PASSWORD_CHANGED = "password_changed"
-    EMAIL_CHANGED = "email_changed"
-    TWO_FACTOR_ENABLED = "2fa_enabled"
-    TWO_FACTOR_DISABLED = "2fa_disabled"
-    OAUTH_CONNECTED = "oauth_connected"
-    OAUTH_DISCONNECTED = "oauth_disconnected"
-    SESSION_REVOKED = "session_revoked"
-    SUSPICIOUS_ACTIVITY = "suspicious_activity"
+    LOGIN_SUCCESS = "LOGIN_SUCCESS"
+    LOGIN_FAILED = "LOGIN_FAILED"
+    LOGOUT = "LOGOUT"
+    PASSWORD_CHANGED = "PASSWORD_CHANGED"
+    EMAIL_CHANGED = "EMAIL_CHANGED"
+    TWO_FACTOR_ENABLED = "2FA_ENABLED"
+    TWO_FACTOR_DISABLED = "2FA_DISABLED"
+    OAUTH_CONNECTED = "OAUTH_CONNECTED"
+    OAUTH_DISCONNECTED = "OAUTH_DISCONNECTED"
+    SESSION_REVOKED = "SESSION_REVOKED"
+    SUSPICIOUS_ACTIVITY = "SUSPICIOUS_ACTIVITY"
 
 class SecuritySeverity(str, enum.Enum):
-    INFO = "info"
-    WARNING = "warning"
-    CRITICAL = "critical"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    CRITICAL = "CRITICAL"
 
 class UserSecurityEvent(Base):
     __tablename__ = "user_security_events"
@@ -123,13 +123,13 @@ class UserSecurityEvent(Base):
 
 
 class WorkspacePlan(str, enum.Enum):
-    TEAM = "team"
-    ENTERPRISE = "enterprise"
+    TEAM = "TEAM"
+    ENTERPRISE = "ENTERPRISE"
 
 class WorkspaceStatus(str, enum.Enum):
-    ACTIVE = "active"
-    SUSPENDED = "suspended"
-    DELETED = "deleted"
+    ACTIVE = "ACTIVE"
+    SUSPENDED = "SUSPENDED"
+    DELETED = "DELETED"
 
 class Workspace(Base):
     __tablename__ = "workspaces"
@@ -150,3 +150,4 @@ class Workspace(Base):
     deleted_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+

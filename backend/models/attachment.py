@@ -13,24 +13,24 @@ import enum
 from core.storage.database import Base
 
 class StorageProvider(str, enum.Enum):
-    S3 = "s3"
-    R2 = "r2"
-    GCS = "gcs"
+    S3 = "S3"
+    R2 = "R2"
+    GCS = "GCS"
 
 class AttachmentStatus(str, enum.Enum):
-    PENDING = "pending"
-    DOWNLOADING = "downloading"
-    PROCESSING = "processing"
-    INDEXED = "indexed"
-    FAILED = "failed"
-    SKIPPED = "skipped"
-    QUARANTINED = "quarantined"
+    PENDING = "PENDING"
+    DOWNLOADING = "DOWNLOADING"
+    PROCESSING = "PROCESSING"
+    INDEXED = "INDEXED"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"
+    QUARANTINED = "QUARANTINED"
 
 class VectorSourceType(str, enum.Enum):
-    EMAIL_BODY = "email_body"
-    ATTACHMENT = "attachment"
-    SUMMARY = "summary"
-    TASK_DESCRIPTION = "task_description"
+    EMAIL_BODY = "EMAIL_BODY"
+    ATTACHMENT = "ATTACHMENT"
+    SUMMARY = "SUMMARY"
+    TASK_DESCRIPTION = "TASK_DESCRIPTION"
 
 
 class Attachment(Base):

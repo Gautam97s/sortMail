@@ -14,12 +14,12 @@ import enum
 
 
 class JobStatus(str, enum.Enum):
-    PENDING = "pending"
-    RESERVED = "reserved"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
+    PENDING = "PENDING"
+    RESERVED = "RESERVED"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
 
 
 class Job(Base):

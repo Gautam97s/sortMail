@@ -30,9 +30,9 @@ class DraftStatus(str, enum.Enum):
 
 
 class DraftFeedback(str, enum.Enum):
-    THUMBS_UP = "thumbs_up"
-    THUMBS_DOWN = "thumbs_down"
-    NEUTRAL = "neutral"
+    THUMBS_UP = "THUMBS_UP"
+    THUMBS_DOWN = "THUMBS_DOWN"
+    NEUTRAL = "NEUTRAL"
 
 
 class Draft(Base):
@@ -46,7 +46,7 @@ class Draft(Base):
     reply_to_email_id = Column(String, ForeignKey("emails.id"), nullable=True)
     
     # Draft content
-    tone = Column(PG_ENUM(DraftTone, name="tonetype", create_type=False), default=DraftTone.NORMAL, nullable=False)
+    tone = Column(PG_ENUM(DraftTone, name="TONETYPE", create_type=False), default=DraftTone.NORMAL, nullable=False)
     custom_instructions = Column(Text, nullable=True)
     subject = Column(String, nullable=False)
     content = Column(Text, nullable=False, default="")

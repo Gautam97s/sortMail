@@ -14,24 +14,24 @@ import enum
 
 
 class IntegrationType(str, enum.Enum):
-    SLACK = "slack"
-    WEBHOOK = "webhook"
-    ZAPIER = "zapier"
-    ASANA = "asana"
-    NOTION = "notion"
-    CUSTOM = "custom"
+    SLACK = "SLACK"
+    WEBHOOK = "WEBHOOK"
+    ZAPIER = "ZAPIER"
+    ASANA = "ASANA"
+    NOTION = "NOTION"
+    CUSTOM = "CUSTOM"
 
 
 class IntegrationStatus(str, enum.Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    ERROR = "error"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    ERROR = "ERROR"
 
 
 class IntegrationLogStatus(str, enum.Enum):
-    SUCCESS = "success"
-    ERROR = "error"
-    TIMEOUT = "timeout"
+    SUCCESS = "SUCCESS"
+    ERROR = "ERROR"
+    TIMEOUT = "TIMEOUT"
 
 
 class Integration(Base):

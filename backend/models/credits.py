@@ -17,24 +17,24 @@ import enum
 # --- Enums ---
 
 class PlanType(str, enum.Enum):
-    FREE = "free"
-    PRO = "pro"
-    TEAM = "team"
-    ENTERPRISE = "enterprise"
+    FREE = "FREE"
+    PRO = "PRO"
+    TEAM = "TEAM"
+    ENTERPRISE = "ENTERPRISE"
 
 class TransactionType(str, enum.Enum):
-    MONTHLY_ALLOWANCE = "monthly_allowance"
-    PURCHASE = "purchase"
-    BONUS = "bonus"
-    REFUND = "refund"
-    DEDUCTION = "deduction"
-    ADMIN_ADJUSTMENT = "admin_adjustment"
-    EXPIRY = "expiry"
+    MONTHLY_ALLOWANCE = "MONTHLY_ALLOWANCE"
+    PURCHASE = "PURCHASE"
+    BONUS = "BONUS"
+    REFUND = "REFUND"
+    DEDUCTION = "DEDUCTION"
+    ADMIN_ADJUSTMENT = "ADMIN_ADJUSTMENT"
+    EXPIRY = "EXPIRY"
 
 class TransactionStatus(str, enum.Enum):
-    COMPLETED = "completed"
-    RESERVED = "reserved"
-    CANCELLED = "cancelled"
+    COMPLETED = "COMPLETED"
+    RESERVED = "RESERVED"
+    CANCELLED = "CANCELLED"
 
 
 # --- Models ---

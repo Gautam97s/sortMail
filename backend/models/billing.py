@@ -14,28 +14,28 @@ import enum
 
 
 class SubscriptionPlan(str, enum.Enum):
-    PRO = "pro"
-    TEAM = "team"
-    ENTERPRISE = "enterprise"
+    PRO = "PRO"
+    TEAM = "TEAM"
+    ENTERPRISE = "ENTERPRISE"
 
 
 class SubscriptionStatus(str, enum.Enum):
-    ACTIVE = "active"
-    PAST_DUE = "past_due"
-    CANCELED = "canceled"
-    UNPAID = "unpaid"
-    TRIALING = "trialing"
-    INCOMPLETE = "incomplete"
-    INCOMPLETE_EXPIRED = "incomplete_expired"
-    PAUSED = "paused"
+    ACTIVE = "ACTIVE"
+    PAST_DUE = "PAST_DUE"
+    CANCELED = "CANCELED"
+    UNPAID = "UNPAID"
+    TRIALING = "TRIALING"
+    INCOMPLETE = "INCOMPLETE"
+    INCOMPLETE_EXPIRED = "INCOMPLETE_EXPIRED"
+    PAUSED = "PAUSED"
 
 
 class InvoiceStatus(str, enum.Enum):
-    DRAFT = "draft"
-    OPEN = "open"
-    PAID = "paid"
-    VOID = "void"
-    UNCOLLECTIBLE = "uncollectible"
+    DRAFT = "DRAFT"
+    OPEN = "OPEN"
+    PAID = "PAID"
+    VOID = "VOID"
+    UNCOLLECTIBLE = "UNCOLLECTIBLE"
 
 
 class Subscription(Base):

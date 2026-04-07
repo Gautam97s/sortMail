@@ -14,18 +14,18 @@ import enum
 
 
 class FeatureFlagType(str, enum.Enum):
-    BOOLEAN = "boolean"
-    STRING = "string"
-    NUMBER = "number"
-    JSON = "json"
+    BOOLEAN = "BOOLEAN"
+    STRING = "STRING"
+    NUMBER = "NUMBER"
+    JSON = "JSON"
 
 
 class ExperimentStatus(str, enum.Enum):
-    DRAFT = "draft"
-    RUNNING = "running"
-    PAUSED = "paused"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
+    DRAFT = "DRAFT"
+    RUNNING = "RUNNING"
+    PAUSED = "PAUSED"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
 
 
 class FeatureFlag(Base):

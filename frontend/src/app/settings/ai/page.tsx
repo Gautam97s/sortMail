@@ -16,7 +16,7 @@ const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string
 export default function SettingsAIPage() {
     const [settings, setSettings] = useState({
         model: "gpt-4",
-        tone: "normal",
+        tone: "NORMAL",
         autoDraft: true,
         summaryLength: 50,
     });
@@ -89,9 +89,9 @@ export default function SettingsAIPage() {
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {[
-                            { id: "brief", name: "Incise", desc: "Minimalist", icon: "short_text" },
-                            { id: "normal", name: "Balanced", desc: "Standard", icon: "format_align_left" },
-                            { id: "formal", name: "Elevated", desc: "Authoritative", icon: "gavel" },
+                            { id: "BRIEF", name: "Incise", desc: "Minimalist", icon: "short_text" },
+                            { id: "NORMAL", name: "Balanced", desc: "Standard", icon: "format_align_left" },
+                            { id: "FORMAL", name: "Elevated", desc: "Authoritative", icon: "gavel" },
                         ].map((tone) => (
                             <button
                                 key={tone.id}

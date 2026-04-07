@@ -14,44 +14,44 @@ import enum
 
 
 class AdminRole(str, enum.Enum):
-    SUPER_ADMIN = "super_admin"
-    ADMIN = "admin"
-    SUPPORT = "support"
-    READONLY = "readonly"
+    SUPER_ADMIN = "SUPER_ADMIN"
+    ADMIN = "ADMIN"
+    SUPPORT = "SUPPORT"
+    READONLY = "READONLY"
 
 
 class AdminActionType(str, enum.Enum):
-    USER_SUSPENDED = "user_suspended"
-    USER_UNSUSPENDED = "user_unsuspended"
-    CREDITS_ADJUSTED = "credits_adjusted"
-    USER_DELETED = "user_deleted"
-    IMPERSONATION_STARTED = "impersonation_started"
-    IMPERSONATION_ENDED = "impersonation_ended"
-    SETTINGS_CHANGED = "settings_changed"
-    DATA_EXPORTED = "data_exported"
+    USER_SUSPENDED = "USER_SUSPENDED"
+    USER_UNSUSPENDED = "USER_UNSUSPENDED"
+    CREDITS_ADJUSTED = "CREDITS_ADJUSTED"
+    USER_DELETED = "USER_DELETED"
+    IMPERSONATION_STARTED = "IMPERSONATION_STARTED"
+    IMPERSONATION_ENDED = "IMPERSONATION_ENDED"
+    SETTINGS_CHANGED = "SETTINGS_CHANGED"
+    DATA_EXPORTED = "DATA_EXPORTED"
 
 
 class AbuseReportType(str, enum.Enum):
-    SPAM = "spam"
-    CREDIT_ABUSE = "credit_abuse"
-    API_ABUSE = "api_abuse"
-    TOS_VIOLATION = "tos_violation"
-    PAYMENT_FRAUD = "payment_fraud"
-    OTHER = "other"
+    SPAM = "SPAM"
+    CREDIT_ABUSE = "CREDIT_ABUSE"
+    API_ABUSE = "API_ABUSE"
+    TOS_VIOLATION = "TOS_VIOLATION"
+    PAYMENT_FRAUD = "PAYMENT_FRAUD"
+    OTHER = "OTHER"
 
 
 class AbuseReportSeverity(str, enum.Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
 
 
 class AbuseReportStatus(str, enum.Enum):
-    PENDING = "pending"
-    INVESTIGATING = "investigating"
-    RESOLVED = "resolved"
-    DISMISSED = "dismissed"
+    PENDING = "PENDING"
+    INVESTIGATING = "INVESTIGATING"
+    RESOLVED = "RESOLVED"
+    DISMISSED = "DISMISSED"
 
 
 class AdminUser(Base):

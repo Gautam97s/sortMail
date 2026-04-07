@@ -14,10 +14,10 @@ from core.storage.database import Base
 
 
 class CalendarSuggestionStatus(str, enum.Enum):
-    SUGGESTED = "suggested"
-    ACCEPTED = "accepted"
-    DISMISSED = "dismissed"
-    EXPIRED = "expired"
+    SUGGESTED = "SUGGESTED"
+    ACCEPTED = "ACCEPTED"
+    DISMISSED = "DISMISSED"
+    EXPIRED = "EXPIRED"
 
 
 class CalendarSuggestion(Base):
@@ -31,7 +31,7 @@ class CalendarSuggestion(Base):
     email_id = Column(String, ForeignKey("emails.id"), nullable=False, index=True)
     
     # Suggestion details
-    event_type = Column(String, nullable=False, default="meeting") # meeting, deadline, recurring, appointment
+    event_type = Column(String, nullable=False, default="MEETING") # meeting, deadline, recurring, appointment
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     suggested_date = Column(Date, nullable=True)
