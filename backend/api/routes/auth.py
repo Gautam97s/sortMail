@@ -81,14 +81,21 @@ async def google_callback(
     
     try:
         state_json = await redis.get(state_key)
-        logger.info(f"📄 Redis Result: {'FOUND' if state_json else 'NOT FOUND'}")
+        if state_json:
+            deleted_count = await redis.delete(state_key)
+            if deleted_count == 0:
+                state_json = None # Defeat race conditions
+        logger.info(f"📄 Redis Result: {'FOUND and CLAIMED' if state_json else 'NOT FOUND or ALREADY CONSUMED'}")
     except Exception as e:
         logger.error(f"❌ Redis Error during state lookup: {e}")
         raise HTTPException(status_code=500, detail="Redis connection failed")
     
     if not state_json:
-        logger.warning(f"⚠️ OAuth State Missing/Expired for key: {state_key}")
-        raise HTTPException(status_code=400, detail="Invalid or expired state parameter")
+        logger.warning(f"⚠️ OAuth State Missing/Expired for key. Possible double-request.")
+        from app.config import settings
+        # Gracefully handle double-request by forwarding to frontend. 
+        # If the first request worked, they'll have a cookie anyway.
+        return RedirectResponse(url=f"{settings.FRONTEND_URL}/dashboard")
         
     state_data = json.loads(state_json)
     
@@ -104,11 +111,6 @@ async def google_callback(
     except Exception as e:
         logger.error(f"Token exchange failed: {e}")
         raise HTTPException(status_code=400, detail="Internal authentication error")
-    finally:
-        # Prevent replay
-        # DATA RACING DEBUGGING: Temporarily commenting out delete to handle potential double-requests/retries
-        # await redis.delete(state_key)
-        pass
     
     # 4. Get User Info
     try:

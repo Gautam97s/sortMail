@@ -28,6 +28,7 @@ class SyncStatus(str, enum.Enum):
     IDLE = "idle"
     SYNCING = "syncing"
     FAILED = "failed"
+    REVOKED = "revoked"
 
 
 class ConnectedAccount(Base):
