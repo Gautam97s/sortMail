@@ -74,18 +74,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     headers={"Retry-After": str(self.WINDOW)}
                 )
                 
-            response = await call_next(request)
+        except Exception as e:
+            # Fail Open for Redis connection issues
+            print(f"⚠️ Rate Limit Redis Error: {e}")
+            pass
             
-            # Add Rate Limit Headers
+        # Call the actual route OUTSIDE the try-except so exceptions bubble up!
+        response = await call_next(request)
+        
+        # Add Rate Limit Headers if we have the count
+        if 'count' in locals():
             response.headers["X-RateLimit-Limit"] = str(self.RATE_LIMIT)
             response.headers["X-RateLimit-Remaining"] = str(max(0, self.RATE_LIMIT - count))
             
-            return response
-            
-        except Exception as e:
-            # Fail Open
-            print(f"⚠️ Rate Limit Redis Error: {e}")
-            return await call_next(request)
+        return response
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):

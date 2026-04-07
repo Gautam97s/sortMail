@@ -40,7 +40,7 @@ class ConnectedAccount(Base):
     
     
     # Provider info
-    provider = Column(Enum(ProviderType, native_enum=False, length=50), nullable=False)
+    provider = Column(Enum(ProviderType, native_enum=False, length=50, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     provider_user_id = Column(String, nullable=False)
     provider_email = Column(String, nullable=False)
     
@@ -51,14 +51,14 @@ class ConnectedAccount(Base):
     scopes = Column(String, nullable=False) # Stored as comma-separated or JSON if using JSONB
     
     # Status
-    status = Column(Enum(AccountStatus, native_enum=False, length=50), default=AccountStatus.ACTIVE, nullable=False)
+    status = Column(Enum(AccountStatus, native_enum=False, length=50, values_callable=lambda obj: [e.value for e in obj]), default=AccountStatus.ACTIVE, nullable=False)
     error_code = Column(String, nullable=True)
     error_message = Column(String, nullable=True)
     
     # Sync tracking
     last_sync_at = Column(DateTime(timezone=True))
     last_history_id = Column(String)
-    sync_status = Column(Enum(SyncStatus, native_enum=False, length=50), default=SyncStatus.IDLE, nullable=False)
+    sync_status = Column(Enum(SyncStatus, native_enum=False, length=50, values_callable=lambda obj: [e.value for e in obj]), default=SyncStatus.IDLE, nullable=False)
     sync_error = Column(String)
     
     # Sync Config
