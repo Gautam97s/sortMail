@@ -1,19 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { Clock, Send, Calendar, Sparkles, Inbox, ChevronDown, ChevronUp } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import AppShell from "@/components/layout/AppShell";
 import { formatDistanceToNow } from "date-fns";
 import { useAiDrafts, useApproveDraft, useScheduleDraft, useGenerateDraft } from "@/hooks/useDrafts";
@@ -21,6 +8,22 @@ import { DraftControls } from "@/components/drafts/DraftControls";
 import { DraftEditor } from "@/components/drafts/DraftEditor";
 import { AiDraft } from "@/types/dashboard";
 import { useThreads } from "@/hooks/useThreads";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog";
+
+const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
+    <span 
+        className={`material-symbols-outlined ${className}`}
+        style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
+    >
+        {icon}
+    </span>
+);
 
 export default function DraftsPage() {
     // ── Generator state ──────────────────────────────────────────────
@@ -71,18 +74,10 @@ export default function DraftsPage() {
         );
     };
 
-    const toneColor: Record<string, string> = {
-        professional: "bg-blue-100 text-blue-700",
-        normal: "bg-blue-100 text-blue-700",
-        casual: "bg-green-100 text-green-700",
-        formal: "bg-purple-100 text-purple-700",
-        brief: "bg-orange-100 text-orange-700",
-    };
-
     return (
-        <AppShell title="Draft Copilot" subtitle="AI-powered reply generator">
+        <AppShell title="Copilot Workspace" subtitle="Intelligent Reply Synthesis">
             {/* ── Main two-panel generator ───────────────────────────── */}
-            <div className="flex h-[calc(100vh-64px)] overflow-hidden">
+            <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-surface-container-lowest">
                 {/* Left panel: controls */}
                 <DraftControls
                     selectedThreadId={selectedThreadId}
@@ -110,68 +105,70 @@ export default function DraftsPage() {
 
                     {/* Collapsible pending drafts section at the bottom */}
                     {drafts.length > 0 && (
-                        <div className="border-t border-border-light bg-surface-card shrink-0">
+                        <div className="border-t border-outline-variant/10 bg-white/80 backdrop-blur-xl shrink-0 shadow-[0_-4px_30px_-10px_rgba(0,0,0,0.05)]">
                             <button
-                                className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-ink hover:bg-paper-mid/50 transition-colors"
+                                className="w-full h-14 flex items-center justify-between px-6 hover:bg-surface-container transition-all group"
                                 onClick={() => setPendingOpen(p => !p)}
                             >
-                                <span className="flex items-center gap-2">
-                                    <Sparkles className="h-4 w-4 text-ai" />
-                                    Pending AI Drafts
-                                    <span className="bg-ai/10 text-ai text-[10px] font-bold rounded-full px-2 py-0.5">
-                                        {drafts.length}
+                                <div className="flex items-center gap-3">
+                                    <div className="h-4 w-4 bg-primary-fixed rounded-full animate-pulse shadow-sm shadow-primary/20" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-on-surface flex items-center gap-3">
+                                        Active Intelligence Queue
+                                        <span className="h-5 px-2 bg-on-surface text-surface rounded-full flex items-center justify-center font-black">
+                                            {drafts.length}
+                                        </span>
                                     </span>
-                                </span>
-                                {pendingOpen ? <ChevronDown className="h-4 w-4 text-ink-light" /> : <ChevronUp className="h-4 w-4 text-ink-light" />}
+                                </div>
+                                <div className={`p-2 rounded-xl group-hover:bg-primary-fixed/20 group-hover:text-primary transition-all ${pendingOpen ? 'rotate-180' : ''}`}>
+                                    <MaterialSymbol icon="expand_less" className="text-xl" />
+                                </div>
                             </button>
 
                             {pendingOpen && (
-                                <div className="max-h-64 overflow-y-auto px-4 pb-4 space-y-2">
+                                <div className="max-h-72 overflow-y-auto px-6 pb-6 space-y-3">
                                     {drafts.map(draft => (
-                                        <Card
+                                        <div
                                             key={draft.id}
-                                            className="p-3 flex items-start gap-3 hover:border-primary/40 hover:shadow-sm transition-all"
+                                            className="group bg-surface-container-low border border-outline-variant/5 rounded-2xl p-4 flex items-center gap-5 hover:bg-white hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all"
                                         >
+                                            <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-outline group-hover:text-primary transition-colors border border-outline-variant/5">
+                                                <MaterialSymbol icon="auto_fix" />
+                                            </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <p className="font-medium text-ink text-sm truncate">{draft.subject}</p>
-                                                    <Badge
-                                                        className={`text-[10px] px-1.5 py-0 capitalize ${toneColor[draft.tone] ?? "bg-paper-mid text-ink-light"}`}
-                                                    >
-                                                        {draft.tone}
-                                                    </Badge>
+                                                <div className="flex items-center gap-2 mb-0.5">
+                                                    <p className="text-sm font-bold text-on-surface truncate tracking-tight">{draft.subject}</p>
+                                                    <div className="px-1.5 py-0.5 bg-primary-fixed/20 text-primary font-black text-[8px] rounded uppercase tracking-wider">{draft.tone}</div>
                                                 </div>
                                                 <p
-                                                    className="text-xs text-ink-light mt-1 line-clamp-1 cursor-pointer hover:text-ink transition-colors"
+                                                    className="text-xs font-medium text-outline-variant truncate cursor-pointer hover:text-on-surface transition-colors italic"
                                                     onClick={() => setPreviewDraft(draft)}
                                                 >
-                                                    {draft.body}
+                                                    &ldquo;{draft.body.slice(0, 120)}...&rdquo;
                                                 </p>
-                                                <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
-                                                    <Clock className="h-3 w-3" />
-                                                    {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
+                                                <div className="flex items-center gap-1.5 text-[9px] font-black text-outline uppercase tracking-tighter mt-1">
+                                                    <MaterialSymbol icon="schedule" className="text-xs" />
+                                                    Manifested {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
                                                 </div>
                                             </div>
-                                            <div className="flex gap-1.5 shrink-0">
-                                                <Button
-                                                    size="sm"
-                                                    className="h-7 text-xs bg-primary text-white hover:bg-primary/90"
+                                            <div className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
+                                                <button
+                                                    className="h-10 px-4 bg-primary text-on-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
                                                     onClick={() => approveDraft(draft.id)}
                                                     disabled={approving}
                                                 >
-                                                    <Send className="h-3 w-3 mr-1" /> Send
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-7 text-xs"
+                                                    <MaterialSymbol icon="send" className="text-lg" />
+                                                    Deploy
+                                                </button>
+                                                <button
+                                                    className="h-10 px-4 bg-surface-container text-on-surface-variant rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:shadow-md transition-all flex items-center gap-2 border border-outline-variant/10"
                                                     onClick={() => { setScheduleTarget(draft); setScheduledDate(""); }}
                                                     disabled={scheduling}
                                                 >
-                                                    <Calendar className="h-3 w-3 mr-1" /> Later
-                                                </Button>
+                                                    <MaterialSymbol icon="event" className="text-lg" />
+                                                    Defer
+                                                </button>
                                             </div>
-                                        </Card>
+                                        </div>
                                     ))}
                                 </div>
                             )}
@@ -180,9 +177,9 @@ export default function DraftsPage() {
 
                     {/* No drafts yet — show subtle info at bottom */}
                     {drafts.length === 0 && (
-                        <div className="shrink-0 border-t border-border-light px-4 py-2 flex items-center gap-2 text-xs text-muted-foreground bg-surface-card">
-                            <Inbox className="h-3.5 w-3.5 opacity-40" />
-                            No pending AI drafts · Generate one using the panel on the left
+                        <div className="h-14 border-t border-outline-variant/10 px-6 flex items-center gap-3 text-[10px] font-black text-outline uppercase tracking-widest bg-white/80">
+                            <MaterialSymbol icon="cloud_done" className="text-lg text-primary" />
+                            Intelligence Queue Exhausted · Ready for next synthesis
                         </div>
                     )}
                 </div>
@@ -191,27 +188,37 @@ export default function DraftsPage() {
             {/* Preview Modal */}
             {previewDraft && (
                 <Dialog open onOpenChange={() => setPreviewDraft(null)}>
-                    <DialogContent className="max-w-xl">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <Sparkles className="h-4 w-4 text-ai" />
-                                {previewDraft.subject}
-                            </DialogTitle>
-                        </DialogHeader>
-                        <div className="bg-paper-mid/50 rounded-lg p-4 text-sm text-ink leading-relaxed whitespace-pre-wrap max-h-[60vh] overflow-y-auto">
-                            {previewDraft.body}
+                    <DialogContent className="max-w-2xl rounded-[40px] border-none shadow-2xl p-0 overflow-hidden">
+                        <div className="bg-white p-8 space-y-6">
+                            <div className="flex items-center justify-between pb-6 border-b border-outline-variant/10">
+                                <div className="space-y-1">
+                                    <div className="px-2.5 py-1 bg-primary-fixed/20 text-primary font-black text-[9px] rounded-full uppercase tracking-widest inline-block mb-1">Manifested Response</div>
+                                    <h3 className="text-xl font-headline font-bold text-on-surface tracking-tight">{previewDraft.subject}</h3>
+                                </div>
+                                <button onClick={() => setPreviewDraft(null)} className="h-10 w-10 flex items-center justify-center bg-surface-container rounded-2xl text-outline hover:text-error transition-all">
+                                    <MaterialSymbol icon="close" />
+                                </button>
+                            </div>
+                            <div className="bg-surface-container-low rounded-3xl p-6 text-base font-body text-on-surface leading-loose whitespace-pre-wrap max-h-[60vh] overflow-y-auto border border-outline-variant/5 italic">
+                                {previewDraft.body}
+                            </div>
+                            <div className="flex items-center justify-between pt-2">
+                                <div className="flex items-center gap-3 text-[10px] font-black text-outline uppercase tracking-widest">
+                                    <MaterialSymbol icon="architecture" className="text-lg" />
+                                    Tone: {previewDraft.tone}
+                                </div>
+                                <div className="flex gap-3">
+                                    <button 
+                                        className="h-12 px-8 bg-primary text-on-primary rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20 flex items-center gap-3"
+                                        onClick={() => { approveDraft(previewDraft.id); setPreviewDraft(null); }}
+                                        disabled={approving}
+                                    >
+                                        <MaterialSymbol icon="send_and_archive" className="text-xl" />
+                                        Authorize & Deploy
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <DialogFooter className="gap-2">
-                            <Button variant="outline" onClick={() => setPreviewDraft(null)}>Close</Button>
-                            <Button
-                                className="gap-1.5"
-                                onClick={() => { approveDraft(previewDraft.id); setPreviewDraft(null); }}
-                                disabled={approving}
-                            >
-                                <Send className="h-3.5 w-3.5" />
-                                Send Now
-                            </Button>
-                        </DialogFooter>
                     </DialogContent>
                 </Dialog>
             )}
@@ -219,36 +226,45 @@ export default function DraftsPage() {
             {/* Schedule Modal */}
             {scheduleTarget && (
                 <Dialog open onOpenChange={() => setScheduleTarget(null)}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Schedule Draft</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-3 py-2">
-                            <p className="text-sm text-muted-foreground">
-                                When do you want to send: <span className="font-medium text-ink">{scheduleTarget.subject}</span>?
-                            </p>
-                            <div className="space-y-1.5">
-                                <Label htmlFor="schedule-time">Date &amp; Time</Label>
-                                <Input
-                                    id="schedule-time"
-                                    type="datetime-local"
-                                    value={scheduledDate}
-                                    onChange={e => setScheduledDate(e.target.value)}
-                                    className="bg-paper"
-                                />
+                    <DialogContent className="max-w-md rounded-[32px] border-none shadow-2xl p-8 space-y-8">
+                        <div className="space-y-4">
+                            <div className="h-14 w-14 bg-surface-container rounded-2xl flex items-center justify-center text-primary border border-outline-variant/5">
+                                <MaterialSymbol icon="schedule_send" className="text-2xl" />
+                            </div>
+                            <div className="space-y-1">
+                                <h3 className="text-xl font-headline font-bold text-on-surface">Temporal Deferral</h3>
+                                <p className="text-sm font-medium text-on-surface-variant">
+                                    Finalizing sending parameters for <span className="text-primary font-bold">{scheduleTarget.subject}</span>
+                                </p>
                             </div>
                         </div>
-                        <DialogFooter className="gap-2">
-                            <Button variant="outline" onClick={() => setScheduleTarget(null)}>Cancel</Button>
-                            <Button
+                        
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-outline px-1">Execution Velocity</label>
+                            <input
+                                type="datetime-local"
+                                value={scheduledDate}
+                                onChange={e => setScheduledDate(e.target.value)}
+                                className="w-full h-14 px-4 bg-surface-container rounded-2xl border border-outline-variant/15 focus:ring-2 focus:ring-primary-fixed focus:border-primary text-sm font-bold transition-all"
+                            />
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setScheduleTarget(null)}
+                                className="flex-1 h-12 rounded-2xl border border-outline-variant/15 text-[10px] font-black uppercase tracking-widest text-on-surface-variant hover:bg-surface-container transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
                                 onClick={handleScheduleSubmit}
                                 disabled={!scheduledDate || scheduling}
-                                className="gap-1.5"
+                                className="flex-2 px-8 bg-on-surface text-surface h-12 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-on-surface/90 transition-all shadow-xl shadow-black/10 disabled:opacity-30"
                             >
-                                <Calendar className="h-3.5 w-3.5" />
-                                Schedule
-                            </Button>
-                        </DialogFooter>
+                                <MaterialSymbol icon="lock_clock" className="text-lg" />
+                                Secure Schedule
+                            </button>
+                        </div>
                     </DialogContent>
                 </Dialog>
             )}

@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { User } from "@/types"; // We'll define this type
+import { User } from "@/types";
 import { api } from "../services/api";
+import { getApiUrl } from "@/lib/config";
 
 interface AuthContextType {
     user: User | null;
@@ -14,17 +15,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const _raw = (() => {
-    const url = process.env.NEXT_PUBLIC_API_URL;
-    if (!url && process.env.NODE_ENV === 'production') {
-        throw new Error('NEXT_PUBLIC_API_URL must be set in production');
-    }
-    return url || 'https://sortmail-production.up.railway.app';
-})();
-const API_URL = /localhost|127\.0\.0\.1/.test(_raw)
-    ? _raw
-    : _raw.replace(/^http:\/\//, 'https://');
-
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -33,7 +23,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const checkSession = async () => {
         try {
             console.log("🔍 Checking Session...");
-            const res = await fetch(`${API_URL}/api/auth/me`, {
+            const url = getApiUrl("/api/auth/me");
+            const res = await fetch(url, {
                 method: "GET",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include"
@@ -61,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const login = () => {
-        window.location.href = `${API_URL}/api/auth/google`;
+        window.location.href = getApiUrl("/api/auth/google");
     };
 
     const logout = async () => {

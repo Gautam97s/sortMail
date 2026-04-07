@@ -1,88 +1,91 @@
+"use client";
+
 import React from 'react';
-import { Search, Filter, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+
+const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
+    <span 
+        className={`material-symbols-outlined ${className}`}
+        style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
+    >
+        {icon}
+    </span>
+);
 
 interface TaskFiltersProps {
     searchQuery: string;
     onSearchChange: (query: string) => void;
     priorityFilter: string;
-    onPriorityChange: (value: string) => void;
+    onPriorityChange: (priority: string) => void;
     statusFilter: string;
-    onStatusChange: (value: string) => void;
+    onStatusChange: (status: string) => void;
     onClearFilters: () => void;
 }
 
-export function TaskFilters({
+export const TaskFilters: React.FC<TaskFiltersProps> = ({
     searchQuery,
     onSearchChange,
     priorityFilter,
     onPriorityChange,
     statusFilter,
     onStatusChange,
-    onClearFilters
-}: TaskFiltersProps) {
-    const hasActiveFilters = searchQuery || priorityFilter !== 'all' || statusFilter !== 'all';
+    onClearFilters,
+}) => {
+    const hasActiveFilters = searchQuery !== '' || priorityFilter !== 'all' || statusFilter !== 'all';
 
     return (
-        <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-center justify-between py-2 md:py-4">
-            <div className="relative w-full md:w-96">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                    placeholder="Search tasks..."
+        <div className="flex flex-col md:flex-row items-center gap-4 bg-surface-container-low p-2 rounded-[28px] border border-outline-variant/10 shadow-inner">
+            <div className="flex-1 relative group w-full">
+                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary transition-colors">
+                    <MaterialSymbol icon="search" />
+                </div>
+                <input
+                    type="text"
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    className="pl-9 bg-white/40 border-white/50 backdrop-blur-md text-ink placeholder:text-muted h-10 text-sm focus:ring-accent/50 transition-all shadow-sm"
+                    placeholder="Scan task manifest..."
+                    className="w-full h-14 pl-16 pr-6 bg-white rounded-2xl text-base font-medium text-on-surface focus:outline-none border-2 border-transparent focus:border-primary-fixed/30 shadow-sm transition-all placeholder:text-outline-variant/50 italic"
                 />
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                <Select value={priorityFilter} onValueChange={onPriorityChange}>
-                    <SelectTrigger className="w-full sm:w-[180px] bg-white/40 backdrop-blur-md h-10 md:h-10 px-3 md:px-4 rounded-xl border-white/50 text-xs md:text-sm text-ink shadow-sm hover:bg-white/50 transition-all">
-                        <div className="flex items-center gap-2 md:gap-2.5 truncate">
-                            <Filter className="h-3.5 w-3.5 md:h-4 md:w-4 text-accent shrink-0" />
-                            <SelectValue placeholder="Priority" />
-                        </div>
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-white/40 bg-white/80 backdrop-blur-xl shadow-xl">
-                        <SelectItem value="all">All Priorities</SelectItem>
-                        <SelectItem value="do_now">Do Now</SelectItem>
-                        <SelectItem value="do_today">Do Today</SelectItem>
-                        <SelectItem value="can_wait">Can Wait</SelectItem>
-                    </SelectContent>
-                </Select>
+            <div className="flex items-center gap-2 p-1.5 shrink-0 bg-white/40 rounded-2xl border border-outline-variant/5">
+                <div className="flex items-center gap-2 px-3 py-2 bg-surface-container rounded-xl">
+                    <MaterialSymbol icon="priority_high" className="text-sm text-outline-variant" />
+                    <select
+                        value={priorityFilter}
+                        onChange={(e) => onPriorityChange(e.target.value)}
+                        className="bg-transparent text-[10px] font-black uppercase tracking-widest text-on-surface focus:outline-none cursor-pointer"
+                    >
+                        <option value="all">All Priorities</option>
+                        <option value="do_now">Do Now</option>
+                        <option value="do_soon">Soon</option>
+                        <option value="later">Later</option>
+                    </select>
+                </div>
 
-                <Select value={statusFilter} onValueChange={onStatusChange}>
-                    <SelectTrigger className="w-full sm:w-[160px] bg-white/40 backdrop-blur-md h-10 md:h-10 px-3 md:px-4 rounded-xl border-white/50 text-xs md:text-sm text-ink shadow-sm hover:bg-white/50 transition-all">
-                        <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-white/40 bg-white/80 backdrop-blur-xl shadow-xl">
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="pending">Todo</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="completed">Done</SelectItem>
-                    </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2 px-3 py-2 bg-surface-container rounded-xl">
+                    <MaterialSymbol icon="published_with_changes" className="text-sm text-outline-variant" />
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => onStatusChange(e.target.value)}
+                        className="bg-transparent text-[10px] font-black uppercase tracking-widest text-on-surface focus:outline-none cursor-pointer"
+                    >
+                        <option value="all">Any Status</option>
+                        <option value="todo">Pending</option>
+                        <option value="in_progress">Active</option>
+                        <option value="done">Resolved</option>
+                    </select>
+                </div>
 
                 {hasActiveFilters && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
+                    <button
                         onClick={onClearFilters}
-                        className="text-muted-foreground hover:text-ink"
+                        className="h-10 w-10 flex items-center justify-center bg-error-container text-error rounded-xl hover:bg-error transition-all hover:text-white"
+                        title="Reset Filters"
                     >
-                        <X className="h-4 w-4 mr-1" />
-                        Clear
-                    </Button>
+                        <MaterialSymbol icon="filter_alt_off" className="text-lg" />
+                    </button>
                 )}
             </div>
         </div>
     );
-}
+};

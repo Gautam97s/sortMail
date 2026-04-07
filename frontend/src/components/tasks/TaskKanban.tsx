@@ -1,113 +1,102 @@
+"use client";
+
 import React from 'react';
 import { TaskDTOv1 } from '@/types/dashboard';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import PriorityBadge from '@/components/shared/PriorityBadge';
-import { Clock, AlertTriangle, CheckCircle2, Circle, ArrowRightCircle } from 'lucide-react';
+
+const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
+    <span 
+        className={`material-symbols-outlined ${className}`}
+        style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
+    >
+        {icon}
+    </span>
+);
 
 interface TaskKanbanProps {
     tasks: TaskDTOv1[];
     onTaskClick: (taskId: string) => void;
 }
 
-function KanbanColumn({ title, tasks, icon: Icon, onTaskClick }: { title: string; tasks: TaskDTOv1[]; icon: React.ElementType; onTaskClick: (id: string) => void }) {
+const COLUMN_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
+    todo: { label: "Synchronize", icon: "pending_actions", color: "text-outline" },
+    in_progress: { label: "Executing", icon: "bolt", color: "text-primary" },
+    done: { label: "Archived", icon: "verified", color: "text-success" },
+};
+
+export const TaskKanban: React.FC<TaskKanbanProps> = ({ tasks, onTaskClick }) => {
+    const columns: Record<string, TaskDTOv1[]> = {
+        todo: tasks.filter(t => t.status === 'todo'),
+        in_progress: tasks.filter(t => t.status === 'in_progress'),
+        done: tasks.filter(t => t.status === 'done'),
+    };
+
     return (
-        <div className="flex-1 min-w-0 lg:min-w-[300px] h-auto lg:h-full flex flex-col gap-3 md:gap-4 shrink-0">
-            <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2 font-display text-lg text-ink font-semibold">
-                    <Icon className="h-5 w-5 text-muted-foreground" />
-                    <h3>{title}</h3>
-                </div>
-                <Badge variant="secondary" className="px-2 py-0.5 text-xs font-mono">
-                    {tasks.length}
-                </Badge>
-            </div>
-
-            <div className="flex flex-col gap-2.5 md:gap-3 overflow-y-auto pr-2 pb-4 scrollbar-thin flex-1 bg-white/20 backdrop-blur-md rounded-2xl p-2.5 md:p-3 border border-white/40 shadow-inner">
-                {tasks.map((task) => (
-                    <div
-                        key={task.task_id}
-                        className="glass-card cursor-pointer hover:shadow-lg hover:bg-white/50 transition-all duration-300 border-l-4 group"
-                        style={{ borderLeftColor: task.priority === 'do_now' ? 'var(--danger)' : 'transparent' }}
-                        onClick={() => onTaskClick(task.task_id)}
-                    >
-                        <div className="p-3 md:p-4 space-y-2.5 md:space-y-3">
-                            <div className="flex justify-between items-start gap-2">
-                                <PriorityBadge priority={task.priority} />
-                                {task.effort === 'deep_work' && (
-                                    <span className="text-[10px] uppercase font-mono font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded tracking-wider border border-accent/20 shadow-sm">
-                                        Deep Work
-                                    </span>
-                                )}
+        <div className="flex gap-8 h-full overflow-x-auto pb-4 scrollbar-none">
+            {Object.entries(COLUMN_CONFIG).map(([status, config]) => (
+                <div key={status} className="flex-1 min-w-[320px] flex flex-col bg-surface-container-low/40 rounded-[40px] border border-outline-variant/5 shadow-inner p-4 hover:shadow-xl hover:shadow-black/5 transition-all">
+                    {/* Column Header */}
+                    <div className="flex items-center justify-between px-6 py-4 mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className={`h-8 w-8 rounded-xl bg-white border border-outline-variant/10 flex items-center justify-center ${config.color} shadow-sm`}>
+                                <MaterialSymbol icon={config.icon} />
                             </div>
-
-                            <div>
-                                <h4 className="font-semibold text-[15px] text-ink leading-snug line-clamp-2 group-hover:text-primary transition-colors font-body">
-                                    {task.title}
-                                </h4>
-                                <p className="text-xs text-ink-light mt-1.5 line-clamp-2 leading-relaxed">
-                                    {task.description}
-                                </p>
-                            </div>
-
-                            <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-white/30">
-                                <div className="flex items-center gap-1.5 font-medium">
-                                    {task.deadline ? (
-                                        <>
-                                            <Clock className="h-3.5 w-3.5" />
-                                            <span className={new Date(task.deadline) < new Date() ? 'text-danger' : ''}>
-                                                {new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                            </span>
-                                        </>
-                                    ) : (
-                                        <span className="opacity-50">No deadline</span>
-                                    )}
-                                </div>
-                                {task.deadline && new Date(task.deadline) < new Date() && (
-                                    <span className="text-danger font-bold flex items-center gap-1 text-[10px] uppercase tracking-wide">
-                                        <AlertTriangle className="h-3 w-3" />
-                                        Overdue
-                                    </span>
-                                )}
+                            <h3 className="text-[10px] font-black text-on-surface uppercase tracking-[0.2em]">{config.label}</h3>
+                            <div className="px-2 py-0.5 bg-surface-container text-outline-variant font-black text-[9px] rounded-full tabular-nums">
+                                {columns[status].length}
                             </div>
                         </div>
+                        <button className="h-8 w-8 rounded-xl bg-surface-container hover:bg-white text-outline-variant hover:text-primary transition-all shadow-sm">
+                            <MaterialSymbol icon="add" className="text-xl" />
+                        </button>
                     </div>
-                ))}
-                {tasks.length === 0 && (
-                    <div className="h-32 flex items-center justify-center text-muted-foreground text-sm italic border-2 border-dashed border-border-light rounded-lg bg-white/50">
-                        No tasks
+
+                    {/* Task List */}
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-4 scrollbar-none">
+                        {columns[status].map(task => (
+                            <div
+                                key={task.task_id}
+                                onClick={() => onTaskClick(task.task_id)}
+                                className="group bg-white rounded-[28px] border border-outline-variant/10 p-5 shadow-sm hover:border-primary-fixed/30 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden"
+                            >
+                                <div className={`absolute top-0 left-0 w-1.5 h-full ${task.priority === 'do_now' ? 'bg-error' : task.priority === 'do_soon' ? 'bg-tertiary-fixed' : 'bg-primary-fixed'}`} />
+                                
+                                <div className="space-y-4 relative z-10">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <h4 className="text-sm font-bold text-on-surface leading-tight tracking-tight group-hover:text-primary transition-colors">
+                                            {task.title}
+                                        </h4>
+                                        <div className="px-2 py-0.5 bg-surface-container text-outline-variant font-black text-[8px] rounded uppercase tracking-tighter shrink-0">
+                                            {task.task_type}
+                                        </div>
+                                    </div>
+
+                                    {task.description && (
+                                        <p className="text-[11px] font-medium text-on-surface-variant leading-relaxed opacity-70 line-clamp-2">
+                                            {task.description}
+                                        </p>
+                                    )}
+
+                                    <div className="flex items-center justify-between pt-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-6 w-6 rounded-full bg-surface-container border border-outline-variant/10 overflow-hidden">
+                                                {/* Mock user or source avatar */}
+                                                <MaterialSymbol icon="face" className="text-[10px] text-outline text-center w-full mt-1.5" />
+                                            </div>
+                                            <span className="text-[9px] font-black text-outline-variant uppercase tracking-tighter opacity-50">
+                                                Node {task.task_id.substring(0, 4)}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-primary">
+                                            <MaterialSymbol icon="readiness_score" filled className="text-xs" />
+                                            <span className="text-[10px] font-black tracking-widest uppercase">78% Path</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                )}
-            </div>
+                </div>
+            ))}
         </div>
     );
-}
-
-export function TaskKanban({ tasks, onTaskClick }: TaskKanbanProps) {
-    const todoTasks = tasks.filter(t => t.status === 'pending');
-    const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
-    const doneTasks = tasks.filter(t => t.status === 'completed');
-
-    return (
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-6 overflow-y-auto lg:overflow-x-auto pb-6 lg:pb-2 h-full lg:h-full scrollbar-hide md:scrollbar-thin">
-            <KanbanColumn
-                title="To Do"
-                tasks={todoTasks}
-                icon={Circle}
-                onTaskClick={onTaskClick}
-            />
-            <KanbanColumn
-                title="In Progress"
-                tasks={inProgressTasks}
-                icon={ArrowRightCircle}
-                onTaskClick={onTaskClick}
-            />
-            <KanbanColumn
-                title="Done"
-                tasks={doneTasks}
-                icon={CheckCircle2}
-                onTaskClick={onTaskClick}
-            />
-        </div>
-    );
-}
+};

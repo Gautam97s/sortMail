@@ -1,16 +1,19 @@
+"use client";
 
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { LegacyEmail, LegacyTask } from '@/types/dashboard';
 import Image from 'next/image';
-// gsap v3.14 types don't expose .fromTo/.to on default export — cast for IDE compat
-// eslint-disable-next-line
 import _gsap from 'gsap';
 const gsap = _gsap as any;
-import {
-    Sparkles, X, CheckSquare, MessageSquare, Calendar,
-    Send, RotateCw, Copy, FileText, Image as ImageIcon, Table, File,
-    Cpu, Layers, CornerDownRight
-} from 'lucide-react';
+
+const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
+    <span 
+        className={`material-symbols-outlined ${className}`}
+        style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
+    >
+        {icon}
+    </span>
+);
 
 interface IntelligencePanelProps {
     email: LegacyEmail | null;
@@ -28,7 +31,6 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
     const [activeTab, setActiveTab] = useState<'brief' | 'draft'>('brief');
     const [draftLoading, setDraftLoading] = useState(false);
 
-    // Attachment Intelligence State
     const [activeAttachmentId, setActiveAttachmentId] = useState<string | null>(null);
     const [attachmentSummary, setAttachmentSummary] = useState<string>("");
     const [isReadingAttachment, setIsReadingAttachment] = useState(false);
@@ -37,59 +39,38 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
     useEffect(() => {
         if (email) {
             gsap.fromTo(panelRef.current,
-                { x: '100%', opacity: 0.5 },
-                { x: '0%', opacity: 1, duration: 0.3, ease: "power3.out" }
+                { x: '100%', opacity: 0.8 },
+                { x: '0%', opacity: 1, duration: 0.4, ease: "expo.out" }
             );
-            // Reset state for new email
             setAnalysis(null);
             setDraft('');
             setActiveTab('brief');
-
-            // Reset attachment state
             if (email.attachments && email.attachments.length > 0) {
                 setActiveAttachmentId(email.attachments[0].id);
             } else {
                 setActiveAttachmentId(null);
             }
             setAttachmentSummary("");
-
-            // Start Analysis Simulation
             runAnalysisSimulation(email);
         }
     }, [email]);
 
-    // Handle Attachment Switching & "Reading" Animation
     useEffect(() => {
         if (activeAttachmentId && email?.attachments) {
             const attachment = email.attachments.find(a => a.id === activeAttachmentId);
             if (attachment) {
                 setIsReadingAttachment(true);
-                setAttachmentSummary(""); // Clear previous text for typewriter effect
-
-                // Animate the active card
-                gsap.fromTo(`#att-card-${activeAttachmentId}`,
-                    { boxShadow: "0 0 0px rgba(99, 102, 241, 0)" },
-                    {
-                        boxShadow: "0 0 15px rgba(99, 102, 241, 0.4)",
-                        borderColor: "rgba(129, 140, 248, 0.5)",
-                        duration: 0.4,
-                        yoyo: true,
-                        repeat: 1
-                    }
-                );
-
-                // Simulate AI Processing time then trigger Typewriter
+                setAttachmentSummary("");
+                
                 setTimeout(() => {
                     setIsReadingAttachment(false);
-                    // Mock data based on file type for demo
                     const mockSummary = attachment.type === 'pdf'
-                        ? "This document outlines the Q3 financial projections with a focus on GPU expenditure. It highlights a 15% variance in the original budget due to supply chain constraints. Recommended reallocation from the marketing budget to cover the deficit."
+                        ? "Protocol oversight: Q3 financial projections indicate a focus on GPU expenditure. Highlights a 15% variance due to supply chain entropy. Recommended reallocation from marketing nodes."
                         : attachment.type === 'img'
-                            ? "Visual mockups for the 'Winter Glow' campaign. Contains 3 variants of the landing page hero section. Key visual elements include frost textures and neon accents consistent with the new brand guidelines."
-                            : "Detailed line items for the provided service agreement. Total billable hours amount to 42.5 for the month of September. Includes breakdown of server maintenance and emergency downtime support.";
-
+                            ? "Visual manifest: 'Winter Glow' campaign mockups. Contains 3 variants of the landing page hero section. Elements include frost textures and neon accents consistent with neural brand guidelines."
+                            : "Data synthesis: Detailed line items for service agreement. Total billable hours amount to 42.5 for September. Includes server maintenance and emergency downtime support nodes.";
                     typewriteText(mockSummary);
-                }, 600);
+                }, 800);
             }
         }
     }, [activeAttachmentId, email]);
@@ -98,7 +79,7 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
         const obj = { length: 0 };
         gsap.to(obj, {
             length: text.length,
-            duration: 1.5,
+            duration: 1.2,
             ease: "none",
             onUpdate: () => {
                 setAttachmentSummary(text.substring(0, Math.ceil(obj.length)));
@@ -106,42 +87,38 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
         });
     };
 
-    // Stagger entrance for briefing details
     useLayoutEffect(() => {
         if (!isReadingAttachment && attachmentSummary.length > 5) {
             gsap.fromTo(".att-detail-item",
-                { y: 15, opacity: 0 },
-                { y: 0, opacity: 1, duration: 0.4, stagger: 0.1, ease: "back.out(1.2)" }
+                { y: 10, opacity: 0 },
+                { y: 0, opacity: 1, duration: 0.3, stagger: 0.08, ease: "power2.out" }
             );
         }
     }, [isReadingAttachment, attachmentSummary]);
 
-    // Mock Analysis Simulation
     const runAnalysisSimulation = async (currentEmail: LegacyEmail) => {
         setLoading(true);
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 1400));
         setAnalysis({
             summary: [
-                "User is requesting urgent review of Q3 goals.",
-                "Requires approval for budget reallocation.",
-                "Meeting requested for Thursday."
+                "Sender is requesting urgent review of Q3 objectives.",
+                "Primary objective: Approval for budget reallocation.",
+                "Target window: Thursday meeting synchronization."
             ],
             actionItems: [
-                "Review Q3 Goal Document",
-                "Approve Budget Variance",
-                "Schedule Meeting for Thursday"
+                "Evaluate Q3 Objective Document",
+                "Authorize Budget Variance Node",
+                "Synchronize Thursday Calendar Slot"
             ]
         });
         setLoading(false);
     };
 
-    // Reveal animation for main analysis content
     useEffect(() => {
         if (analysis && !loading) {
             gsap.fromTo(".reveal-item",
-                { y: 10, opacity: 0 },
-                { y: 0, opacity: 1, duration: 0.3, stagger: 0.05, ease: "power2.out" }
+                { y: 8, opacity: 0 },
+                { y: 0, opacity: 1, duration: 0.3, stagger: 0.04, ease: "power1.out" }
             );
         }
     }, [analysis, loading]);
@@ -162,28 +139,9 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
         if (!email) return;
         setDraftLoading(true);
         setActiveTab('draft');
-        // Simulate draft generation
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setDraft(`Hi ${email.sender.split(' ')[0]},\n\nThanks for reaching out about this. I've reviewed the attached documents and the Q3 projections look solid.\n\nLet's schedule a time to discuss the details. How does Thursday fast track?\n\nBest,\nUser`);
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        setDraft(`Salutations ${email.sender.split(' ')[0]},\n\nContext received regarding Q3 projections. Analysis indicates a solid foundation.\n\nI have authorized the budget node. Let's synchronize on Thursday to finalize the execution parameters.\n\nEnd Transmission,\nUser`);
         setDraftLoading(false);
-    };
-
-    const getIconForType = (type: string) => {
-        switch (type) {
-            case 'img': return <ImageIcon size={16} className="text-purple-400" />;
-            case 'sheet': return <Table size={16} className="text-emerald-400" />;
-            case 'pdf': return <FileText size={16} className="text-rose-400" />;
-            default: return <File size={16} className="text-blue-400" />;
-        }
-    };
-
-    const getEntitiesForAttachment = () => {
-        // Mock entities based on random logic for demo
-        return [
-            { label: 'Deadline', value: 'Oct 15', color: 'text-rose-400 border-rose-500/20 bg-rose-500/10' },
-            { label: 'Value', value: '$12.5k', color: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10' },
-            { label: 'Status', value: 'Pending', color: 'text-amber-400 border-amber-500/20 bg-amber-500/10' },
-        ];
     };
 
     if (!email) return null;
@@ -191,229 +149,249 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
     return (
         <div
             ref={panelRef}
-            className="fixed right-0 top-0 bottom-0 w-full md:w-[480px] bg-[#09090B] border-l border-[#27272a] shadow-2xl z-30 flex flex-col"
+            className="fixed right-0 top-0 bottom-0 w-full md:w-[520px] bg-white border-l border-outline-variant/15 shadow-2xl z-40 flex flex-col"
         >
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-[#27272a] bg-[#09090B]/95 backdrop-blur z-10">
-                <div className="flex items-center gap-2 text-indigo-400">
-                    <Sparkles size={18} />
-                    <span className="font-semibold text-sm tracking-wide uppercase">Intelligence Panel</span>
+            {/* Control Header */}
+            <div className="flex items-center justify-between p-6 border-b border-outline-variant/5 bg-white/80 backdrop-blur-xl sticky top-0 z-20">
+                <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 bg-primary-fixed/20 text-primary rounded-lg flex items-center justify-center">
+                        <MaterialSymbol icon="insights" className="text-xl" />
+                    </div>
+                    <span className="text-[10px] font-black text-on-surface uppercase tracking-widest">Intelligence Matrix</span>
                 </div>
-                <button onClick={onClose} className="text-zinc-400 hover:text-white transition-colors">
-                    <X size={20} />
+                <button onClick={onClose} className="h-10 w-10 flex items-center justify-center bg-surface-container rounded-2xl text-outline hover:text-error hover:bg-error-container/20 transition-all">
+                    <MaterialSymbol icon="close" />
                 </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar" ref={contentRef}>
-
-                {/* Original Email Context */}
-                <div className="p-6 border-b border-[#27272a] bg-[#18181B]/50">
-                    <h2 className="text-lg font-bold text-white mb-1 leading-tight">{email.subject}</h2>
-                    <div className="flex items-center gap-2 mt-2">
-                        <Image src={email.avatar} alt={email.sender} width={24} height={24} className="w-6 h-6 rounded-full grayscale opacity-80" />
-                        <span className="text-sm text-zinc-400">From <span className="text-zinc-200">{email.sender}</span></span>
+            <div className="flex-1 overflow-y-auto" ref={contentRef}>
+                {/* Context Context */}
+                <div className="p-8 border-b border-outline-variant/5 bg-surface-container-lowest">
+                    <h2 className="text-xl font-headline font-bold text-on-surface leading-tight tracking-tight">{email.subject}</h2>
+                    <div className="flex items-center gap-3 mt-4">
+                        <div className="h-8 w-8 rounded-full bg-primary-fixed/10 flex items-center justify-center overflow-hidden border border-outline-variant/10">
+                            <Image src={email.avatar} alt={email.sender} width={32} height={32} className="grayscale" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xs font-bold text-on-surface">Origin: {email.sender}</span>
+                            <span className="text-[9px] font-black text-outline-variant uppercase tracking-widest">{email.date}</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Attachment Intelligence Section */}
+                {/* Attachment Neural Scan */}
                 {email.attachments && email.attachments.length > 0 && (
-                    <div className="p-6 border-b border-[#27272a] bg-[#09090B] relative">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Cpu size={16} className="text-indigo-500" />
-                            <h3 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Attachment Intelligence</h3>
+                    <div className="p-8 space-y-6 bg-surface-container-low/30 relative">
+                        <div className="flex items-center gap-2">
+                            <MaterialSymbol icon="database" className="text-lg text-primary" />
+                            <h3 className="text-[10px] font-black text-outline-variant uppercase tracking-widest">Spectral Attachment Scan</h3>
                         </div>
 
-                        {/* File Selector */}
-                        <div className="flex gap-3 overflow-x-auto pb-4 custom-scrollbar mb-4">
+                        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
                             {email.attachments.map(att => (
                                 <button
                                     key={att.id}
-                                    id={`att-card-${att.id}`}
                                     onClick={() => setActiveAttachmentId(att.id)}
                                     className={`
-                    flex items-center gap-3 p-3 rounded-lg border min-w-[160px] transition-all duration-300
-                    ${activeAttachmentId === att.id
-                                            ? 'bg-[#18181B] border-indigo-500/50'
-                                            : 'bg-[#18181B]/40 border-[#27272a] hover:bg-[#18181B]'}
-                  `}
+                                        flex items-center gap-4 p-4 rounded-2xl border min-w-[200px] transition-all group
+                                        ${activeAttachmentId === att.id
+                                            ? 'bg-white border-primary shadow-lg ring-1 ring-primary/20'
+                                            : 'bg-white/50 border-outline-variant/10 hover:border-primary-fixed/30 hover:bg-white'}
+                                    `}
                                 >
-                                    <div className={`p-2 rounded-md bg-[#09090B] border border-[#27272a] ${activeAttachmentId === att.id ? 'animate-pulse' : ''}`}>
-                                        {getIconForType(att.type)}
+                                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${activeAttachmentId === att.id ? 'bg-primary text-on-primary shadow-primary/20' : 'bg-surface-container text-outline'}`}>
+                                        <MaterialSymbol icon={att.type === 'pdf' ? 'picture_as_pdf' : att.type === 'img' ? 'image' : 'draft'} className="text-xl" />
                                     </div>
-                                    <div className="text-left overflow-hidden">
-                                        <p className="text-xs font-medium text-zinc-200 truncate w-24">{att.name}</p>
-                                        <p className="text-[10px] text-zinc-500">{att.size}</p>
+                                    <div className="text-left overflow-hidden min-w-0">
+                                        <p className="text-xs font-bold text-on-surface truncate">{att.name}</p>
+                                        <p className="text-[9px] font-black text-outline-variant uppercase tracking-tighter opacity-60">{att.size}</p>
                                     </div>
                                 </button>
                             ))}
                         </div>
 
-                        {/* Active Briefing Area */}
-                        <div className="bg-[#18181B]/30 border border-[#27272a] rounded-xl p-5 min-h-[180px] relative transition-all duration-500">
+                        <div className="bg-white rounded-[32px] border border-outline-variant/10 p-6 min-h-[220px] shadow-sm relative overflow-hidden transition-all duration-700">
                             {isReadingAttachment ? (
-                                <div className="flex flex-col items-center justify-center h-full py-8 space-y-3">
-                                    <div className="w-8 h-8 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin" />
-                                    <p className="text-xs text-indigo-400 font-mono animate-pulse">Scanning Document...</p>
+                                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                                    <div className="relative h-12 w-12">
+                                        <div className="absolute inset-0 border-2 border-primary/10 rounded-full" />
+                                        <div className="absolute inset-0 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                    </div>
+                                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] animate-pulse">Scanning Neural Paths...</p>
                                 </div>
                             ) : (
-                                <>
-                                    <div className="flex items-center justify-between mb-3">
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <Layers size={14} className="text-indigo-400" />
-                                            <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Deep Summary</span>
+                                            <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest">Synthesis Mode</span>
                                         </div>
-                                        <span className="text-[10px] text-zinc-600 font-mono">AI-PROCESSED</span>
+                                        <div className="px-2 py-0.5 bg-surface-container text-outline-variant font-black text-[8px] rounded uppercase">AI Verified</div>
                                     </div>
 
-                                    <p className="text-sm text-zinc-300 leading-relaxed font-light mb-6 min-h-[60px]">
-                                        {attachmentSummary}
-                                        <span className="inline-block w-1.5 h-4 bg-indigo-500 ml-1 animate-pulse align-middle" />
+                                    <p className="text-sm font-medium text-on-surface-variant leading-relaxed italic pr-4">
+                                        &ldquo;{attachmentSummary}&rdquo;
+                                        <span className="inline-block w-1 h-4 bg-primary ml-1 animate-pulse align-middle" />
                                     </p>
 
-                                    {/* Entity Highlights */}
-                                    <div className="flex flex-wrap gap-2 mb-6">
+                                    <div className="flex flex-wrap gap-2">
                                         {getEntitiesForAttachment().map((ent, i) => (
-                                            <div key={i} className={`att-detail-item px-3 py-1 rounded-full border text-[10px] font-medium flex items-center gap-2 ${ent.color}`}>
-                                                <span className="opacity-70 uppercase tracking-wider">{ent.label}:</span>
-                                                <span>{ent.value}</span>
+                                            <div key={i} className="att-detail-item px-3 py-1.5 rounded-xl bg-surface-container-lowest border border-outline-variant/5 text-[9px] font-black uppercase tracking-tighter flex items-center gap-2 shadow-sm">
+                                                <span className="text-primary">{ent.label}:</span>
+                                                <span className="text-on-surface">{ent.value}</span>
                                             </div>
                                         ))}
                                     </div>
 
                                     <button
                                         onClick={() => handleDraft('formal')}
-                                        className="att-detail-item w-full py-2 bg-[#27272a] hover:bg-indigo-600/20 hover:text-indigo-300 text-zinc-400 text-xs rounded-lg border border-[#27272a] hover:border-indigo-500/30 transition-all flex items-center justify-center gap-2"
+                                        className="att-detail-item w-full h-11 bg-on-surface text-surface text-[10px] font-black uppercase tracking-widest rounded-xl hover:shadow-xl hover:shadow-black/10 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
                                     >
-                                        <CornerDownRight size={14} />
-                                        Draft reply using file context
+                                        <MaterialSymbol icon="auto_fix" className="text-lg" />
+                                        Contextual Re-route
                                     </button>
-                                </>
+                                </div>
                             )}
                         </div>
                     </div>
                 )}
 
-                {/* Tabs */}
-                <div className="flex p-2 m-4 bg-[#18181B] rounded-lg border border-[#27272a]">
+                {/* Tonal Segmentation */}
+                <div className="flex p-1.5 mx-8 mt-8 bg-surface-container-low rounded-2xl border border-outline-variant/5 shadow-inner">
                     <button
                         onClick={() => setActiveTab('brief')}
-                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'brief' ? 'bg-[#27272a] text-white shadow-sm border border-zinc-700' : 'text-zinc-500 hover:text-zinc-300'}`}
+                        className={`flex-1 h-10 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'brief' ? 'bg-white text-primary shadow-lg border border-outline-variant/5' : 'text-outline-variant hover:text-on-surface'}`}
                     >
-                        Email Briefing
+                        <MaterialSymbol icon="description" className="text-lg" />
+                        Abstract
                     </button>
                     <button
                         onClick={() => setActiveTab('draft')}
-                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'draft' ? 'bg-[#27272a] text-white shadow-sm border border-zinc-700' : 'text-zinc-500 hover:text-zinc-300'}`}
+                        className={`flex-1 h-10 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === 'draft' ? 'bg-white text-primary shadow-lg border border-outline-variant/5' : 'text-outline-variant hover:text-on-surface'}`}
                     >
+                        <MaterialSymbol icon="auto_fix" className="text-lg" />
                         Copilot
                     </button>
                 </div>
 
-                {/* Content Area */}
-                <div className="px-6 pb-20">
+                {/* Matrix Content */}
+                <div className="px-8 py-8 pb-32">
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                            <div className="w-10 h-10 border-2 border-zinc-700 border-t-zinc-400 rounded-full animate-spin" />
-                            <p className="text-zinc-500 text-xs animate-pulse">Analyzing context...</p>
+                        <div className="flex flex-col items-center justify-center py-24 space-y-6">
+                            <div className="h-16 w-16 bg-surface-container rounded-[24px] flex items-center justify-center border border-outline-variant/5 animate-pulse">
+                                <MaterialSymbol icon="language_mind" className="text-3xl text-primary animate-spin" />
+                            </div>
+                            <p className="text-[10px] font-black text-outline-variant uppercase tracking-widest">Connecting Neural Paths...</p>
                         </div>
                     ) : activeTab === 'brief' ? (
-                        <div className="space-y-8">
-                            {/* TL;DR Section */}
-                            <div className="reveal-item">
-                                <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">TL;DR Summary</h3>
-                                <div className="bg-[#18181B] rounded-xl p-4 border border-[#27272a]">
-                                    <ul className="space-y-3">
-                                        {analysis?.summary?.map((point, i) => (
-                                            <li key={i} className="flex gap-3 text-sm text-zinc-300 leading-relaxed">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0" />
-                                                {point}
-                                            </li>
-                                        ))}
-                                    </ul>
+                        <div className="space-y-12">
+                            <div className="reveal-item space-y-4">
+                                <div className="flex items-center gap-3 px-1">
+                                    <div className="h-6 w-6 bg-primary-fixed/20 text-primary rounded-lg flex items-center justify-center">
+                                        <MaterialSymbol icon="segment" className="text-sm" />
+                                    </div>
+                                    <h3 className="text-[10px] font-black text-outline-variant uppercase tracking-widest">Executive Summary</h3>
+                                </div>
+                                <div className="bg-white rounded-[32px] p-6 border border-outline-variant/10 shadow-sm space-y-4">
+                                    {analysis?.summary?.map((point, i) => (
+                                        <div key={i} className="flex gap-4 items-start group">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-primary mt-2 flex-shrink-0 group-hover:scale-150 transition-transform" />
+                                            <p className="text-sm font-medium text-on-surface-variant leading-relaxed italic opacity-90">{point}</p>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
 
-                            {/* Action Items Section */}
-                            <div className="reveal-item">
-                                <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Suggested Actions</h3>
-                                <div className="space-y-2">
+                            <div className="reveal-item space-y-4">
+                                <div className="flex items-center gap-3 px-1">
+                                    <div className="h-6 w-6 bg-tertiary-fixed/20 text-tertiary rounded-lg flex items-center justify-center">
+                                        <MaterialSymbol icon="playlist_add_check" className="text-sm" />
+                                    </div>
+                                    <h3 className="text-[10px] font-black text-outline-variant uppercase tracking-widest">Actionable Vectors</h3>
+                                </div>
+                                <div className="grid gap-3">
                                     {analysis?.actionItems?.map((item, i) => (
-                                        <div key={i} className="group flex items-start gap-3 p-3 rounded-lg bg-[#18181B] border border-[#27272a] hover:border-indigo-500/30 transition-colors">
-                                            <div className="mt-0.5 p-1 rounded bg-[#27272a] text-zinc-400">
-                                                <CheckSquare size={14} />
+                                        <div key={i} className="group flex items-center justify-between p-4 bg-white border border-outline-variant/10 rounded-2xl hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all">
+                                            <div className="flex items-center gap-4">
+                                                <div className="h-8 w-8 bg-surface-container rounded-xl flex items-center justify-center text-outline group-hover:text-primary transition-colors">
+                                                    <MaterialSymbol icon="check_circle" className="text-lg" />
+                                                </div>
+                                                <p className="text-sm font-bold text-on-surface truncate max-w-[240px] tracking-tight">{item}</p>
                                             </div>
-                                            <p className="flex-1 text-sm text-zinc-300">{item}</p>
                                             <button
                                                 onClick={() => handleCreateTask(item)}
-                                                className="opacity-0 group-hover:opacity-100 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-md transition-all"
+                                                className="h-9 px-4 bg-primary text-on-primary rounded-xl text-[9px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20"
                                             >
-                                                Add
+                                                Annex
                                             </button>
                                         </div>
                                     ))}
-                                    {(!analysis?.actionItems || analysis.actionItems.length === 0) && (
-                                        <p className="text-sm text-zinc-500 italic">No clear action items detected.</p>
-                                    )}
                                 </div>
                             </div>
 
-                            <div className="reveal-item p-4 rounded-xl bg-gradient-to-br from-indigo-900/10 to-purple-900/10 border border-indigo-500/10">
-                                <div className="flex gap-2 text-indigo-400 mb-2">
-                                    <Sparkles size={16} />
-                                    <span className="text-xs font-bold uppercase">AI Insight</span>
+                            <div className="reveal-item p-6 rounded-[32px] bg-primary-fixed/10 border border-primary-fixed/20 shadow-inner flex items-start gap-4">
+                                <MaterialSymbol icon="verified" className="text-xl text-primary" />
+                                <div className="space-y-1">
+                                    <h4 className="text-[10px] font-black text-primary uppercase tracking-widest">Matrix Recommendation</h4>
+                                    <p className="text-xs font-semibold text-on-surface opacity-80 leading-relaxed italic">
+                                        Subject demonstrates {email.urgency.toLowerCase()} urgency. Initial response suggested within 4 solar hours to maintain relationship integrity.
+                                    </p>
                                 </div>
-                                <p className="text-sm text-indigo-200/80">
-                                    This email has {email.urgency.toLowerCase()} urgency.
-                                    {email.urgency === 'High' ? " It requires immediate attention." : " You can probably deal with this later."}
-                                </p>
                             </div>
-
                         </div>
                     ) : (
-                        // Draft Mode
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="grid grid-cols-3 gap-2">
-                                <button onClick={() => handleDraft('formal')} className="p-2 bg-[#18181B] hover:bg-[#27272a] rounded-lg text-xs font-medium text-zinc-300 border border-[#27272a] flex flex-col items-center gap-1 transition-colors">
-                                    <div className="p-1.5 bg-[#27272a] rounded-md"><MessageSquare size={14} /></div>
-                                    Formal
-                                </button>
-                                <button onClick={() => handleDraft('casual')} className="p-2 bg-[#18181B] hover:bg-[#27272a] rounded-lg text-xs font-medium text-zinc-300 border border-[#27272a] flex flex-col items-center gap-1 transition-colors">
-                                    <div className="p-1.5 bg-[#27272a] rounded-md"><MessageSquare size={14} /></div>
-                                    Casual
-                                </button>
-                                <button onClick={() => handleDraft('meeting')} className="p-2 bg-[#18181B] hover:bg-[#27272a] rounded-lg text-xs font-medium text-zinc-300 border border-[#27272a] flex flex-col items-center gap-1 transition-colors">
-                                    <div className="p-1.5 bg-[#27272a] rounded-md"><Calendar size={14} /></div>
-                                    Meeting
-                                </button>
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { id: 'formal', label: 'Elevated', icon: 'gavel' },
+                                    { id: 'casual', label: 'Incise', icon: 'bolt' },
+                                    { id: 'meeting', label: 'Matrix', icon: 'event' }
+                                ].map((t) => (
+                                    <button 
+                                        key={t.id}
+                                        onClick={() => handleDraft(t.id as any)} 
+                                        className="p-4 bg-white border border-outline-variant/10 rounded-2xl flex flex-col items-center justify-center gap-3 hover:border-primary-fixed/30 hover:shadow-lg transition-all group"
+                                    >
+                                        <div className="h-10 w-10 bg-surface-container rounded-xl flex items-center justify-center text-outline group-hover:bg-primary-fixed/20 group-hover:text-primary transition-all">
+                                            <MaterialSymbol icon={t.icon} />
+                                        </div>
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-outline-variant">{t.label}</span>
+                                    </button>
+                                ))}
                             </div>
 
                             {draftLoading ? (
-                                <div className="h-48 rounded-xl bg-[#18181B] border border-[#27272a] animate-pulse flex items-center justify-center">
-                                    <span className="text-zinc-500 text-sm">Drafting response...</span>
+                                <div className="h-64 rounded-[32px] bg-surface-container-lowest border border-outline-variant/10 animate-pulse flex flex-col items-center justify-center gap-4">
+                                    <MaterialSymbol icon="sync" className="text-3xl text-primary animate-spin" />
+                                    <span className="text-[10px] font-black text-outline-variant uppercase tracking-widest">Synthesizing Neural Response...</span>
                                 </div>
                             ) : (
-                                <div className="relative">
-                                    <textarea
-                                        value={draft}
-                                        onChange={(e) => setDraft(e.target.value)}
-                                        placeholder="Select a style above or start typing..."
-                                        className="w-full h-64 bg-[#09090B] border border-[#27272a] rounded-xl p-4 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 resize-none font-mono leading-relaxed"
-                                    />
-                                    <div className="absolute bottom-3 right-3 flex gap-2">
-                                        <button className="p-2 text-zinc-500 hover:text-white hover:bg-[#18181B] rounded-lg transition-colors" title="Copy">
-                                            <Copy size={16} />
-                                        </button>
-                                        <button className="p-2 text-zinc-500 hover:text-white hover:bg-[#18181B] rounded-lg transition-colors" title="Regenerate">
-                                            <RotateCw size={16} />
-                                        </button>
+                                <div className="relative group">
+                                    <div className="absolute inset-0 bg-primary-fixed/5 rounded-[32px] blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                                    <div className="relative bg-white border border-outline-variant/15 rounded-[32px] p-6 shadow-sm group-focus-within:border-primary transition-all">
+                                        <textarea
+                                            value={draft}
+                                            onChange={(e) => setDraft(e.target.value)}
+                                            placeholder="Select objective or manifest manually..."
+                                            className="w-full h-72 bg-transparent text-base font-body text-on-surface focus:outline-none resize-none leading-relaxed italic placeholder:text-outline-variant/40"
+                                            spellCheck={false}
+                                        />
+                                        <div className="absolute bottom-6 right-6 flex gap-3">
+                                            <button className="h-10 w-10 bg-surface-container hover:bg-primary-fixed/20 hover:text-primary rounded-xl flex items-center justify-center transition-all border border-outline-variant/5 shadow-sm" title="Capture">
+                                                <MaterialSymbol icon="content_copy" className="text-lg" />
+                                            </button>
+                                            <button className="h-10 w-10 bg-surface-container hover:bg-primary-fixed/20 hover:text-primary rounded-xl flex items-center justify-center transition-all border border-outline-variant/5 shadow-sm" title="Re-simulate">
+                                                <MaterialSymbol icon="refresh" className="text-lg" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
 
-                            <div className="flex justify-end">
-                                <button className="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)]">
-                                    <Send size={16} />
-                                    Send Reply
+                            <div className="flex justify-end pt-4">
+                                <button className="h-14 px-10 bg-primary text-on-primary rounded-2xl flex items-center gap-4 text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/30 hover:scale-[1.03] active:scale-[0.97] transition-all">
+                                    <MaterialSymbol icon="send" className="text-xl" />
+                                    Authorize Transmission
                                 </button>
                             </div>
                         </div>

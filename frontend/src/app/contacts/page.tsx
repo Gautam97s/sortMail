@@ -1,17 +1,20 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Search, Mail, Clock, User, Star, BellOff, Bell } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import AppShell from "@/components/layout/AppShell";
 import { formatDistanceToNow } from "date-fns";
 import { useContacts, useToggleUnsubscribe } from "@/hooks/useContacts";
 import { Contact } from "@/types/dashboard";
+
+const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
+    <span 
+        className={`material-symbols-outlined ${className}`}
+        style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
+    >
+        {icon}
+    </span>
+);
 
 type SortOption = "most_emails" | "recent" | "alphabetical";
 
@@ -43,140 +46,141 @@ export default function ContactsPage() {
         return name.split(/[\s@]/).map(w => w[0]).join("").toUpperCase().slice(0, 2);
     };
 
-    if (isLoading) {
-        return (
-            <AppShell title="Contacts">
-                <div className="max-w-4xl mx-auto p-6 grid gap-4 md:grid-cols-2">
-                    {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="h-24 rounded-xl bg-paper-mid animate-pulse" />
-                    ))}
-                </div>
-            </AppShell>
-        );
-    }
-
     return (
-        <AppShell title="Contacts" subtitle={`${contacts.length} people`}>
-            <div className="max-w-4xl mx-auto p-6 space-y-6">
-                {/* Search + Sort */}
-                <div className="flex gap-3 items-center flex-wrap">
-                    <div className="relative flex-1 min-w-[200px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
+        <AppShell title="Relationship Intelligence" subtitle={`${contacts.length} intelligence nodes`}>
+            <div className="max-w-6xl mx-auto p-6 md:p-10 space-y-8">
+                {/* Search & Intelligence Controls */}
+                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <div className="relative w-full md:max-w-md group">
+                        <MaterialSymbol 
+                            icon="search" 
+                            className="absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors" 
+                        />
+                        <input
+                            type="text"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            placeholder="Search contacts..."
-                            className="pl-10 bg-paper"
+                            placeholder="Find contacts, companies or domains..."
+                            className="w-full h-12 pl-12 pr-4 bg-white border border-outline-variant/15 focus:ring-2 focus:ring-primary-fixed rounded-2xl text-sm transition-all shadow-sm font-medium"
                         />
                     </div>
-                    <div className="flex gap-1">
+                    
+                    <div className="flex bg-surface-container-low p-1 rounded-2xl border border-outline-variant/10 shadow-inner overflow-hidden">
                         {(["most_emails", "recent", "alphabetical"] as SortOption[]).map(s => (
                             <button
                                 key={s}
                                 onClick={() => setSort(s)}
-                                className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${sort === s ? "bg-primary text-white" : "bg-paper-mid text-ink-light hover:bg-paper"}`}
+                                className={`px-5 py-2 text-xs font-bold rounded-xl transition-all ${sort === s ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}
                             >
-                                {s === "most_emails" ? "Most Active" : s === "recent" ? "Recent" : "A–Z"}
+                                {s === "most_emails" ? "Priority" : s === "recent" ? "Recency" : "A–Z"}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                {filtered.length === 0 ? (
-                    <Card className="p-12 text-center text-muted-foreground">
-                        <User className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                        <p className="text-lg font-medium">
-                            {contacts.length === 0 ? "No contacts yet" : "No results found"}
-                        </p>
-                        <p className="text-sm mt-1">
-                            {contacts.length === 0
-                                ? "Contacts appear automatically as emails are synced and analysed."
-                                : "Try a different search term."}
-                        </p>
-                    </Card>
+                {isLoading ? (
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        {[1, 2, 3, 4, 5, 6].map(i => (
+                            <div key={i} className="h-44 rounded-3xl bg-surface-container-low animate-pulse border border-outline-variant/10" />
+                        ))}
+                    </div>
+                ) : filtered.length === 0 ? (
+                    <div className="py-24 text-center flex flex-col items-center gap-6 bg-white rounded-[40px] border border-outline-variant/10 shadow-sm">
+                        <div className="w-24 h-24 rounded-full bg-surface-container flex items-center justify-center text-outline-variant">
+                            <MaterialSymbol icon="person_search" className="text-5xl" />
+                        </div>
+                        <div className="space-y-1 text-center max-w-sm">
+                            <h3 className="text-xl font-headline font-bold text-on-surface">No Intelligence Matches</h3>
+                            <p className="text-sm text-on-surface-variant leading-relaxed">
+                                {contacts.length === 0 
+                                    ? "Relationship nodes will manifest here as your inbox intelligence expands." 
+                                    : "No entities found for this query within your current network."}
+                            </p>
+                        </div>
+                    </div>
                 ) : (
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         {filtered.map(contact => (
-                            <Link key={contact.id} href={`/contacts/${encodeURIComponent(contact.email_address)}`} className="block">
-                                <Card
-                                    className={`p-4 flex items-center gap-4 hover:border-primary/40 hover:shadow-sm transition-all group cursor-pointer ${contact.is_unsubscribed ? "opacity-60" : ""}`}
-                                >
-                                    <Avatar className="h-11 w-11 border border-border-light">
-                                        <AvatarFallback className="bg-primary/10 text-primary font-medium text-sm">
-                                            {getInitials(contact)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <p className="font-medium text-ink truncate group-hover:text-primary transition-colors">
-                                                {contact.name ?? contact.email_address}
-                                            </p>
-                                            {contact.is_vip && (
-                                                <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500 shrink-0" />
-                                            )}
-                                            {contact.is_unsubscribed && (
-                                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                                    Unsubscribed
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        <p className="text-xs text-muted-foreground truncate">{contact.email_address}</p>
-                                        {contact.company && (
-                                            <p className="text-xs text-muted-foreground truncate">{contact.company}</p>
-                                        )}
-                                        {/* Tags */}
-                                        {contact.tags && contact.tags.length > 0 && (
-                                            <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                                                {contact.tags.slice(0, 2).map(tag => (
-                                                    <span
-                                                        key={tag.id}
-                                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
-                                                        style={{ backgroundColor: tag.color_hex || '#E2E8F0', color: '#1E293B' }}
-                                                    >
-                                                        {tag.name}
-                                                    </span>
-                                                ))}
-                                                {contact.tags.length > 2 && (
-                                                    <span className="text-[10px] text-muted-foreground">+{contact.tags.length - 2}</span>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="text-right shrink-0 space-y-1.5" onClick={(e) => e.stopPropagation()}>
-                                        <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
-                                            <Mail className="h-3 w-3" />
-                                            {contact.interaction_count}
-                                        </div>
-                                        {contact.last_interaction_at && (
-                                            <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
-                                                <Clock className="h-3 w-3" />
-                                                {formatDistanceToNow(new Date(contact.last_interaction_at), { addSuffix: true })}
-                                            </div>
-                                        )}
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className={`h-7 px-2 text-xs ${contact.is_unsubscribed ? "text-primary hover:text-primary" : "text-muted-foreground hover:text-destructive"}`}
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                toggleUnsubscribe({ contactId: contact.id, email: contact.email_address });
-                                            }}
-                                            disabled={isPending}
-                                        >
-                                            {contact.is_unsubscribed ? (
-                                                <><Bell className="h-3 w-3 mr-1" /> Resubscribe</>
-                                            ) : (
-                                                <><BellOff className="h-3 w-3 mr-1" /> Unsubscribe</>
-                                            )}
-                                        </Button>
-                                    </div>
-                                </Card>
-                            </Link>
+                            <ContactCard 
+                                key={contact.id} 
+                                contact={contact} 
+                                initials={getInitials(contact)}
+                                onUnsubscribe={() => toggleUnsubscribe({ contactId: contact.id, email: contact.email_address })}
+                                isPending={isPending}
+                            />
                         ))}
                     </div>
                 )}
             </div>
         </AppShell>
+    );
+}
+
+function ContactCard({ contact, initials, onUnsubscribe, isPending }: { 
+    contact: Contact, 
+    initials: string, 
+    onUnsubscribe: () => void,
+    isPending: boolean 
+}) {
+    return (
+        <div className={`group bg-white rounded-3xl border border-outline-variant/10 p-6 hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all relative overflow-hidden flex flex-col justify-between ${contact.is_unsubscribed ? "opacity-60" : ""}`}>
+            <div className="flex items-start justify-between mb-4">
+                <div className="h-14 w-14 rounded-2xl bg-primary-fixed/20 text-primary font-bold flex items-center justify-center text-lg shadow-sm border border-primary/5 transition-transform group-hover:scale-110">
+                    {initials}
+                </div>
+                <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button className="p-2 hover:bg-surface-container rounded-xl text-outline hover:text-tertiary transition-colors">
+                        <MaterialSymbol icon="star" filled={contact.is_vip} />
+                    </button>
+                    <Link href={`/contacts/${encodeURIComponent(contact.email_address)}`} className="p-2 hover:bg-surface-container rounded-xl text-outline hover:text-primary transition-colors">
+                        <MaterialSymbol icon="open_in_new" />
+                    </Link>
+                </div>
+            </div>
+
+            <div className="space-y-1.5 flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                    <h3 className="text-base font-headline font-bold text-on-surface truncate">
+                        {contact.name || contact.email_address.split('@')[0]}
+                    </h3>
+                    {contact.is_unsubscribed && (
+                        <div className="px-1.5 py-0.5 bg-surface-container-high text-on-surface-variant font-bold text-[8px] rounded uppercase tracking-widest">Muted</div>
+                    )}
+                </div>
+                <p className="text-xs text-on-surface-variant font-medium truncate">{contact.email_address}</p>
+                {contact.company && (
+                    <div className="flex items-center gap-1.5 text-xs text-outline font-bold uppercase tracking-wider mt-1">
+                        <MaterialSymbol icon="corporate_fare" className="text-sm" />
+                        {contact.company}
+                    </div>
+                )}
+            </div>
+
+            <div className="mt-6 flex items-center justify-between pt-4 border-t border-outline-variant/5">
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-on-surface-variant">
+                        <MaterialSymbol icon="mail" className="text-sm text-outline" />
+                        <span className="tabular-nums">{contact.interaction_count}</span>
+                    </div>
+                    {contact.last_interaction_at && (
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-on-surface-variant">
+                            <MaterialSymbol icon="schedule" className="text-sm text-outline" />
+                            <span>{formatDistanceToNow(new Date(contact.last_interaction_at), { addSuffix: false })}</span>
+                        </div>
+                    )}
+                </div>
+                
+                <button 
+                    onClick={(e) => {
+                        e.preventDefault();
+                        onUnsubscribe();
+                    }}
+                    disabled={isPending}
+                    className={`p-2 rounded-xl transition-all ${contact.is_unsubscribed ? "bg-primary-fixed/20 text-primary hover:bg-primary-fixed/30" : "bg-surface-container hover:bg-error-container hover:text-error text-outline"}`}
+                >
+                    <MaterialSymbol icon={contact.is_unsubscribed ? "notifications_active" : "notifications_off"} className="text-lg" />
+                </button>
+            </div>
+        </div>
     );
 }

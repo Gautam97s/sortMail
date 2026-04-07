@@ -9,22 +9,25 @@ interface AppShellProps {
     children: React.ReactNode;
     title?: string;
     subtitle?: string;
+    showRightSidebar?: boolean;
+    onSearchChange?: (value: string) => void;
 }
 
-export default function AppShell({ children, title, subtitle }: AppShellProps) {
+export default function AppShell({ 
+    children, 
+    title, 
+    subtitle, 
+    showRightSidebar = true,
+    onSearchChange
+}: AppShellProps) {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     return (
-        <div className="flex w-full h-screen overflow-hidden relative bg-gradient-to-br from-[#f8f7ff] via-[#f0f3ff] to-[#f5f0ff]">
-            {/* Background Decorative Mesh Gradient / Blobs for Glassmorphism */}
-            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-accent/20 blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-[-5%] w-[45%] h-[45%] rounded-full bg-accent2/20 blur-[130px] pointer-events-none" />
-            <div className="absolute top-[20%] right-[20%] w-[35%] h-[35%] rounded-full bg-ai-purple/15 blur-[100px] pointer-events-none" />
-
+        <div className="flex w-full h-screen overflow-hidden bg-background text-on-surface select-none font-body">
             {/* Mobile Overlay */}
             <div
-                className={`drawer-overlay ${mobileSidebarOpen ? 'open' : ''} z-40`}
+                className={`drawer-overlay ${mobileSidebarOpen ? 'open' : ''} z-40 transition-all duration-300`}
                 onClick={() => setMobileSidebarOpen(false)}
             />
 
@@ -35,21 +38,26 @@ export default function AppShell({ children, title, subtitle }: AppShellProps) {
                 onClose={() => setMobileSidebarOpen(false)}
             />
 
-            <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full min-w-0">
+            <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full min-w-0 bg-surface-container-lowest">
                 <TopNavigationBar
                     onMobileSidebarOpen={() => setMobileSidebarOpen(true)}
-                    searchPlaceholder={title || "Search emails, subjects or summaries..."}
+                    onSearchChange={onSearchChange}
+                    searchPlaceholder={title || "Search your intelligent workspace..."}
                 />
 
-                <div className="flex-1 overflow-auto p-4 md:p-6 w-full max-w-full">
-                    <div className="w-full max-w-full">
+                <div className="flex-1 overflow-auto w-full transition-all duration-300 custom-scrollbar">
+                    <div className="w-full max-w-full min-h-full">
                         {children}
                     </div>
                 </div>
             </main>
 
-            {/* Right Contextual Sidebar */}
-            <RightSidebar />
+            {/* Right Contextual Sidebar - AI Intelligence Pane */}
+            {showRightSidebar && (
+                <div className="hidden lg:block w-80 shrink-0 h-full border-l border-outline-variant/15 bg-surface-container-low transition-all duration-300">
+                    <RightSidebar />
+                </div>
+            )}
         </div>
     );
 }

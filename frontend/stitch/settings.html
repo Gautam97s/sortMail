@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Settings - Cognitive Flow</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#4f00d0",
+                        "tertiary-container": "#8155ff",
+                        "on-primary-fixed-variant": "#004493",
+                        "surface-container-high": "#e6e8e9",
+                        "on-secondary-fixed": "#181c20",
+                        "primary-fixed": "#d8e2ff",
+                        "primary-container": "#1a73e8",
+                        "tertiary-fixed": "#e8deff",
+                        "primary": "#005bbf",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#c3c7cc",
+                        "surface-variant": "#e1e3e4",
+                        "inverse-on-surface": "#eff1f2",
+                        "on-tertiary-fixed": "#20005f",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#dfe3e8",
+                        "surface-bright": "#f8fafb",
+                        "on-primary-fixed": "#001a41",
+                        "on-secondary-container": "#5f6368",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "tertiary": "#6833ea",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#5b5f64",
+                        "on-secondary-fixed-variant": "#43474c",
+                        "on-error-container": "#93000a",
+                        "on-secondary": "#ffffff",
+                        "surface-container-low": "#f2f4f5",
+                        "tertiary-fixed-dim": "#cdbdff",
+                        "on-primary-container": "#ffffff",
+                        "surface-dim": "#d8dadb",
+                        "on-surface": "#191c1d",
+                        "surface": "#f8fafb",
+                        "on-surface-variant": "#414754",
+                        "primary-fixed-dim": "#adc7ff",
+                        "on-background": "#191c1d",
+                        "background": "#f8fafb",
+                        "outline-variant": "#c1c6d6",
+                        "on-tertiary-container": "#060021",
+                        "surface-container": "#eceeef",
+                        "secondary-container": "#dde0e6",
+                        "inverse-surface": "#2e3132",
+                        "inverse-primary": "#adc7ff",
+                        "surface-container-highest": "#e1e3e4",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#005bc0",
+                        "outline": "#727785"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-shadow {
+            box-shadow: 0 12px 32px -4px rgba(0, 91, 191, 0.08);
+        }
+        .ghost-border {
+            border: 1px solid rgba(193, 198, 214, 0.15);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #eceeef;
+        }
+    </style>
+</head>
+<body class="bg-surface-container text-on-surface">
+<div class="flex h-screen overflow-hidden">
+<!-- SideNavBar - JSON Implementation -->
+<aside class="hidden md:flex flex-col h-screen py-6 px-4 space-y-2 bg-slate-100 dark:bg-slate-950 h-full w-64 border-r-0 font-['Inter'] text-sm font-medium tonal-shift bg-slate-100 dark:bg-slate-900">
+<div class="px-2 mb-8">
+<h1 class="text-lg font-black text-blue-700 dark:text-blue-400">The Canvas</h1>
+<p class="text-xs text-slate-500">AI-Prioritized</p>
+</div>
+<button class="flex items-center justify-center space-x-2 bg-gradient-to-r from-primary to-primary-container text-on-primary py-3 px-6 rounded-xl mb-6 tonal-shadow active:scale-95 transition-all">
+<span class="material-symbols-outlined">add</span>
+<span class="font-semibold">Compose</span>
+</button>
+<nav class="space-y-1">
+<a class="flex items-center space-x-3 px-4 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/50 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="inbox">inbox</span>
+<span>Inbox</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/50 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="drafts">drafts</span>
+<span>Drafts</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/50 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span>Tasks</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-2.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<div class="mt-auto p-4 bg-tertiary-fixed rounded-xl overflow-hidden relative">
+<div class="relative z-10">
+<p class="text-[10px] font-bold uppercase tracking-wider text-on-tertiary-fixed-variant mb-1">Intelligence</p>
+<p class="text-xs text-on-tertiary-fixed mb-3">AI is currently prioritizing 12 high-value threads.</p>
+<div class="h-1 w-full bg-on-tertiary-fixed/10 rounded-full overflow-hidden">
+<div class="h-full bg-tertiary w-3/4"></div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<!-- TopAppBar - JSON Implementation -->
+<header class="flex items-center justify-between px-6 w-full max-w-full h-16 bg-slate-50 dark:bg-slate-900 font-['Plus_Jakarta_Sans'] text-sm tracking-tight bg-slate-100 dark:bg-slate-800">
+<div class="flex items-center space-x-4">
+<span class="text-xl font-bold text-slate-900 dark:text-white">Cognitive Flow</span>
+<div class="hidden md:flex items-center bg-surface-container-low px-3 py-1.5 rounded-lg ghost-border min-w-[320px]">
+<span class="material-symbols-outlined text-outline text-lg" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full py-0 px-2" placeholder="Search settings..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-4">
+<button class="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-full active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<button class="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-full active:scale-95 duration-150">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="flex items-center space-x-2 p-1 pl-3 pr-1 rounded-full border border-outline-variant/20 hover:bg-slate-200/50 transition-colors">
+<span class="text-xs font-semibold text-slate-700">Alex Reed</span>
+<div class="h-8 w-8 rounded-full bg-primary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="account_circle" style="font-variation-settings: 'FILL' 1;">account_circle</span>
+</div>
+</button>
+</div>
+</header>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto bg-surface-container-low p-6 md:p-10">
+<div class="max-w-5xl mx-auto">
+<!-- Header Section -->
+<div class="mb-10">
+<h2 class="text-4xl font-headline font-extrabold text-on-surface tracking-tight mb-2">Settings</h2>
+<p class="text-on-surface-variant font-body">Manage your intelligent workspace and AI behavior.</p>
+</div>
+<!-- Tabbed Navigation -->
+<div class="flex space-x-8 border-b border-outline-variant/30 mb-10 overflow-x-auto pb-px">
+<button class="pb-4 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors whitespace-nowrap">General</button>
+<button class="pb-4 text-sm font-bold text-primary border-b-2 border-primary whitespace-nowrap">AI Preferences</button>
+<button class="pb-4 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors whitespace-nowrap">Accounts &amp; Labels</button>
+<button class="pb-4 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors whitespace-nowrap">Security</button>
+<button class="pb-4 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors whitespace-nowrap">Integrations</button>
+</div>
+<!-- Settings Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Left Column: AI Intelligence -->
+<div class="lg:col-span-7 space-y-6">
+<section class="bg-surface-container-lowest rounded-xl p-8 tonal-shadow relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1.5 h-full bg-tertiary"></div>
+<div class="flex items-center space-x-3 mb-6">
+<span class="material-symbols-outlined text-tertiary" data-icon="auto_awesome">auto_awesome</span>
+<h3 class="text-xl font-headline font-bold text-on-surface">AI Intelligence Settings</h3>
+</div>
+<div class="space-y-8">
+<!-- Toggle Row -->
+<div class="flex items-start justify-between">
+<div class="max-w-[80%]">
+<p class="font-bold text-on-surface text-sm mb-1">Contextual Auto-Summaries</p>
+<p class="text-xs text-on-surface-variant leading-relaxed">Automatically generate 3-bullet summaries for threads longer than 5 messages.</p>
+</div>
+<div class="relative inline-flex items-center cursor-pointer">
+<div class="w-11 h-6 bg-primary rounded-full"></div>
+<div class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform translate-x-5"></div>
+</div>
+</div>
+<div class="flex items-start justify-between">
+<div class="max-w-[80%]">
+<p class="font-bold text-on-surface text-sm mb-1">Intelligent Task Extraction</p>
+<p class="text-xs text-on-surface-variant leading-relaxed">Automatically identify and create task drafts from actionable language in incoming mail.</p>
+</div>
+<div class="relative inline-flex items-center cursor-pointer">
+<div class="w-11 h-6 bg-surface-variant rounded-full"></div>
+<div class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform"></div>
+</div>
+</div>
+<div class="flex items-start justify-between">
+<div class="max-w-[80%]">
+<p class="font-bold text-on-surface text-sm mb-1">Tone &amp; Sentiment Analysis</p>
+<p class="text-xs text-on-surface-variant leading-relaxed">Highlight urgent or emotionally charged emails using visual heatmaps in the inbox.</p>
+</div>
+<div class="relative inline-flex items-center cursor-pointer">
+<div class="w-11 h-6 bg-primary rounded-full"></div>
+<div class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform translate-x-5"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Slider Section -->
+<section class="bg-surface-container-lowest rounded-xl p-8 tonal-shadow">
+<div class="flex items-center space-x-3 mb-6">
+<span class="material-symbols-outlined text-primary" data-icon="rule">rule</span>
+<h3 class="text-xl font-headline font-bold text-on-surface">Confidence Thresholds</h3>
+</div>
+<p class="text-xs text-on-surface-variant mb-8 leading-relaxed">Adjust how strictly the AI filters your "High Priority" folder. Higher thresholds reduce noise but may miss edge-case opportunities.</p>
+<div class="space-y-10">
+<div>
+<div class="flex justify-between mb-4">
+<label class="text-sm font-bold text-on-surface">Priority Filter Sensitivity</label>
+<span class="text-xs font-mono font-bold text-primary px-2 py-0.5 bg-primary-fixed rounded">85%</span>
+</div>
+<input class="w-full h-1.5 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary" type="range" value="85"/>
+<div class="flex justify-between mt-2">
+<span class="text-[10px] uppercase font-bold text-outline">Relaxed</span>
+<span class="text-[10px] uppercase font-bold text-outline">Strict</span>
+</div>
+</div>
+<div>
+<div class="flex justify-between mb-4">
+<label class="text-sm font-bold text-on-surface">Auto-Draft Confidence</label>
+<span class="text-xs font-mono font-bold text-primary px-2 py-0.5 bg-primary-fixed rounded">60%</span>
+</div>
+<input class="w-full h-1.5 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary" type="range" value="60"/>
+<div class="flex justify-between mt-2">
+<span class="text-[10px] uppercase font-bold text-outline">Low Accuracy</span>
+<span class="text-[10px] uppercase font-bold text-outline">High Accuracy</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Context & Preview -->
+<div class="lg:col-span-5 space-y-6">
+<section class="bg-surface-container-lowest rounded-xl p-8 tonal-shadow">
+<div class="flex items-center space-x-3 mb-6">
+<span class="material-symbols-outlined text-secondary" data-icon="hub">hub</span>
+<h3 class="text-xl font-headline font-bold text-on-surface">Context Settings</h3>
+</div>
+<div class="space-y-4">
+<p class="text-xs text-on-surface-variant mb-4">Select which data sources the AI can reference for context when drafting and summarizing.</p>
+<div class="flex items-center p-3 rounded-lg bg-surface-container-low border border-outline-variant/10">
+<div class="h-10 w-10 rounded-lg bg-white flex items-center justify-center mr-4">
+<span class="material-symbols-outlined text-blue-500" data-icon="calendar_month">calendar_month</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-bold text-on-surface">Work Calendar</p>
+<p class="text-[10px] text-on-surface-variant">Referenced for availability</p>
+</div>
+<input checked="" class="rounded border-outline-variant text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</div>
+<div class="flex items-center p-3 rounded-lg bg-surface-container-low border border-outline-variant/10">
+<div class="h-10 w-10 rounded-lg bg-white flex items-center justify-center mr-4">
+<span class="material-symbols-outlined text-emerald-500" data-icon="cloud">cloud</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-bold text-on-surface">Shared Drive Documents</p>
+<p class="text-[10px] text-on-surface-variant">Referenced for project details</p>
+</div>
+<input checked="" class="rounded border-outline-variant text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</div>
+<div class="flex items-center p-3 rounded-lg bg-surface-container-low border border-outline-variant/10">
+<div class="h-10 w-10 rounded-lg bg-white flex items-center justify-center mr-4">
+<span class="material-symbols-outlined text-slate-500" data-icon="description">description</span>
+</div>
+<div class="flex-1">
+<p class="text-sm font-bold text-on-surface">Local PDF History</p>
+<p class="text-[10px] text-on-surface-variant">Personal archives</p>
+</div>
+<input class="rounded border-outline-variant text-primary focus:ring-primary h-5 w-5" type="checkbox"/>
+</div>
+</div>
+</section>
+<section class="bg-primary/5 rounded-xl p-8 border border-primary/10">
+<h4 class="text-sm font-bold text-primary mb-4 flex items-center">
+<span class="material-symbols-outlined text-sm mr-2" data-icon="tips_and_updates">tips_and_updates</span>
+                                    AI Insight
+                                </h4>
+<p class="text-sm text-on-surface italic leading-relaxed">
+                                    "Based on your 85% priority threshold, we expect to filter out 42% of your noise while ensuring high-stakes threads remain visible. You can lower this anytime to cast a wider net."
+                                </p>
+</section>
+<div class="flex justify-end space-x-4 mt-8 pt-6 border-t border-outline-variant/20">
+<button class="px-6 py-2 text-sm font-bold text-secondary hover:bg-surface-container-high rounded-md transition-colors">Discard</button>
+<button class="px-8 py-2 text-sm font-bold text-on-primary bg-primary rounded-md tonal-shadow active:scale-95 transition-all">Save Changes</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

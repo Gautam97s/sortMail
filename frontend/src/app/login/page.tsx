@@ -6,6 +6,7 @@ import { ArrowRight, Loader2, Shield, Eye, Github, Sparkles } from "lucide-react
 import Link from "next/link";
 
 import { DynamicIcon } from "@/components/ui/dynamic-icon";
+import { getApiUrl } from "@/lib/config";
 
 export default function LoginPage() {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -25,7 +26,15 @@ export default function LoginPage() {
     const handleGoogleLogin = async () => {
         try {
             setLoading("google");
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`);
+            const response = await fetch(getApiUrl("/api/auth/google"));
+            
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                const text = await response.text();
+                console.error("Non-JSON response received:", text);
+                throw new Error("Server returned an invalid response (expected JSON).");
+            }
+
             const data = await response.json();
             if (data.auth_url) {
                 window.location.href = data.auth_url;
@@ -55,7 +64,7 @@ export default function LoginPage() {
     const handleLogin = (provider: "google" | "outlook") => {
         setLoading(provider);
         setTimeout(() => {
-            window.location.href = `${process.env.NEXT_PUBLIC_API_URL || ""}/api/auth/${provider}`;
+            window.location.href = getApiUrl(`/api/auth/${provider}`);
         }, 800);
     };
 

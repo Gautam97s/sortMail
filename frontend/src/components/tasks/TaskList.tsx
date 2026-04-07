@@ -1,94 +1,86 @@
+"use client";
+
 import React from 'react';
 import { TaskDTOv1 } from '@/types/dashboard';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import PriorityBadge from '@/components/shared/PriorityBadge';
-import { AlertTriangle, ChevronRight, Mail, LayoutList } from 'lucide-react';
+
+const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
+    <span 
+        className={`material-symbols-outlined ${className}`}
+        style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
+    >
+        {icon}
+    </span>
+);
 
 interface TaskListProps {
     tasks: TaskDTOv1[];
     onTaskClick: (taskId: string) => void;
 }
 
-const STATUS_BADGES: Record<string, { label: string; className: string }> = {
-    pending: { label: 'To Do', className: 'bg-paper-deep text-muted border-border/60' },
-    in_progress: { label: 'In Progress', className: 'bg-accent/10 text-accent border-accent/20' },
-    completed: { label: 'Done', className: 'bg-green-500/10 text-green-600 border-green-500/20' },
+const PRIORITY_MAPPING: Record<string, { label: string; icon: string; colorClass: string; bgClass: string }> = {
+    do_now: { label: "Immediate", icon: "emergency_home", colorClass: "text-error", bgClass: "bg-error-container" },
+    do_soon: { label: "Scheduled", icon: "schedule", colorClass: "text-tertiary", bgClass: "bg-tertiary-fixed/20" },
+    later: { label: "Deferred", icon: "event_repeat", colorClass: "text-primary", bgClass: "bg-primary-fixed/20" },
+    all: { label: "Neutral", icon: "radio_button_unchecked", colorClass: "text-outline", bgClass: "bg-surface-container" },
 };
 
-export function TaskList({ tasks, onTaskClick }: TaskListProps) {
-    if (tasks.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center py-16 text-muted bg-white/30 backdrop-blur-md rounded-2xl border border-dashed border-white/50 shadow-sm">
-                <LayoutList className="h-12 w-12 opacity-20 mb-4" />
-                <p className="font-mono text-sm uppercase tracking-widest opacity-60">No tasks found</p>
-                <p className="text-xs opacity-50 mt-1">Try adjusting your filters</p>
-            </div>
-        );
-    }
-
+export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskClick }) => {
     return (
-        <div className="flex flex-col gap-3">
-            {tasks.map((task) => (
-                <div
-                    key={task.task_id}
-                    className="glass-card cursor-pointer hover:bg-white/50 hover:shadow-lg transition-all duration-300 group overflow-hidden"
-                    onClick={() => onTaskClick(task.task_id)}
-                >
-                    <div className="p-3 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4 relative overflow-hidden">
-                        {/* Urgent highlight */}
-                        {task.priority === 'do_now' && (
-                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-danger opacity-80" />
-                        )}
-
-                        <div className="flex flex-col sm:flex-row items-start gap-4 md:gap-6 flex-1 min-w-0">
-                            <div className="flex flex-row sm:flex-col gap-2 shrink-0 sm:w-28 items-center sm:items-start">
-                                <PriorityBadge priority={task.priority} className="w-fit" />
-                                <Badge variant="outline" className={`w-fit text-[9px] md:text-[10px] font-mono uppercase tracking-tighter ${STATUS_BADGES[task.status]?.className || ''}`}>
-                                    {STATUS_BADGES[task.status]?.label || task.status}
-                                </Badge>
+        <div className="space-y-3">
+            {tasks.length === 0 ? (
+                <div className="py-24 text-center bg-white rounded-[40px] border border-outline-variant/10 shadow-sm space-y-6">
+                    <MaterialSymbol icon="playlist_add_check" className="text-4xl text-outline-variant opacity-20" />
+                    <p className="text-sm font-bold text-on-surface uppercase tracking-widest opacity-60 italic">Matrix synchronized. No actionable entities detected.</p>
+                </div>
+            ) : (
+                tasks.map(task => {
+                    const priority = PRIORITY_MAPPING[task.priority] || PRIORITY_MAPPING.all;
+                    return (
+                        <div
+                            key={task.task_id}
+                            onClick={() => onTaskClick(task.task_id)}
+                            className="group bg-white rounded-[24px] p-5 flex items-center justify-between border border-outline-variant/10 hover:border-primary-fixed/30 hover:shadow-lg transition-all cursor-pointer overflow-hidden relative"
+                        >
+                            <div className="flex items-center gap-6 min-w-0 flex-1">
+                                <div className={`h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 border border-outline-variant/5 shadow-inner ${priority.bgClass} ${priority.colorClass}`}>
+                                    <MaterialSymbol icon={priority.icon} filled className="text-xl" />
+                                </div>
+                                <div className="min-w-0 flex-1 space-y-1">
+                                    <h4 className="text-sm font-bold text-on-surface truncate tracking-tight group-hover:text-primary transition-colors">
+                                        {task.title}
+                                    </h4>
+                                    <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-tighter opacity-60 text-outline-variant">
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-surface-container rounded uppercase">
+                                            <MaterialSymbol icon="category" className="text-[10px]" />
+                                            {task.task_type}
+                                        </div>
+                                        <div className="flex items-center gap-1.5 uppercase">
+                                            <MaterialSymbol icon="schedule" className="text-[10px]" />
+                                            Active Manifest
+                                        </div>
+                                        {task.description && <div className="truncate max-w-sm italic opacity-80">{task.description}</div>}
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-ink leading-snug group-hover:text-accent transition-colors font-display text-base md:text-lg">
-                                    {task.title}
-                                </h4>
-                                <p className="text-xs md:text-sm text-ink/70 truncate mt-1">
-                                    {task.description}
-                                </p>
-                                <div className="flex flex-wrap items-center gap-3 mt-3 text-[10px] md:text-xs text-muted font-mono uppercase tracking-wider">
-                                    {task.effort === 'deep_work' && (
-                                        <span className="bg-ai/10 text-ai px-1.5 py-0.5 rounded-sm font-bold">DEEP WORK</span>
-                                    )}
-                                    <span className="flex items-center gap-1.5 opacity-80">
-                                        <Mail className="h-3 w-3" />
-                                        Task via Email
-                                    </span>
+                            <div className="flex items-center gap-6 shrink-0">
+                                <div className="text-right space-y-1">
+                                    <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${priority.colorClass}`}>
+                                        {priority.label}
+                                    </div>
+                                    <div className="px-2 py-0.5 bg-surface-container-high text-on-surface-variant font-black text-[9px] rounded uppercase flex items-center gap-2">
+                                        <MaterialSymbol icon="query_stats" className="text-[10px]" />
+                                        Score: 84%
+                                    </div>
+                                </div>
+                                <div className="h-10 w-10 bg-surface-container rounded-xl flex items-center justify-center text-outline group-hover:text-on-surface group-hover:bg-primary-fixed/20 group-hover:text-primary transition-all">
+                                    <MaterialSymbol icon="arrow_forward" />
                                 </div>
                             </div>
                         </div>
-
-                        <div className="flex items-center justify-between sm:justify-end gap-6 md:gap-10 shrink-0 sm:pl-6 sm:border-l border-white/30 h-full pt-3 sm:pt-0 border-t sm:border-t-0 mt-2 sm:mt-0">
-                            <div className="text-left sm:text-right min-w-0 sm:min-w-[100px]">
-                                {task.deadline ? (
-                                    <div className="flex flex-row-reverse sm:flex-col items-center sm:items-end gap-2 sm:gap-0">
-                                        <div className="text-[10px] uppercase tracking-[0.2em] text-muted font-bold font-mono">
-                                            Due By
-                                        </div>
-                                        <div className={`text-xs md:text-sm font-black font-mono flex items-center justify-end gap-1.5 mt-0.5 ${new Date(task.deadline) < new Date() ? 'text-danger' : 'text-ink'}`}>
-                                            {new Date(task.deadline) < new Date() && <AlertTriangle className="h-3.5 w-3.5" />}
-                                            {new Date(task.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase()}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <span className="text-xs md:text-sm text-muted font-mono">—</span>
-                                )}
-                            </div>
-                            <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-border group-hover:text-accent transition-all group-hover:translate-x-1 shrink-0" />
-                        </div>
-                    </div>
-                </div>
-            ))}
+                    );
+                })
+            )}
         </div>
     );
-}
+};

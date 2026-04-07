@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Account Settings - Cognitive Flow</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#4f00d0",
+                        "tertiary-container": "#8155ff",
+                        "on-primary-fixed-variant": "#004493",
+                        "surface-container-high": "#e6e8e9",
+                        "on-secondary-fixed": "#181c20",
+                        "primary-fixed": "#d8e2ff",
+                        "primary-container": "#1a73e8",
+                        "tertiary-fixed": "#e8deff",
+                        "primary": "#005bbf",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#c3c7cc",
+                        "surface-variant": "#e1e3e4",
+                        "inverse-on-surface": "#eff1f2",
+                        "on-tertiary-fixed": "#20005f",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#dfe3e8",
+                        "surface-bright": "#f8fafb",
+                        "on-primary-fixed": "#001a41",
+                        "on-secondary-container": "#5f6368",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "tertiary": "#6833ea",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#5b5f64",
+                        "on-secondary-fixed-variant": "#43474c",
+                        "on-error-container": "#93000a",
+                        "on-secondary": "#ffffff",
+                        "surface-container-low": "#f2f4f5",
+                        "tertiary-fixed-dim": "#cdbdff",
+                        "on-primary-container": "#ffffff",
+                        "surface-dim": "#d8dadb",
+                        "on-surface": "#191c1d",
+                        "surface": "#f8fafb",
+                        "on-surface-variant": "#414754",
+                        "primary-fixed-dim": "#adc7ff",
+                        "on-background": "#191c1d",
+                        "background": "#f8fafb",
+                        "outline-variant": "#c1c6d6",
+                        "on-tertiary-container": "#060021",
+                        "surface-container": "#eceeef",
+                        "secondary-container": "#dde0e6",
+                        "inverse-surface": "#2e3132",
+                        "inverse-primary": "#adc7ff",
+                        "surface-container-highest": "#e1e3e4",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#005bc0",
+                        "outline": "#727785"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .tonal-shadow { box-shadow: 0 12px 32px -4px rgba(0, 91, 191, 0.08); }
+        .glass-intelligence {
+            background: rgba(232, 222, 255, 0.7);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-surface-container text-on-surface antialiased">
+<div class="flex h-screen overflow-hidden">
+<!-- SideNavBar Component -->
+<aside class="hidden md:flex flex-col h-screen py-6 px-4 space-y-2 bg-slate-100 dark:bg-slate-950 h-full w-64 border-r-0 tonal-shift bg-slate-100 dark:bg-slate-900 font-['Inter'] text-sm font-medium">
+<div class="px-2 mb-8">
+<h1 class="text-lg font-black text-blue-700 dark:text-blue-400">The Canvas</h1>
+<p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">AI-Prioritized</p>
+</div>
+<button class="mb-6 flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-primary to-primary-container text-white font-semibold tonal-shadow transition-all duration-200 active:scale-95">
+<span class="material-symbols-outlined">edit</span>
+<span>Compose</span>
+</button>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/50 rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">inbox</span>
+<span>Inbox</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/50 rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">drafts</span>
+<span>Drafts</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/50 rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span>Tasks</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+</aside>
+<main class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+<!-- TopNavBar Component -->
+<header class="flex items-center justify-between px-6 w-full max-w-full h-16 bg-slate-50 dark:bg-slate-900 font-['Plus_Jakarta_Sans'] text-sm tracking-tight">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-md">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 material-symbols-outlined">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg focus:ring-2 focus:ring-primary/20 text-on-surface" placeholder="Search settings..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors active:scale-95 duration-150 text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex items-center gap-2 p-1 pr-3 rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors active:scale-95 duration-150">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="professional headshot of a woman with a confident smile in a brightly lit modern office setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeaFv4LhuVj_S7gxtgFZZqgfVS61w7k5nTlKwsAv2HNx_sn-MWSC1haTFxTs3QruPie-G40tIo_iTagVKK3QH5Z1THUromRvqo4qHCPZSNvJKUhxX2Y34a7Gb4ZT_hHHCh58cN-RJE7QweM5hY_XC70ph75uiI2sqkW4WGOgNPi0wxQF2k6Z977o_a2WFasM-x-mu4GGTYZRLWbhdGsY4uaA9vgw_mdPvZC9CVi4BA_8lal1fuSbbnfB3WCcNlmmFZR99YC9yybKSD"/>
+<span class="material-symbols-outlined text-slate-500">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<div class="p-8 max-w-6xl mx-auto w-full">
+<div class="mb-10">
+<h2 class="text-3xl font-bold text-on-surface tracking-tight mb-2">Account Settings</h2>
+<p class="text-on-surface-variant">Manage your personal information, connected email accounts, and subscription.</p>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Column 1: Personal & Subscription -->
+<div class="lg:col-span-4 space-y-8">
+<!-- Profile Card -->
+<section class="bg-surface-container-lowest rounded-xl p-6 tonal-shadow">
+<div class="flex flex-col items-center text-center mb-6">
+<div class="relative mb-4">
+<img class="w-24 h-24 rounded-full object-cover ring-4 ring-primary/10" data-alt="professional headshot of a woman with a confident smile in a brightly lit modern office setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuADtb7bZpZPxovzgR2Qp__tCH2542AEpEJV6crZZFPvUh5ZX3f5-qgvL6Pt7-6Ka1popPz_ETt3eoKdqmxaZcpkKNPM-qgosPAEV2RfO6sHnKmVC0I6PUjrsyAz5uHj5UEL8mEvT-enbt4wcz2ybKcodOWMUlsiSAbJc8cMy7iKoGt6VziG6Kark5PHB8RlHeK-XTuajE7B9ckyPIXr28k09t8l0wnAhAsZF3IHgxJAvqM--HZX2Zqi3QO3GdC_K2qEGvUFHYSAjZda"/>
+<button class="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-full shadow-lg hover:bg-primary-container transition-colors">
+<span class="material-symbols-outlined text-sm">photo_camera</span>
+</button>
+</div>
+<h3 class="text-xl font-bold text-on-surface">Elena Rodriguez</h3>
+<p class="text-sm text-on-surface-variant">elena.rodriguez@design.co</p>
+</div>
+<div class="space-y-4 pt-4 border-t border-outline-variant/15">
+<div class="flex justify-between items-center">
+<span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Role</span>
+<span class="text-sm font-medium">Design Director</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Timezone</span>
+<span class="text-sm font-medium">PST (UTC -8)</span>
+</div>
+</div>
+<button class="w-full mt-6 py-2 bg-surface-container-high text-on-surface font-medium rounded-md hover:bg-surface-variant transition-colors">Edit Profile</button>
+</section>
+<!-- Subscription Card -->
+<section class="bg-surface-container-lowest rounded-xl p-6 tonal-shadow overflow-hidden relative">
+<div class="absolute top-0 right-0 p-4">
+<span class="bg-tertiary-fixed text-on-tertiary-fixed text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter">Pro</span>
+</div>
+<h3 class="text-lg font-bold text-on-surface mb-4">Subscription Plan</h3>
+<div class="mb-6">
+<p class="text-2xl font-bold text-primary">$15<span class="text-sm font-normal text-on-surface-variant">/month</span></p>
+<p class="text-sm text-on-surface-variant mt-1">Next billing date: Oct 12, 2023</p>
+</div>
+<div class="space-y-3 mb-6">
+<div class="flex items-center gap-2 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span>Unlimited AI Summaries</span>
+</div>
+<div class="flex items-center gap-2 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span>Advanced Security Filtering</span>
+</div>
+<div class="flex items-center gap-2 text-sm">
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span>Priority Support</span>
+</div>
+</div>
+<button class="w-full py-2 bg-primary text-white font-medium rounded-md hover:bg-primary-container transition-colors shadow-sm">Manage Billing</button>
+</section>
+</div>
+<!-- Column 2: Connected Accounts -->
+<div class="lg:col-span-8 space-y-8">
+<section class="bg-surface-container-lowest rounded-xl tonal-shadow overflow-hidden">
+<div class="p-6 border-b border-outline-variant/15 flex justify-between items-center">
+<div>
+<h3 class="text-lg font-bold text-on-surface">Connected Accounts</h3>
+<p class="text-sm text-on-surface-variant">Sync and manage your email providers</p>
+</div>
+<button class="flex items-center gap-2 py-2 px-4 rounded-md bg-primary-fixed text-on-primary-fixed-variant font-semibold text-sm hover:bg-primary-fixed-dim transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+<span>Add Account</span>
+</button>
+</div>
+<div class="divide-y divide-outline-variant/15">
+<!-- Account Item 1 -->
+<div class="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl text-[#EA4335]">mail</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h4 class="font-bold text-on-surface">Google Workspace</h4>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-tight">Active</span>
+</div>
+<p class="text-sm text-on-surface-variant">elena.rodriguez@design.co</p>
+</div>
+</div>
+<div class="flex items-center gap-6 md:gap-12">
+<div class="text-right hidden sm:block">
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Last Synced</p>
+<p class="text-sm font-medium">2 minutes ago</p>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 text-sm font-semibold text-on-surface hover:bg-surface-container transition-colors rounded-md border border-outline-variant/30">Settings</button>
+<button class="px-4 py-2 text-sm font-semibold text-error hover:bg-error-container/20 transition-colors rounded-md">Disconnect</button>
+</div>
+</div>
+</div>
+<!-- Account Item 2 -->
+<div class="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-error-container/5">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl text-[#0078D4]">alternate_email</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h4 class="font-bold text-on-surface">Microsoft Outlook</h4>
+<span class="px-2 py-0.5 rounded-full bg-error-container text-error text-[10px] font-bold uppercase tracking-tight">Error</span>
+</div>
+<p class="text-sm text-on-surface-variant">elena.work@outlook.com</p>
+</div>
+</div>
+<div class="flex items-center gap-6 md:gap-12">
+<div class="text-right hidden sm:block">
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Status</p>
+<p class="text-sm font-medium text-error">Auth Token Expired</p>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 text-sm font-semibold bg-primary text-white hover:bg-primary-container transition-colors rounded-md shadow-sm">Reconnect</button>
+<button class="px-4 py-2 text-sm font-semibold text-error hover:bg-error-container/20 transition-colors rounded-md">Disconnect</button>
+</div>
+</div>
+</div>
+<!-- Account Item 3 -->
+<div class="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl text-slate-600">inbox</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h4 class="font-bold text-on-surface">iCloud Mail</h4>
+<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-tight">Active</span>
+</div>
+<p class="text-sm text-on-surface-variant">rodriguez.elena@icloud.com</p>
+</div>
+</div>
+<div class="flex items-center gap-6 md:gap-12">
+<div class="text-right hidden sm:block">
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Last Synced</p>
+<p class="text-sm font-medium">45 minutes ago</p>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 text-sm font-semibold text-on-surface hover:bg-surface-container transition-colors rounded-md border border-outline-variant/30">Settings</button>
+<button class="px-4 py-2 text-sm font-semibold text-error hover:bg-error-container/20 transition-colors rounded-md">Disconnect</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- AI Intelligence Card (Bento Style) -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="glass-intelligence p-6 rounded-xl border-l-2 border-tertiary tonal-shadow">
+<div class="flex items-center gap-3 mb-4">
+<div class="p-2 bg-tertiary text-white rounded-lg">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<h4 class="font-bold text-on-tertiary-container">Smart Labeling</h4>
+</div>
+<p class="text-sm text-on-tertiary-container/80 mb-4">Your AI model has categorized 1,240 emails this week across all accounts with 99.2% accuracy.</p>
+<a class="text-tertiary text-sm font-bold flex items-center gap-1 hover:underline" href="#">
+                                    View Training Data <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl tonal-shadow border-l-2 border-primary">
+<div class="flex items-center gap-3 mb-4">
+<div class="p-2 bg-primary text-white rounded-lg">
+<span class="material-symbols-outlined">shield</span>
+</div>
+<h4 class="font-bold text-on-surface">Security Pulse</h4>
+</div>
+<p class="text-sm text-on-surface-variant mb-4">No unauthorized access attempts detected in the last 30 days. Two-factor authentication is active on all accounts.</p>
+<a class="text-primary text-sm font-bold flex items-center gap-1 hover:underline" href="#">
+                                    Security Audit <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+</section>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Mobile Navigation Shell -->
+<div class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-50 dark:bg-slate-900 flex items-center justify-around h-16 px-4 z-50">
+<button class="flex flex-col items-center justify-center gap-1 text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined">inbox</span>
+<span class="text-[10px]">Inbox</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined">assignment</span>
+<span class="text-[10px]">Tasks</span>
+</button>
+<div class="-mt-8">
+<button class="w-12 h-12 rounded-full bg-gradient-to-r from-primary to-primary-container text-white shadow-lg flex items-center justify-center">
+<span class="material-symbols-outlined">add</span>
+</button>
+</div>
+<button class="flex flex-col items-center justify-center gap-1 text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-[10px]">Analytics</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-1 text-blue-700 dark:text-blue-400 font-semibold">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="text-[10px]">Settings</span>
+</button>
+</div>
+</body></html>

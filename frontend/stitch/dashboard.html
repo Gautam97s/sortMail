@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SortMail AI - Dashboard</title>
+<!-- Fonts and Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#005bbf",
+                    "surface-container-highest": "#e1e3e4",
+                    "outline": "#727785",
+                    "on-secondary-fixed": "#181c20",
+                    "on-primary-fixed": "#001a41",
+                    "surface-container-low": "#f2f4f5",
+                    "on-surface-variant": "#414754",
+                    "tertiary-container": "#8155ff",
+                    "on-error-container": "#93000a",
+                    "on-secondary-fixed-variant": "#43474c",
+                    "inverse-surface": "#2e3132",
+                    "secondary-fixed": "#dfe3e8",
+                    "outline-variant": "#c1c6d6",
+                    "on-primary": "#ffffff",
+                    "inverse-primary": "#adc7ff",
+                    "surface-variant": "#e1e3e4",
+                    "surface-container-high": "#e6e8e9",
+                    "on-tertiary-container": "#060021",
+                    "on-primary-fixed-variant": "#004493",
+                    "background": "#f8fafb",
+                    "tertiary-fixed-dim": "#cdbdff",
+                    "tertiary": "#6833ea",
+                    "on-surface": "#191c1d",
+                    "on-tertiary-fixed": "#20005f",
+                    "on-error": "#ffffff",
+                    "surface": "#f8fafb",
+                    "primary-fixed": "#d8e2ff",
+                    "on-background": "#191c1d",
+                    "surface-bright": "#f8fafb",
+                    "tertiary-fixed": "#e8deff",
+                    "surface-container": "#eceeef",
+                    "secondary-fixed-dim": "#c3c7cc",
+                    "on-primary-container": "#ffffff",
+                    "surface-tint": "#005bc0",
+                    "on-tertiary": "#ffffff",
+                    "secondary": "#5b5f64",
+                    "primary-fixed-dim": "#adc7ff",
+                    "primary-container": "#1a73e8",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-container": "#dde0e6",
+                    "on-tertiary-fixed-variant": "#4f00d0",
+                    "inverse-on-surface": "#eff1f2",
+                    "error-container": "#ffdad6",
+                    "error": "#ba1a1a",
+                    "on-secondary-container": "#5f6368",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#d8dadb"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-shadow {
+            box-shadow: 0 12px 32px -4px rgba(0, 91, 191, 0.08);
+        }
+        .glass-ai {
+            background: rgba(232, 222, 255, 0.8);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-fixed">
+<div class="flex min-h-screen">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col h-screen w-64 bg-surface-container-low border-r border-outline-variant/15 sticky left-0 py-4 px-3 font-medium">
+<div class="flex items-center gap-3 px-3 mb-8">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined" data-weight="fill" style="font-variation-settings: 'FILL' 1;">mail</span>
+</div>
+<div>
+<h1 class="font-headline font-bold text-lg leading-tight tracking-tight text-on-surface">SortMail AI</h1>
+<p class="text-[10px] uppercase tracking-widest text-outline">Intelligent Canvas</p>
+</div>
+</div>
+<div class="px-3 mb-6">
+<button class="w-full py-3 px-4 rounded-xl bg-gradient-to-br from-primary to-primary-container text-white font-headline text-sm flex items-center justify-center gap-2 tonal-shadow hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-lg">add</span>
+                    Compose
+                </button>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 text-blue-700 bg-white rounded-lg shadow-sm font-semibold transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:text-blue-600 hover:bg-white/50 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">inbox</span>
+                    Inbox
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:text-blue-600 hover:bg-white/50 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">checklist</span>
+                    Tasks
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:text-blue-600 hover:bg-white/50 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                    Analytics
+                </a>
+</nav>
+<div class="mt-auto space-y-1 pt-4 border-t border-outline-variant/15">
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:text-blue-600 hover:bg-white/50 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+                    Help
+                </a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:text-blue-600 hover:bg-white/50 rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined">archive</span>
+                    Archive
+                </a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<!-- TopAppBar -->
+<header class="w-full h-16 bg-slate-50 flex items-center justify-between px-6 sticky top-0 z-40">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-full max-w-xl group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary">search</span>
+<input class="w-full h-10 pl-10 pr-4 bg-surface-container rounded-full border-none focus:ring-2 focus:ring-primary-fixed text-sm transition-all" placeholder="Search your intelligent canvas..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2 ml-4">
+<button class="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full ml-2 overflow-hidden ring-2 ring-outline-variant/15">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="Close-up professional portrait of a tech executive with a confident smile in a modern office setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA51eO8rwgfgpBE10s7q38EAwqqtaRkdaC06nsgxVUyvUArvSQQ2Mj3eiaA6fW2w8OekEqzdgbWwZ2SzlwiYpx345kKKK-wBX_GV2xFYZGc4z-3uYb9pQgrCTtTaHimrL08mHlGDRT1on_o9Vn4EhN7mjHdlLjsbjBPJ7OO5SLd6fJ_cw8gzYUMov5VIrtIGJQt-W8axE7p_DqpLlwJudNYr4xLq1V9YD5g8E8q0WXPXAcChli8O9LJXPORkT1fRhoZtlv3VEc-NDKE"/>
+</div>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-6 space-y-6">
+<!-- AI Morning Briefing -->
+<section class="relative overflow-hidden rounded-2xl bg-surface-container-lowest p-6 border-l-4 border-tertiary tonal-shadow">
+<div class="absolute top-0 right-0 w-64 h-64 bg-tertiary-fixed/30 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+<div class="relative flex flex-col md:flex-row md:items-center gap-6">
+<div class="flex-1">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<h2 class="font-headline font-bold text-tertiary uppercase tracking-wider text-xs">AI Morning Briefing</h2>
+</div>
+<p class="text-xl font-headline font-semibold text-on-surface leading-tight">
+                                Good morning, Alex. You have <span class="text-primary">12 high-priority items</span> today. 
+                                The quarterly report from Sarah needs your approval by 2 PM, and there's a potential scheduling conflict for the Friday sprint.
+                            </p>
+</div>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-2 bg-tertiary-fixed text-on-tertiary-fixed text-sm font-medium rounded-lg hover:bg-tertiary-container hover:text-white transition-all">Review Report</button>
+<button class="px-4 py-2 bg-surface-container text-on-surface-variant text-sm font-medium rounded-lg hover:bg-surface-container-high transition-all">Reschedule Conflict</button>
+<button class="px-4 py-2 border border-outline-variant/30 text-outline text-sm font-medium rounded-lg hover:bg-surface-container transition-all">View All Actions</button>
+</div>
+</div>
+</section>
+<!-- Quick Stats Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="bg-surface-container-lowest p-6 rounded-2xl tonal-shadow flex items-center justify-between">
+<div>
+<p class="text-label-md text-outline mb-1 uppercase tracking-tight">Total Unread</p>
+<h3 class="font-headline text-3xl font-extrabold text-on-surface">42</h3>
+</div>
+<div class="w-12 h-12 rounded-xl bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl">notifications_unread</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-2xl tonal-shadow flex items-center justify-between border-b-2 border-error/10">
+<div>
+<p class="text-label-md text-error mb-1 uppercase tracking-tight font-semibold">Urgent Emails</p>
+<h3 class="font-headline text-3xl font-extrabold text-error">08</h3>
+</div>
+<div class="w-12 h-12 rounded-xl bg-error-container flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">priority_high</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-2xl tonal-shadow flex items-center justify-between">
+<div>
+<p class="text-label-md text-outline mb-1 uppercase tracking-tight">Pending Tasks</p>
+<h3 class="font-headline text-3xl font-extrabold text-on-surface">15</h3>
+</div>
+<div class="w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-2xl">task_alt</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-2xl tonal-shadow flex items-center justify-between">
+<div>
+<p class="text-label-md text-outline mb-1 uppercase tracking-tight">Processed</p>
+<h3 class="font-headline text-3xl font-extrabold text-on-surface">124</h3>
+</div>
+<div class="w-12 h-12 rounded-xl bg-tertiary-fixed flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-2xl">auto_mode</span>
+</div>
+</div>
+</div>
+<!-- Main Grid Layout (Asymmetric) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- Urgent Threads List -->
+<div class="lg:col-span-8 bg-surface-container-lowest rounded-2xl p-6 tonal-shadow">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-headline font-bold text-xl text-on-surface">Urgent Threads</h3>
+<button class="text-primary text-sm font-semibold hover:underline">View All Inbox</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="border-b border-outline-variant/10">
+<tr>
+<th class="pb-4 font-semibold text-outline text-xs uppercase tracking-widest">Sender</th>
+<th class="pb-4 font-semibold text-outline text-xs uppercase tracking-widest">Subject</th>
+<th class="pb-4 font-semibold text-outline text-xs uppercase tracking-widest">Urgency</th>
+<th class="pb-4 font-semibold text-outline text-xs uppercase tracking-widest text-right">Time</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<tr class="hover:bg-background transition-colors group">
+<td class="py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">JD</div>
+<span class="font-medium text-sm text-on-surface">Jordan Davids</span>
+</div>
+</td>
+<td class="py-4">
+<span class="text-sm font-semibold text-on-surface group-hover:text-primary transition-colors">Contractual dispute - Q3 projections...</span>
+</td>
+<td class="py-4">
+<span class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-error-container text-error">High</span>
+</td>
+<td class="py-4 text-right text-xs text-outline">10:45 AM</td>
+</tr>
+<tr class="hover:bg-background transition-colors group">
+<td class="py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary font-bold text-xs">SK</div>
+<span class="font-medium text-sm text-on-surface">Sarah K.</span>
+</div>
+</td>
+<td class="py-4">
+<span class="text-sm font-semibold text-on-surface">Marketing budget final approval required...</span>
+</td>
+<td class="py-4">
+<span class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-tertiary-fixed text-on-tertiary-fixed">Medium</span>
+</td>
+<td class="py-4 text-right text-xs text-outline">9:20 AM</td>
+</tr>
+<tr class="hover:bg-background transition-colors group">
+<td class="py-4">
+<div class="flex items-center gap-3">
+<img alt="Sender avatar" class="w-8 h-8 rounded-full object-cover" data-alt="Close-up of a smiling professional man with glasses in a bright workspace" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-5-cAkUkqW5jTeVOSks1NvkQ-RhIfKVni2Klwcicoivw7IXhopL4ugsmV8HcntgQJwTE9W8chaNdHErg5d7WGnnFVxp9e54MnZowMpO8Jh8ckA13nrgWEgEO1CiE43Ilcz9quyIbg-lbHN9LLpgk57PxyAmvjkI0s4mUPGDhmPpGL0yTWorLVa07N6SgdqR8p-P3CmwtgWr1-EONkWuS4J-EqRMpJeuKvzMiw_RDjpV1yvA2UfoMljFvG9fhYZAilKr2mcnj-RHDB"/>
+<span class="font-medium text-sm text-on-surface">Marcus Thorne</span>
+</div>
+</td>
+<td class="py-4">
+<span class="text-sm font-semibold text-on-surface">New candidate interview feedback...</span>
+</td>
+<td class="py-4">
+<span class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-tertiary-fixed text-on-tertiary-fixed">Medium</span>
+</td>
+<td class="py-4 text-right text-xs text-outline">Yesterday</td>
+</tr>
+<tr class="hover:bg-background transition-colors group">
+<td class="py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary font-bold text-xs">PL</div>
+<span class="font-medium text-sm text-on-surface">Project Lead</span>
+</div>
+</td>
+<td class="py-4">
+<span class="text-sm font-semibold text-on-surface">Daily Standup Notes - Aug 24...</span>
+</td>
+<td class="py-4">
+<span class="px-2 py-1 rounded text-[10px] font-bold uppercase bg-secondary-container text-on-secondary-container">Low</span>
+</td>
+<td class="py-4 text-right text-xs text-outline">Yesterday</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Tasks and Activity Sidebar Column -->
+<div class="lg:col-span-4 space-y-6">
+<!-- Tasks Due Today Widget -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 tonal-shadow">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-headline font-bold text-lg text-on-surface">Tasks Today</h3>
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-full">3 REMAINING</span>
+</div>
+<div class="space-y-4">
+<div class="flex items-start gap-3 p-3 rounded-xl border border-transparent hover:border-outline-variant/10 hover:bg-surface-container-low transition-all">
+<input class="mt-1 rounded text-primary focus:ring-primary border-outline-variant" type="checkbox"/>
+<div class="flex-1">
+<div class="flex justify-between">
+<p class="text-sm font-semibold text-on-surface">Review Q3 Report</p>
+<span class="material-symbols-outlined text-error text-xs">flag</span>
+</div>
+<p class="text-xs text-outline mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> Due 2:00 PM
+                                        </p>
+</div>
+</div>
+<div class="flex items-start gap-3 p-3 rounded-xl border border-transparent hover:border-outline-variant/10 hover:bg-surface-container-low transition-all">
+<input class="mt-1 rounded text-primary focus:ring-primary border-outline-variant" type="checkbox"/>
+<div class="flex-1">
+<div class="flex justify-between">
+<p class="text-sm font-semibold text-on-surface">Book Team Lunch</p>
+<span class="material-symbols-outlined text-tertiary text-xs">flag</span>
+</div>
+<p class="text-xs text-outline mt-1 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> Due 4:30 PM
+                                        </p>
+</div>
+</div>
+<div class="flex items-start gap-3 p-3 rounded-xl border border-transparent hover:border-outline-variant/10 hover:bg-surface-container-low transition-all">
+<input checked="" class="mt-1 rounded text-primary focus:ring-primary border-outline-variant" type="checkbox"/>
+<div class="flex-1">
+<div class="flex justify-between">
+<p class="text-sm font-medium text-outline line-through">Send Pitch Deck</p>
+</div>
+<p class="text-xs text-outline mt-1">Completed</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Activity Timeline -->
+<div class="bg-surface-container-lowest rounded-2xl p-6 tonal-shadow">
+<h3 class="font-headline font-bold text-lg text-on-surface mb-6">Recent Activity</h3>
+<div class="relative space-y-6 before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-[1px] before:bg-outline-variant/30">
+<div class="relative pl-10">
+<div class="absolute left-0 top-1 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary z-10">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">mail</span>
+</div>
+<p class="text-sm font-semibold text-on-surface leading-tight">Email Received</p>
+<p class="text-xs text-outline mt-0.5">From Jordan Davids · 2m ago</p>
+</div>
+<div class="relative pl-10">
+<div class="absolute left-0 top-1 w-7 h-7 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary z-10">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<p class="text-sm font-semibold text-on-surface leading-tight">Task Completed</p>
+<p class="text-xs text-outline mt-0.5">Pitch Deck Sent · 1h ago</p>
+</div>
+<div class="relative pl-10">
+<div class="absolute left-0 top-1 w-7 h-7 rounded-full bg-secondary-container flex items-center justify-center text-secondary z-10">
+<span class="material-symbols-outlined text-sm">archive</span>
+</div>
+<p class="text-sm font-semibold text-on-surface leading-tight">Batch Archive</p>
+<p class="text-xs text-outline mt-0.5">24 Newsletters moved to archive</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Responsive FAB (Mobile Only) -->
+<button class="md:hidden fixed bottom-6 right-6 w-14 h-14 rounded-2xl bg-primary text-white shadow-xl flex items-center justify-center z-50">
+<span class="material-symbols-outlined text-2xl">add</span>
+</button>
+</body></html>

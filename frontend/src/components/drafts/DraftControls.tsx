@@ -1,12 +1,15 @@
 import React from 'react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Sparkles, Mail, Wand2 } from 'lucide-react';
 import { useThreads } from "@/hooks/useThreads";
-import { EmailThreadV1 } from '@/types/dashboard';
+
+const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
+    <span 
+        className={`material-symbols-outlined ${className}`}
+        style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
+    >
+        {icon}
+    </span>
+);
 
 interface DraftControlsProps {
     selectedThreadId: string;
@@ -30,32 +33,36 @@ export function DraftControls({
     onGenerate
 }: DraftControlsProps) {
     const { data: threads = [] } = useThreads();
+
     return (
-        <div className="flex flex-col gap-4 md:gap-6 p-4 md:p-6 h-full border-r border-border-light bg-surface-card w-full md:w-[380px] shrink-0 overflow-y-auto">
-            <div className="flex items-center gap-3 pb-3 md:pb-4 border-b border-border-light">
-                <div className="h-9 w-9 md:h-10 md:w-10 bg-ai/10 rounded-xl flex items-center justify-center text-ai">
-                    <Wand2 className="h-4 w-4 md:h-5 md:w-5" />
+        <div className="flex flex-col gap-8 p-6 h-full border-r border-outline-variant/10 bg-white w-full md:w-[400px] shrink-0 overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center gap-4 pb-6 border-b border-outline-variant/5">
+                <div className="h-12 w-12 bg-primary-fixed/20 text-primary rounded-[18px] flex items-center justify-center border border-primary/5">
+                    <MaterialSymbol icon="auto_fix" className="text-2xl" />
                 </div>
                 <div>
-                    <h2 className="font-display text-lg md:text-xl text-ink font-semibold">Draft Copilot</h2>
-                    <p className="text-[10px] md:text-xs text-ink-light font-mono uppercase tracking-wider">AI Assistant</p>
+                    <h2 className="font-headline text-xl text-on-surface font-bold tracking-tight">Copilot Intelligence</h2>
+                    <p className="text-[10px] font-black text-outline-variant uppercase tracking-widest">Generative Workspace</p>
                 </div>
             </div>
 
-            <div className="space-y-6">
-                <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground font-mono">Select Thread</Label>
+            <div className="space-y-8 flex-1">
+                {/* Thread Selector */}
+                <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline-variant px-1">Active Communication</label>
                     <Select value={selectedThreadId || undefined} onValueChange={onThreadChange}>
-                        <SelectTrigger className="w-full bg-paper border-border-light text-ink">
-                            <SelectValue placeholder="Choose an email to reply to..." />
+                        <SelectTrigger className="w-full h-12 bg-surface-container-lowest border-outline-variant/15 text-on-surface rounded-2xl focus:ring-primary-fixed text-sm font-medium">
+                            <SelectValue placeholder="Select context thread..." />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="rounded-2xl border-outline-variant/10 shadow-2xl">
                             {threads.map((thread: any) => (
-                                <SelectItem key={thread.thread_id} value={thread.thread_id}>
-                                    <div className="flex flex-col gap-0.5 max-w-[300px]">
-                                        <span className="truncate font-medium">{thread.subject || "(No Subject)"}</span>
-                                        <span className="truncate text-xs text-muted-foreground">
-                                            {thread.participants?.[0] || 'Unknown sender'}
+                                <SelectItem key={thread.thread_id} value={thread.thread_id} className="rounded-xl my-1 focus:bg-primary-fixed/10">
+                                    <div className="flex flex-col gap-0.5 py-1">
+                                        <span className="font-bold text-on-surface truncate text-sm">{thread.subject || "(Untethered Thread)"}</span>
+                                        <span className="truncate text-[10px] font-medium text-on-surface-variant flex items-center gap-1.5 uppercase tracking-tighter">
+                                            <MaterialSymbol icon="person" className="text-xs" />
+                                            {thread.participants?.[0] || 'Anonymous Entity'}
                                         </span>
                                     </div>
                                 </SelectItem>
@@ -64,66 +71,66 @@ export function DraftControls({
                     </Select>
                 </div>
 
+                {/* Tonal Configuration */}
                 <div className="space-y-3">
-                    <Label className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono">Tone & Style</Label>
-                    <RadioGroup value={tone} onValueChange={onToneChange} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 gap-2">
-                        <label className={`flex items-center space-x-3 p-2.5 md:p-3 rounded-lg border cursor-pointer transition-all ${tone === 'BRIEF' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
-                            <RadioGroupItem value="BRIEF" id="BRIEF" />
-                            <div className="flex flex-col">
-                                <span className="text-sm font-medium text-ink">Brief</span>
-                                <span className="text-[10px] md:text-xs text-muted-foreground">Short, to the point</span>
-                            </div>
-                        </label>
-                        <label className={`flex items-center space-x-3 p-2.5 md:p-3 rounded-lg border cursor-pointer transition-all ${tone === 'NORMAL' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
-                            <RadioGroupItem value="NORMAL" id="NORMAL" />
-                            <div className="flex flex-col">
-                                <span className="text-sm font-medium text-ink">Professional</span>
-                                <span className="text-[10px] md:text-xs text-muted-foreground">Standard tone</span>
-                            </div>
-                        </label>
-                        <label className={`flex items-center space-x-3 p-2.5 md:p-3 rounded-lg border cursor-pointer transition-all ${tone === 'FORMAL' ? 'bg-paper border-primary/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-paper-mid'}`}>
-                            <RadioGroupItem value="FORMAL" id="FORMAL" />
-                            <div className="flex flex-col">
-                                <span className="text-sm font-medium text-ink">Formal</span>
-                                <span className="text-[10px] md:text-xs text-muted-foreground">Detailed</span>
-                            </div>
-                        </label>
-                    </RadioGroup>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline-variant px-1">Linguistic Profile</label>
+                    <div className="grid gap-2">
+                        {[
+                            { id: 'BRIEF', label: 'Incise', desc: 'Direct, focused communication', icon: 'bolt' },
+                            { id: 'NORMAL', label: 'Balanced', desc: 'Standard professional discourse', icon: 'architecture' },
+                            { id: 'FORMAL', label: 'Elevated', desc: 'Detailed, authoritative tone', icon: 'gavel' }
+                        ].map((t) => (
+                            <button
+                                key={t.id}
+                                onClick={() => onToneChange(t.id)}
+                                className={`flex items-start gap-4 p-4 rounded-2xl border text-left transition-all ${tone === t.id ? 'bg-white border-primary-fixed shadow-lg shadow-primary/5 ring-1 ring-primary-fixed' : 'bg-surface-container-lowest border-outline-variant/10 hover:border-primary-fixed/30'}`}
+                            >
+                                <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${tone === t.id ? 'bg-primary-fixed text-primary' : 'bg-surface-container text-outline'}`}>
+                                    <MaterialSymbol icon={t.icon} />
+                                </div>
+                                <div className="flex flex-col pt-0.5 min-w-0">
+                                    <span className={`text-sm font-bold ${tone === t.id ? 'text-on-surface' : 'text-on-surface-variant'}`}>{t.label}</span>
+                                    <span className="text-[10px] font-medium text-outline-variant truncate">{t.desc}</span>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
-                <div className="space-y-2">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground font-mono">Instructions</Label>
-                    <Textarea
-                        placeholder="e.g. Mention that I'm OOO until Thursday..."
-                        className="bg-paper min-h-[100px] text-sm resize-none border-border-light focus-visible:ring-ai"
+                {/* Behavioral Instructions */}
+                <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-outline-variant px-1">Copilot Instructions</label>
+                    <textarea
+                        placeholder="Define constraints or specific objectives..."
+                        className="w-full min-h-[120px] p-4 bg-surface-container-lowest border border-outline-variant/15 rounded-2xl focus:ring-2 focus:ring-primary-fixed focus:border-primary transition-all text-sm font-medium resize-none placeholder:italic placeholder:font-normal"
                         value={instructions}
                         onChange={(e) => onInstructionsChange(e.target.value)}
                     />
                 </div>
+            </div>
 
-                <Button
-                    className="w-full gap-2 bg-ai hover:bg-ai/90 text-white shadow-lg shadow-ai/20 transition-all font-medium py-6 rounded-xl"
+            {/* Action */}
+            <div className="pt-6 border-t border-outline-variant/5">
+                <button
+                    className={`w-full h-14 rounded-2xl flex items-center justify-center gap-3 transition-all font-black uppercase tracking-widest text-xs shadow-xl ${isGenerating ? 'bg-surface-container text-outline cursor-wait' : 'bg-primary text-on-primary hover:shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]'}`}
                     onClick={onGenerate}
                     disabled={!selectedThreadId || isGenerating}
                 >
                     {isGenerating ? (
                         <>
-                            <Sparkles className="h-5 w-5 animate-spin" />
-                            Writing Draft...
+                            <MaterialSymbol icon="sync" className="animate-spin text-lg" />
+                            Synthesizing...
                         </>
                     ) : (
                         <>
-                            <Sparkles className="h-5 w-5" />
-                            Generate Draft
+                            <MaterialSymbol icon="auto_fix" className="text-lg" />
+                            Manifest Response
                         </>
                     )}
-                </Button>
-            </div>
-
-            <div className="mt-auto pt-6 border-t border-border-light">
-                <div className="bg-paper-mid/50 rounded-lg p-3 text-xs text-ink-light flex gap-2 border border-border-light">
-                    <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <p>Drafts are saved automatically to your database.</p>
+                </button>
+                <div className="mt-4 p-3 bg-surface-container-low rounded-xl flex items-center gap-2.5 border border-outline-variant/10 text-[9px] font-bold text-outline-variant uppercase tracking-tighter">
+                    <MaterialSymbol icon="verified" className="text-sm" />
+                    <span>Context-aware intelligence enabled</span>
                 </div>
             </div>
         </div>

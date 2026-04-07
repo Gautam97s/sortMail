@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tags &amp; Labels | SortMail</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed-dim": "#cdbdff",
+                        "primary": "#005bbf",
+                        "inverse-surface": "#2e3132",
+                        "on-tertiary-fixed": "#20005f",
+                        "on-secondary-container": "#5f6368",
+                        "surface-tint": "#005bc0",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f2f4f5",
+                        "primary-fixed-dim": "#adc7ff",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-surface": "#191c1d",
+                        "outline": "#727785",
+                        "surface-container-highest": "#e1e3e4",
+                        "surface-dim": "#d8dadb",
+                        "background": "#f8fafb",
+                        "on-primary-fixed-variant": "#004493",
+                        "tertiary-fixed": "#e8deff",
+                        "surface": "#f8fafb",
+                        "outline-variant": "#c1c6d6",
+                        "surface-bright": "#f8fafb",
+                        "on-primary": "#ffffff",
+                        "on-background": "#191c1d",
+                        "on-primary-container": "#ffffff",
+                        "secondary-fixed-dim": "#c3c7cc",
+                        "on-secondary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#414754",
+                        "tertiary": "#6833ea",
+                        "surface-container-high": "#e6e8e9",
+                        "on-tertiary-container": "#060021",
+                        "surface-container": "#eceeef",
+                        "on-error-container": "#93000a",
+                        "primary-fixed": "#d8e2ff",
+                        "secondary-container": "#dde0e6",
+                        "on-tertiary-fixed-variant": "#4f00d0",
+                        "secondary": "#5b5f64",
+                        "on-primary-fixed": "#001a41",
+                        "primary-container": "#1a73e8",
+                        "on-secondary-fixed-variant": "#43474c",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#e1e3e4",
+                        "secondary-fixed": "#dfe3e8",
+                        "on-secondary-fixed": "#181c20",
+                        "inverse-primary": "#adc7ff",
+                        "tertiary-container": "#8155ff",
+                        "inverse-on-surface": "#eff1f2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f2f4f5;
+        }
+        h1, h2, h3, .brand-font {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .tonal-shadow {
+            box-shadow: 0 12px 32px -4px rgba(0, 91, 191, 0.08);
+        }
+        .ai-glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="flex min-h-screen">
+<!-- Sidebar Navigation -->
+<aside class="h-screen w-64 left-0 sticky flex flex-col py-4 pr-4 h-full bg-[#f2f4f5] dark:bg-slate-950 font-['Inter'] text-sm font-medium">
+<div class="px-6 mb-8">
+<h1 class="text-[#1A73E8] font-['Plus_Jakarta_Sans'] font-extrabold text-2xl tracking-tight">SortMail</h1>
+<p class="text-on-secondary-container text-xs">Intelligent Workspace</p>
+</div>
+<nav class="flex-grow space-y-1">
+<a class="flex items-center px-6 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-r-full transition-all" href="#">
+<span class="material-symbols-outlined mr-3">inbox</span>
+                Inbox
+            </a>
+<a class="flex items-center px-6 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-r-full transition-all" href="#">
+<span class="material-symbols-outlined mr-3">draft</span>
+                Drafts
+            </a>
+<a class="flex items-center px-6 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-r-full transition-all" href="#">
+<span class="material-symbols-outlined mr-3">assignment</span>
+                Tasks
+            </a>
+<a class="bg-[#d8e2ff] dark:bg-blue-900/30 text-[#005bbf] dark:text-blue-200 rounded-r-full font-bold flex items-center px-6 py-3 scale-95 duration-100" href="#">
+<span class="material-symbols-outlined mr-3">settings</span>
+                Settings
+            </a>
+</nav>
+<div class="mt-auto px-6 pt-4">
+<button class="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-br from-primary to-primary-container text-white rounded-xl font-semibold tonal-shadow active:scale-95 transition-all">
+<span class="material-symbols-outlined">add</span>
+                Compose
+            </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-grow bg-surface min-h-screen overflow-y-auto">
+<!-- Top Bar -->
+<header class="w-full top-0 sticky z-10 flex items-center justify-between px-8 h-16 w-full bg-[#f8fafb] dark:bg-slate-900 font-['Plus_Jakarta_Sans'] font-semibold text-slate-900 dark:text-slate-100 transition-colors">
+<div class="flex items-center gap-4 w-1/2">
+<div class="flex items-center bg-surface-container rounded-full px-4 py-1.5 w-full max-w-md outline-variant/15 outline outline-1">
+<span class="material-symbols-outlined text-outline">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full font-body font-normal" placeholder="Search labels or rules..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-600 hover:bg-slate-200/50 rounded-full transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="p-2 text-slate-600 hover:bg-slate-200/50 rounded-full transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-fixed overflow-hidden">
+<img alt="User profile photo" class="w-full h-full object-cover" data-alt="Professional headshot of a smiling man in his 30s with a clean background for a user profile interface" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeBtQIsm0EurhG3M0Rp9uNEfb0aYBkMd5jXOxGT-exXW9Nn0xQYHH6EO6TMq1-prpt_-lDqWW_GJvaANJ-MCHb6Uuo44hiJ0y2ptYQlHRkaCC7pcopd32jVMQF89Z-lBVgx0uoAP0HFpMZ0QKXN0cl3vNKOsiO1mQkElpwRt6W41403EytdGJRZf-S8RCGyskmHMiU6Ljpn5vETVo4IKXZuLOCkugj27x8KCj8Lb1ExZw0hl6CF9016VJNTIZJkUlBJDD7K_XBB3FK"/>
+</div>
+</div>
+</header>
+<div class="p-8 max-w-7xl mx-auto">
+<div class="flex items-end justify-between mb-8">
+<div>
+<h2 class="text-3xl font-extrabold text-on-surface tracking-tight mb-2">Tags &amp; Labels</h2>
+<p class="text-on-surface-variant font-body">Organize your workflow with intelligent precision.</p>
+</div>
+<button class="flex items-center gap-2 px-5 py-2.5 bg-surface-container-highest text-on-surface-variant rounded-lg font-semibold hover:bg-surface-dim transition-all">
+<span class="material-symbols-outlined text-xl">new_label</span>
+                    Create New Label
+                </button>
+</div>
+<!-- Bento Layout for Label Management -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Active Labels Sidebar-Grid -->
+<div class="col-span-12 lg:col-span-4 space-y-6">
+<div class="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-primary tonal-shadow">
+<h3 class="text-label-md font-bold text-primary uppercase tracking-widest mb-4">Core Projects</h3>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-primary-fixed rounded-lg cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<span class="font-semibold text-on-primary-fixed">Project Alpha</span>
+</div>
+<span class="text-xs font-bold bg-white px-2 py-0.5 rounded-full text-primary">124</span>
+</div>
+<div class="flex items-center justify-between p-3 hover:bg-surface-container transition-colors rounded-lg cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-tertiary"></div>
+<span class="font-medium text-on-surface">Finance</span>
+</div>
+<span class="text-xs font-medium text-on-surface-variant">42</span>
+</div>
+<div class="flex items-center justify-between p-3 hover:bg-surface-container transition-colors rounded-lg cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+<span class="font-medium text-on-surface">Personal</span>
+</div>
+<span class="text-xs font-medium text-on-surface-variant">12</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl tonal-shadow">
+<h3 class="text-label-md font-bold text-on-surface-variant uppercase tracking-widest mb-4">Secondary Labels</h3>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-surface-container text-xs font-medium rounded-full flex items-center gap-2 border border-outline-variant/20 hover:border-primary transition-all cursor-pointer">
+<div class="w-2 h-2 rounded-full bg-orange-400"></div> Marketing
+                            </span>
+<span class="px-3 py-1 bg-surface-container text-xs font-medium rounded-full flex items-center gap-2 border border-outline-variant/20 hover:border-primary transition-all cursor-pointer">
+<div class="w-2 h-2 rounded-full bg-purple-400"></div> Logistics
+                            </span>
+<span class="px-3 py-1 bg-surface-container text-xs font-medium rounded-full flex items-center gap-2 border border-outline-variant/20 hover:border-primary transition-all cursor-pointer">
+<div class="w-2 h-2 rounded-full bg-pink-400"></div> Events
+                            </span>
+</div>
+</div>
+</div>
+<!-- Label Editor & Smart Rules (The Intelligence Area) -->
+<div class="col-span-12 lg:col-span-8 space-y-6">
+<!-- Label Editor Pane -->
+<div class="bg-surface-container-lowest rounded-xl p-8 tonal-shadow">
+<div class="flex justify-between items-start mb-8">
+<div>
+<h3 class="text-xl font-bold text-on-surface mb-1">Edit Label: Project Alpha</h3>
+<p class="text-sm text-on-surface-variant">Last updated 2 hours ago</p>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-error hover:bg-error-container/20 rounded-lg transition-colors">
+<span class="material-symbols-outlined">delete</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="space-y-4">
+<label class="block text-sm font-bold text-on-surface-variant">Label Name</label>
+<input class="w-full bg-surface-container-low border-none rounded-lg p-3 text-on-surface focus:ring-2 focus:ring-primary transition-all" type="text" value="Project Alpha"/>
+<div class="pt-4">
+<label class="block text-sm font-bold text-on-surface-variant mb-3">Accent Color</label>
+<div class="flex gap-3">
+<div class="w-8 h-8 rounded-full bg-primary ring-2 ring-offset-2 ring-primary cursor-pointer"></div>
+<div class="w-8 h-8 rounded-full bg-tertiary cursor-pointer"></div>
+<div class="w-8 h-8 rounded-full bg-emerald-500 cursor-pointer"></div>
+<div class="w-8 h-8 rounded-full bg-orange-400 cursor-pointer"></div>
+<div class="w-8 h-8 rounded-full bg-pink-400 cursor-pointer"></div>
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-sm">palette</span>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-xl p-6 relative overflow-hidden">
+<div class="absolute top-0 right-0 p-4 opacity-10">
+<span class="material-symbols-outlined text-6xl">visibility</span>
+</div>
+<h4 class="text-sm font-bold text-on-surface-variant mb-4">Live Preview</h4>
+<div class="space-y-3">
+<div class="flex items-center gap-3 p-3 bg-surface-container-lowest rounded-lg shadow-sm">
+<div class="w-8 h-8 bg-primary/10 flex items-center justify-center rounded-full text-primary">
+<span class="material-symbols-outlined text-base">mail</span>
+</div>
+<div>
+<div class="h-2 w-24 bg-surface-container-highest rounded-full mb-1.5"></div>
+<div class="h-2 w-16 bg-surface-container-highest/60 rounded-full"></div>
+</div>
+<span class="ml-auto px-2 py-0.5 bg-primary-fixed text-[10px] font-bold text-primary rounded uppercase">Project Alpha</span>
+</div>
+<div class="flex items-center gap-3 p-3 bg-surface-container-lowest rounded-lg shadow-sm opacity-60">
+<div class="w-8 h-8 bg-surface-variant flex items-center justify-center rounded-full text-on-surface-variant">
+<span class="material-symbols-outlined text-base">mail</span>
+</div>
+<div>
+<div class="h-2 w-20 bg-surface-container-highest rounded-full mb-1.5"></div>
+<div class="h-2 w-12 bg-surface-container-highest/60 rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Smart Rules Panel -->
+<div class="bg-surface-container-lowest rounded-xl p-8 tonal-shadow border-l-4 border-tertiary">
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-tertiary/10 rounded-lg text-tertiary">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<div>
+<h3 class="text-xl font-bold text-on-surface">Smart Rules</h3>
+<p class="text-sm text-on-surface-variant">Automate label assignment with AI-powered triggers</p>
+</div>
+</div>
+<div class="space-y-4">
+<!-- Rule Item 1 -->
+<div class="flex flex-col md:flex-row items-center gap-4 p-4 bg-surface-container-low rounded-xl border border-outline-variant/10">
+<div class="flex-grow">
+<div class="flex items-center gap-2 mb-1">
+<span class="text-sm font-semibold">Automatically label emails from</span>
+<code class="px-2 py-0.5 bg-white rounded border text-primary text-xs font-mono">@alphatech.com</code>
+</div>
+<p class="text-xs text-on-surface-variant">Status: Active • Applied to 84 threads</p>
+</div>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-white rounded-lg text-on-surface-variant transition-all"><span class="material-symbols-outlined">edit</span></button>
+<button class="p-2 hover:bg-white rounded-lg text-error transition-all"><span class="material-symbols-outlined">toggle_on</span></button>
+</div>
+</div>
+<!-- New Rule Input Area (Glassmorphism inspired) -->
+<div class="p-6 rounded-xl ai-glass border border-tertiary/20">
+<div class="flex flex-wrap items-center gap-3 text-sm font-medium text-on-surface-variant">
+<span>If email</span>
+<select class="bg-white border-none rounded-md px-3 py-1.5 text-sm ring-1 ring-outline-variant/20 focus:ring-primary transition-all">
+<option>sender domain is</option>
+<option>subject contains</option>
+<option>body contains AI keywords</option>
+</select>
+<input class="flex-grow min-w-[200px] bg-white border-none rounded-md px-3 py-1.5 text-sm ring-1 ring-outline-variant/20 focus:ring-primary" placeholder="e.g. workspace.com" type="text"/>
+<span>then apply label</span>
+<div class="px-3 py-1.5 bg-primary-fixed text-primary font-bold rounded-md">Project Alpha</div>
+</div>
+<div class="mt-6 flex justify-end gap-3">
+<button class="px-4 py-2 text-sm font-bold text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all">Discard</button>
+<button class="px-4 py-2 text-sm font-bold bg-tertiary text-white rounded-lg tonal-shadow hover:scale-105 transition-all">Save Rule</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB for quick label - only shown in dashboard contexts -->
+<div class="fixed bottom-8 right-8 z-50 lg:hidden">
+<button class="w-14 h-14 bg-gradient-to-br from-primary to-primary-container text-white rounded-full flex items-center justify-center shadow-2xl">
+<span class="material-symbols-outlined">add</span>
+</button>
+</div>
+</body></html>

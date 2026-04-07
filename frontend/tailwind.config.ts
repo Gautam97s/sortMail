@@ -17,71 +17,55 @@ const config: Config = {
 		},
 		extend: {
 			colors: {
-				// Core palette from spec
-				ink: 'var(--ink)',
-				paper: 'var(--paper)',
-				accent: 'var(--accent)',
-				accent2: 'var(--accent2)',
-				muted: 'var(--muted)',
-				border: 'var(--border)',
-
-				// Surface colors (sidebar, cards, etc.)
+				// Core palette from Stitch (Cognitive Flow)
+				primary: {
+					DEFAULT: '#005bbf',
+					fixed: '#d8e2ff',
+					dim: '#adc7ff',
+					container: '#1a73e8',
+					foreground: 'var(--primary-foreground)'
+				},
+				secondary: {
+					DEFAULT: '#5b5f64',
+					fixed: '#dfe3e8',
+					'fixed-dim': '#c3c7cc',
+					container: '#dde0e6',
+					foreground: 'var(--secondary-foreground)'
+				},
+				tertiary: {
+					DEFAULT: '#6833ea',
+					fixed: '#e8deff',
+					'fixed-dim': '#cdbdff',
+					container: '#8155ff',
+				},
 				surface: {
-					DEFAULT: 'var(--surface)',
-					2: 'var(--surface-2)',
-					3: 'var(--surface-3)',
-					card: 'var(--surface-card)',
-					elevated: 'var(--surface-elevated)'
+					DEFAULT: '#f8fafb',
+					bright: '#f8fafb',
+					dim: '#d8dadb',
+					variant: '#e1e3e4',
+					container: {
+						DEFAULT: '#eceeef',
+						low: '#f2f4f5',
+						lowest: '#ffffff',
+						high: '#e6e8e9',
+						highest: '#e1e3e4',
+					},
+					tint: '#005bc0',
+				},
+				'on-surface': {
+					DEFAULT: '#191c1d',
+					variant: '#414754',
+				},
+				outline: {
+					DEFAULT: '#727785',
+					variant: '#c1c6d6',
+				},
+				error: {
+					DEFAULT: '#ba1a1a',
+					container: '#ffdad6',
 				},
 
-				// Paper variants
-				'paper-mid': 'var(--paper-mid)',
-				'paper-deep': 'var(--paper-deep)',
-
-				// Ink variants
-				'ink-mid': 'var(--ink-mid)',
-				'ink-light': 'var(--ink-light)',
-
-				// Semantic/action colors
-				success: 'var(--success)',
-				warning: 'var(--warning)',
-				danger: 'var(--danger)',
-				ai: 'var(--ai-purple)',
-				'ai-purple': 'var(--ai-purple)',
-				'ai-purple-soft': 'var(--ai-purple-soft)',
-
-				// Accent variants
-				'accent-hover': 'var(--accent-hover)',
-				'accent-soft': 'var(--accent-soft)',
-
-				// Mono/code colors
-				'mono-bg': 'var(--mono-bg)',
-				'mono-text': 'var(--mono-text)',
-				'mono-green': 'var(--mono-green)',
-				'mono-blue': 'var(--mono-blue)',
-				'mono-orange': 'var(--mono-orange)',
-				'mono-yellow': 'var(--mono-yellow)',
-				'mono-pink': 'var(--mono-pink)',
-
-				// Wireframe colors
-				'wire-bg': 'var(--wire-bg)',
-				'wire-border': 'var(--wire-border)',
-				'wire-fill': 'var(--wire-fill)',
-				'wire-accent': 'var(--wire-accent)',
-
-				// Priority/tag colors
-				'tag-urgent': 'var(--tag-urgent)',
-				'tag-high': 'var(--tag-high)',
-				'tag-medium': 'var(--tag-medium)',
-				'tag-low': 'var(--tag-low)',
-
-				// Semantic colors from spec
-				'color-ai': 'var(--color-ai)',
-				'color-success': 'var(--color-success)',
-				'color-warning': 'var(--color-warning)',
-				'color-danger': 'var(--color-danger)',
-
-				// Shadcn mappings
+				// Shadcn/Legacy mappings
 				background: 'var(--background)',
 				foreground: 'var(--foreground)',
 				card: {
@@ -91,14 +75,6 @@ const config: Config = {
 				popover: {
 					DEFAULT: 'var(--popover)',
 					foreground: 'var(--popover-foreground)'
-				},
-				primary: {
-					DEFAULT: 'var(--primary)',
-					foreground: 'var(--primary-foreground)'
-				},
-				secondary: {
-					DEFAULT: 'var(--secondary)',
-					foreground: 'var(--secondary-foreground)'
 				},
 				destructive: {
 					DEFAULT: 'var(--destructive)',
@@ -116,30 +92,32 @@ const config: Config = {
 				}
 			},
 			fontFamily: {
-				display: ['var(--ff-display)'],
-				body: ['var(--ff-body)'],
-				mono: ['var(--ff-mono)']
+				headline: ['var(--font-jakarta)', 'sans-serif'],
+				body: ['var(--font-inter)', 'sans-serif'],
+				label: ['var(--font-inter)', 'sans-serif'],
+				display: ['var(--font-jakarta)', 'sans-serif'],
+				mono: ['var(--font-jetbrains)', 'monospace']
 			},
 			fontSize: {
 				xs: '12px',
-				sm: '16px',
-				base: '18px',
-				md: '22px',
+				sm: '14px',
+				base: '16px',
+				md: '18px',
 				lg: '24px',
-				xl: '30px',
-				'2xl': '36px'
+				xl: '32px',
+				'2xl': '40px'
 			},
 			spacing: {
-				'sb': 'var(--sidebar-w)',
-				'sb-col': 'var(--sidebar-collapsed)',
-				'tb': 'var(--topbar-h)',
-				'panel': 'var(--panel-w)'
+				'sb': '256px',
+				'tb': '64px',
 			},
 			borderRadius: {
-				sm: 'var(--radius-sm)',
-				md: 'var(--radius-md)',
-				lg: 'var(--radius-lg)',
-				full: 'var(--radius-full)'
+				sm: '0.25rem',
+				md: '0.5rem',
+				lg: '0.75rem',
+				xl: '1rem',
+				'2xl': '1.5rem',
+				full: '9999px'
 			},
 			boxShadow: {
 				sm: '0 1px 3px rgba(10, 10, 15, 0.06)',

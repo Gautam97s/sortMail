@@ -1,17 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-    Search as SearchIcon, X, Mail, User, CheckSquare,
-    AlertCircle, Clock, FileText, ArrowUpRight, Paperclip
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api, endpoints } from "@/lib/api";
 import AppShell from "@/components/layout/AppShell";
+
+const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
+    <span 
+        className={`material-symbols-outlined ${className}`}
+        style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
+    >
+        {icon}
+    </span>
+);
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -48,61 +50,38 @@ function useUniversalSearch(q: string) {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const TYPE_META: Record<string, { icon: React.ElementType; label: string; color: string }> = {
-    thread: { icon: Mail, label: "Email", color: "bg-blue-500/10 text-blue-600" },
-    contact: { icon: User, label: "Contact", color: "bg-purple-500/10 text-purple-600" },
-    task: { icon: CheckSquare, label: "Task", color: "bg-emerald-500/10 text-emerald-600" },
-};
-
-const INTENT_STYLES: Record<string, string> = {
-    urgent: "bg-tag-urgent text-white",
-    action_required: "bg-tag-high text-white",
-    fyi: "bg-paper-deep text-muted",
-    scheduling: "bg-blue-100 text-blue-700",
+const TYPE_META: Record<string, { icon: string; label: string; colorClass: string }> = {
+    thread: { icon: "mail", label: "Communication", colorClass: "bg-primary-fixed/20 text-primary" },
+    contact: { icon: "person", label: "Entity", colorClass: "bg-tertiary-fixed/20 text-tertiary" },
+    task: { icon: "task_alt", label: "Action Item", colorClass: "bg-secondary-fixed/20 text-secondary" },
 };
 
 function ResultCard({ result }: { result: SearchResult }) {
     const meta = TYPE_META[result.type];
-    const Icon = meta.icon;
 
     return (
         <Link href={result.href} className="block group">
-            <Card className="p-4 hover:border-accent/40 hover:shadow-md transition-all cursor-pointer bg-white">
-                <div className="flex items-start gap-4">
-                    {/* Type icon */}
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${meta.color}`}>
-                        <Icon className="w-5 h-5" />
-                    </div>
+            <div className="p-5 bg-white border border-outline-variant/10 rounded-2xl flex items-start gap-5 hover:border-primary-fixed hover:shadow-lg hover:shadow-primary/5 transition-all">
+                <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${meta.colorClass} border border-white/20 transition-transform group-hover:scale-105`}>
+                    <MaterialSymbol icon={meta.icon} className="text-2xl" />
+                </div>
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-medium text-ink text-sm truncate group-hover:text-accent transition-colors">
-                                {result.title}
-                            </h3>
-                            <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-mono uppercase tracking-wide shrink-0">
-                                {meta.label}
-                            </Badge>
-                            {result.intent && INTENT_STYLES[result.intent] && (
-                                <Badge variant="secondary" className={`text-[9px] px-1.5 py-0 font-black uppercase tracking-wider shrink-0 border-none ${INTENT_STYLES[result.intent]}`}>
-                                    {result.intent.replace("_", " ")}
-                                </Badge>
-                            )}
-                        </div>
-                        <p className="text-xs text-muted line-clamp-2 leading-relaxed">{result.subtitle}</p>
+                <div className="flex-1 min-w-0 pt-0.5">
+                    <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-sm font-headline font-bold text-on-surface truncate group-hover:text-primary transition-colors">
+                            {result.title}
+                        </h3>
+                        <div className="px-2 py-0.5 bg-surface-container text-outline-variant font-bold text-[8px] rounded uppercase tracking-widest">{meta.label}</div>
                     </div>
+                    <p className="text-xs text-on-surface-variant font-medium line-clamp-2 leading-relaxed italic">{result.subtitle}</p>
+                </div>
 
-                    {/* Date + Arrow */}
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                        {result.updated_at && (
-                            <span className="text-[10px] text-muted font-mono tabular-nums">
-                                {new Date(result.updated_at).toLocaleDateString()}
-                            </span>
-                        )}
-                        <ArrowUpRight className="w-4 h-4 text-border opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="flex flex-col items-end gap-3 shrink-0">
+                    <div className="p-1.5 bg-surface-container rounded-lg text-outline opacity-0 group-hover:opacity-100 transition-opacity">
+                        <MaterialSymbol icon="arrow_forward" className="text-sm" />
                     </div>
                 </div>
-            </Card>
+            </div>
         </Link>
     );
 }
@@ -121,7 +100,7 @@ export default function SearchPage() {
 
     const { data, isLoading } = useUniversalSearch(q);
 
-    // Group results by type for a structured display
+    // Grouping
     const threads = data?.results.filter((r) => r.type === "thread") ?? [];
     const contacts = data?.results.filter((r) => r.type === "contact") ?? [];
     const tasks = data?.results.filter((r) => r.type === "task") ?? [];
@@ -130,96 +109,115 @@ export default function SearchPage() {
     const noResults = q.length >= 2 && !isLoading && !hasResults;
 
     return (
-        <AppShell title="Search">
-            <div className="max-w-3xl mx-auto px-4">
-                {/* ── Search Input ─────────────────────────────────────── */}
-                <div className="relative mb-6">
-                    <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
-                    <Input
-                        autoFocus
-                        type="text"
-                        placeholder="Search emails, contacts, tasks..."
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        className="pl-12 pr-12 h-14 text-base border-border focus:ring-accent shadow-sm rounded-xl"
-                    />
-                    {input && (
-                        <button
-                            onClick={() => { setInput(""); setQ(""); }}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted hover:text-ink transition-colors"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
+        <AppShell title="Search Intelligence" subtitle="Universal Discovery Engine">
+            <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-12">
+                
+                {/* Discovery Command Bar */}
+                <div className="relative group">
+                    <div className="absolute inset-0 bg-primary-fixed/30 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity rounded-3xl" />
+                    <div className="relative">
+                        <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-3">
+                            <MaterialSymbol icon="search" className="text-2xl text-outline group-focus-within:text-primary transition-colors" />
+                            <div className="h-4 w-px bg-outline-variant/30 hidden md:block" />
+                        </div>
+                        <input
+                            autoFocus
+                            type="text"
+                            placeholder="Interrogate emails, entities, and actions..."
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            className="w-full h-16 md:h-20 pl-16 pr-16 bg-white border border-outline-variant/15 focus:ring-2 focus:ring-primary-fixed rounded-3xl text-lg md:text-xl font-headline font-medium transition-all shadow-xl shadow-black/5 placeholder:text-outline-variant placeholder:font-normal"
+                        />
+                        {input && (
+                            <button
+                                onClick={() => { setInput(""); setQ(""); }}
+                                className="absolute right-5 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center bg-surface-container rounded-2xl text-outline hover:text-error transition-all"
+                            >
+                                <MaterialSymbol icon="close" className="text-xl" />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                {/* ── Loading skeletons ────────────────────────────────── */}
+                {/* Content States */}
                 {isLoading && (
-                    <div className="space-y-3">
-                        {[...Array(5)].map((_, i) => (
-                            <div key={i} className="h-[72px] bg-paper-mid animate-pulse rounded-xl border border-border-light" />
+                    <div className="space-y-4">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="h-24 bg-surface-container-low animate-pulse rounded-2xl border border-outline-variant/10" />
                         ))}
                     </div>
                 )}
 
-                {/* ── Empty State ──────────────────────────────────────── */}
                 {!q && !isLoading && (
-                    <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className="w-20 h-20 bg-paper-mid rounded-full flex items-center justify-center mb-6">
-                            <SearchIcon className="w-10 h-10 text-muted/40" />
+                    <div className="py-24 text-center space-y-10">
+                        <div className="relative inline-block">
+                            <div className="absolute inset-0 bg-primary-fixed/20 blur-3xl rounded-full" />
+                            <div className="relative h-32 w-32 rounded-[40px] bg-white border border-outline-variant/15 flex items-center justify-center text-primary shadow-xl">
+                                <MaterialSymbol icon="database" className="text-6xl" />
+                            </div>
                         </div>
-                        <h2 className="font-display text-xl text-ink mb-2">Search everything</h2>
-                        <p className="text-muted text-sm max-w-sm leading-relaxed">
-                            Find emails, contacts, and tasks from one place. Type at least 2 characters to start.
-                        </p>
-                        <div className="flex gap-3 mt-6">
+                        <div className="space-y-3 max-w-sm mx-auto">
+                            <h2 className="text-2xl font-headline font-bold text-on-surface">Unified Intelligence Search</h2>
+                            <p className="text-on-surface-variant font-medium leading-relaxed italic">
+                                Navigate your entire digital communication matrix. Type at least 2 characters to engage the discovery engine.
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-4">
                             {[
-                                { icon: Mail, label: "Emails" },
-                                { icon: User, label: "Contacts" },
-                                { icon: CheckSquare, label: "Tasks" },
-                            ].map(({ icon: Icon, label }) => (
-                                <div key={label} className="flex items-center gap-1.5 px-3 py-1.5 bg-paper-mid rounded-lg text-xs text-muted">
-                                    <Icon className="w-3.5 h-3.5" />
-                                    {label}
+                                { icon: "mail", label: "Email Threads" },
+                                { icon: "account_circle", label: "Relationship Nodes" },
+                                { icon: "check_circle", label: "Actionable Tasks" },
+                            ].map((item) => (
+                                <div key={item.label} className="px-5 py-3 bg-white border border-outline-variant/15 rounded-2xl flex items-center gap-3 text-xs font-bold text-on-surface shadow-sm">
+                                    <MaterialSymbol icon={item.icon} className="text-primary" />
+                                    {item.label}
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
 
-                {/* ── No Results ───────────────────────────────────────── */}
                 {noResults && (
-                    <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className="w-16 h-16 bg-paper-mid rounded-full flex items-center justify-center mb-4">
-                            <X className="w-8 h-8 text-muted/40" />
+                    <div className="py-24 text-center bg-white rounded-[40px] border border-outline-variant/10 shadow-sm space-y-6">
+                        <div className="h-20 w-20 bg-surface-container rounded-3xl flex items-center justify-center mx-auto text-outline-variant">
+                            <MaterialSymbol icon="search_off" className="text-4xl" />
                         </div>
-                        <h2 className="font-display text-lg text-ink mb-1">No results for &quot;{q}&quot;</h2>
-                        <p className="text-muted text-sm">Try different keywords.</p>
+                        <div className="space-y-1">
+                            <h2 className="text-xl font-headline font-bold text-on-surface">No Correlation Found</h2>
+                            <p className="text-sm text-on-surface-variant font-medium">No results for &quot;{q}&quot; in the current context.</p>
+                        </div>
                     </div>
                 )}
 
-                {/* ── Results ──────────────────────────────────────────── */}
                 {hasResults && !isLoading && (
-                    <div className="space-y-6">
-                        <p className="text-xs text-muted font-mono uppercase tracking-widest">
-                            {data!.total} result{data!.total !== 1 ? "s" : ""} for &quot;{q}&quot;
-                        </p>
+                    <div className="space-y-12">
+                        <div className="flex items-center justify-between border-b border-outline-variant/10 pb-4">
+                            <div className="flex items-center gap-2 text-outline-variant uppercase tracking-widest text-[10px] font-black">
+                                <MaterialSymbol icon="insights" className="text-base" />
+                                Analysis complete
+                            </div>
+                            <div className="px-3 py-1 bg-primary-fixed/20 text-primary font-black text-[10px] rounded-full uppercase tracking-tighter">
+                                {data!.total} Discoveries
+                            </div>
+                        </div>
 
-                        {threads.length > 0 && (
-                            <Section title="Emails" icon={Mail} count={threads.length}>
-                                {threads.map((r) => <ResultCard key={r.id} result={r} />)}
-                            </Section>
-                        )}
-                        {contacts.length > 0 && (
-                            <Section title="Contacts" icon={User} count={contacts.length}>
-                                {contacts.map((r) => <ResultCard key={r.id} result={r} />)}
-                            </Section>
-                        )}
-                        {tasks.length > 0 && (
-                            <Section title="Tasks" icon={CheckSquare} count={tasks.length}>
-                                {tasks.map((r) => <ResultCard key={r.id} result={r} />)}
-                            </Section>
-                        )}
+                        <div className="grid gap-12">
+                            {threads.length > 0 && (
+                                <ResultSection title="Communications" icon="chat_bubble" count={threads.length}>
+                                    {threads.map((r) => <ResultCard key={r.id} result={r} />)}
+                                </ResultSection>
+                            )}
+                            {contacts.length > 0 && (
+                                <ResultSection title="Intelligence Nodes" icon="group" count={contacts.length}>
+                                    {contacts.map((r) => <ResultCard key={r.id} result={r} />)}
+                                </ResultSection>
+                            )}
+                            {tasks.length > 0 && (
+                                <ResultSection title="Priority Actions" icon="ballot" count={tasks.length}>
+                                    {tasks.map((r) => <ResultCard key={r.id} result={r} />)}
+                                </ResultSection>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
@@ -227,22 +225,21 @@ export default function SearchPage() {
     );
 }
 
-function Section({
-    title, icon: Icon, count, children
-}: {
-    title: string;
-    icon: React.ElementType;
-    count: number;
-    children: React.ReactNode;
-}) {
+function ResultSection({ title, icon, count, children }: { title: string, icon: string, count: number, children: React.ReactNode }) {
     return (
-        <div>
-            <div className="flex items-center gap-2 mb-3">
-                <Icon className="w-4 h-4 text-muted" />
-                <h2 className="text-sm font-bold uppercase tracking-widest text-muted">{title}</h2>
-                <span className="text-xs text-muted bg-paper-mid rounded-full px-1.5 py-0.5 font-mono">{count}</span>
+        <div className="space-y-6">
+            <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-surface-container flex items-center justify-center rounded-xl text-outline">
+                    <MaterialSymbol icon={icon} />
+                </div>
+                <div className="flex-1 border-b border-outline-variant/5 pb-2 flex items-baseline gap-3">
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant">{title}</h2>
+                    <span className="text-on-surface-variant/30 text-[9px] font-black">• {count} item{count !== 1 ? 's' : ''}</span>
+                </div>
             </div>
-            <div className="space-y-2">{children}</div>
+            <div className="grid gap-3">
+                {children}
+            </div>
         </div>
     );
 }

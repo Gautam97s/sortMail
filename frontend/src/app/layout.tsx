@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { Fraunces, Syne, JetBrains_Mono } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "@/styles/globals.css";
 import { Providers } from "@/app/providers";
 
-const fraunces = Fraunces({
+const inter = Inter({
     subsets: ["latin"],
-    variable: "--font-fraunces",
+    variable: "--font-inter",
     display: "swap",
 });
 
-const syne = Syne({
+const jakarta = Plus_Jakarta_Sans({
     subsets: ["latin"],
-    variable: "--font-syne",
+    variable: "--font-jakarta",
     display: "swap",
 });
 
@@ -22,10 +22,9 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "SortMail — AI Email Intelligence for Gmail & Outlook",
+    title: "SortMail — AI Email Intelligence",
     description:
-        "AI-powered intelligence layer that summarizes threads, extracts tasks, and drafts replies. Your inbox, finally under control.",
-    keywords: ["email", "AI", "Gmail", "Outlook", "productivity", "task management"],
+        "AI-powered intelligence layer for your inbox. Summarize, categorize, and automate your email flow.",
 };
 
 export default function RootLayout({
@@ -36,9 +35,12 @@ export default function RootLayout({
     return (
         <html
             lang="en"
-            className={`${fraunces.variable} ${syne.variable} ${jetbrains.variable}`}
+            className={`${inter.variable} ${jakarta.variable} ${jetbrains.variable}`}
         >
-            <body className="font-body antialiased bg-paper text-ink">
+            <head>
+                <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" />
+            </head>
+            <body className="font-body antialiased bg-background text-on-surface">
                 <Providers>
                     {children}
                 </Providers>

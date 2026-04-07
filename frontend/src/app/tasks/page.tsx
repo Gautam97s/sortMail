@@ -1,14 +1,20 @@
-'use client';
+"use client";
 
 import React, { useState, useMemo } from 'react';
-import AppShell from '@/components/layout/AppShell';
 import { TaskFilters } from '@/components/tasks/TaskFilters';
 import { TaskKanban } from '@/components/tasks/TaskKanban';
 import { TaskList } from '@/components/tasks/TaskList';
 import { useTasks } from '@/hooks/useTasks';
-import { Button } from '@/components/ui/button';
-import { LayoutGrid, List as ListIcon, Plus } from 'lucide-react';
 import { TaskDTOv1 } from '@/types/dashboard';
+
+const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
+    <span 
+        className={`material-symbols-outlined ${className}`}
+        style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
+    >
+        {icon}
+    </span>
+);
 
 export default function TasksPage() {
     const [view, setView] = useState<'board' | 'list'>('board');
@@ -37,93 +43,84 @@ export default function TasksPage() {
 
     const handleTaskClick = (taskId: string) => {
         console.log('Task clicked:', taskId);
-        // TODO: Open task detail modal
     };
 
     if (isLoading) {
         return (
-            <AppShell title="Tasks">
-                <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
-                    <div className="p-6">
-                        <div className="h-12 w-64 bg-paper-mid animate-pulse rounded-lg mb-6" />
-                        <div className="flex gap-4">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="flex-1 h-96 bg-paper-mid animate-pulse rounded-xl" />
-                            ))}
-                        </div>
-                    </div>
+            <div className="p-10 space-y-8 animate-pulse">
+                <div className="h-10 w-48 bg-surface-container rounded-xl" />
+                <div className="flex gap-6 h-[600px]">
+                    {[1, 2, 3].map(i => <div key={i} className="flex-1 bg-surface-container rounded-[32px]" />)}
                 </div>
-            </AppShell>
+            </div>
         );
     }
 
     if (error) {
         return (
-            <AppShell title="Tasks">
-                <div className="p-8 text-center text-danger">
-                    Failed to load tasks.
+            <div className="h-full flex items-center justify-center p-20">
+                <div className="text-center space-y-4">
+                    <MaterialSymbol icon="error" className="text-4xl text-error" />
+                    <p className="text-sm font-bold text-on-surface uppercase tracking-widest">Neural Link Distorted</p>
+                    <button onClick={() => window.location.reload()} className="text-xs font-black text-primary hover:underline uppercase tracking-widest">Re-Initialize</button>
                 </div>
-            </AppShell>
+            </div>
         );
     }
 
     return (
-        <AppShell title="Tasks">
-            <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden">
-                <div className="flex flex-col gap-3 md:gap-4 px-4 md:px-6 pt-4 md:pt-6 pb-2 shrink-0">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="min-w-0">
-                            <h1 className="font-display text-2xl md:text-3xl text-ink truncate">Tasks</h1>
-                            <p className="text-sm md:text-base text-ink-light mt-0.5 md:mt-1 truncate">Manage your actionable items.</p>
-                        </div>
-                        <div className="flex items-center gap-2 md:gap-3 shrink-0">
-                            <div className="bg-white/40 backdrop-blur-md shadow-sm p-1 rounded-lg border border-white/50 flex items-center">
-                                <Button
-                                    variant={view === 'board' ? 'secondary' : 'ghost'}
-                                    size="sm"
-                                    onClick={() => setView('board')}
-                                    className={`h-7 w-7 md:h-8 md:w-8 p-0 ${view === 'board' ? 'bg-white shadow-sm text-accent transition-all' : 'hover:bg-white/50'}`}
-                                >
-                                    <LayoutGrid className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    variant={view === 'list' ? 'secondary' : 'ghost'}
-                                    size="sm"
-                                    onClick={() => setView('list')}
-                                    className={`h-7 w-7 md:h-8 md:w-8 p-0 ${view === 'list' ? 'bg-white shadow-sm text-accent transition-all' : 'hover:bg-white/50'}`}
-                                >
-                                    <ListIcon className="h-4 w-4" />
-                                </Button>
-                            </div>
-                            <Button className="h-8 md:h-9 px-3 gap-1.5 md:gap-2 bg-accent hover:bg-accent-hover text-white text-xs md:text-sm">
-                                <Plus className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                                <span className="hidden sm:inline">Add Task</span>
-                                <span className="sm:hidden">Add</span>
-                            </Button>
-                        </div>
+        <div className="h-full flex flex-col bg-surface-container-lowest overflow-hidden">
+            {/* Editorial Header */}
+            <div className="px-10 pt-10 pb-6 space-y-8 shrink-0">
+                <div className="flex items-end justify-between">
+                    <div className="space-y-1">
+                        <h1 className="text-4xl font-headline font-bold text-on-surface tracking-tight">Focus Matrix</h1>
+                        <p className="text-sm font-medium text-on-surface-variant opacity-80 italic">Synchronize actionable entities across neural columns.</p>
                     </div>
-
-                    <TaskFilters
-                        searchQuery={searchQuery}
-                        onSearchChange={setSearchQuery}
-                        priorityFilter={priorityFilter}
-                        onPriorityChange={setPriorityFilter}
-                        statusFilter={statusFilter}
-                        onStatusChange={setStatusFilter}
-                        onClearFilters={handleClearFilters}
-                    />
+                    <div className="flex items-center gap-4 bg-white/50 p-1.5 rounded-2xl border border-outline-variant/10 shadow-sm">
+                        <button
+                            onClick={() => setView('board')}
+                            className={`h-11 px-6 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${view === 'board' ? 'bg-on-surface text-surface shadow-xl' : 'text-outline-variant hover:bg-surface-container-high'}`}
+                        >
+                            <MaterialSymbol icon="view_kanban" className="text-lg" />
+                            Canvas
+                        </button>
+                        <button
+                            onClick={() => setView('list')}
+                            className={`h-11 px-6 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${view === 'list' ? 'bg-on-surface text-surface shadow-xl' : 'text-outline-variant hover:bg-surface-container-high'}`}
+                        >
+                            <MaterialSymbol icon="view_list" className="text-lg" />
+                            Stream
+                        </button>
+                        <div className="w-[1px] h-6 bg-outline-variant/20 mx-2" />
+                        <button className="h-11 px-6 bg-primary text-on-primary rounded-xl flex items-center gap-3 text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20">
+                            <MaterialSymbol icon="add" className="text-xl" />
+                            Annex Entity
+                        </button>
+                    </div>
                 </div>
 
-                <div className="flex-1 overflow-hidden px-4 md:px-6 pb-4 md:pb-6">
-                    {view === 'board' ? (
-                        <TaskKanban tasks={filteredTasks} onTaskClick={handleTaskClick} />
-                    ) : (
-                        <div className="h-full overflow-y-auto pr-2 scrollbar-thin">
-                            <TaskList tasks={filteredTasks} onTaskClick={handleTaskClick} />
-                        </div>
-                    )}
-                </div>
+                <TaskFilters
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    priorityFilter={priorityFilter}
+                    onPriorityChange={setPriorityFilter}
+                    statusFilter={statusFilter}
+                    onStatusChange={setStatusFilter}
+                    onClearFilters={handleClearFilters}
+                />
             </div>
-        </AppShell>
+
+            {/* Matrix Viewport */}
+            <div className="flex-1 overflow-hidden px-10 pb-10">
+                {view === 'board' ? (
+                    <TaskKanban tasks={filteredTasks} onTaskClick={handleTaskClick} />
+                ) : (
+                    <div className="h-full overflow-y-auto scrollbar-none pr-4">
+                        <TaskList tasks={filteredTasks} onTaskClick={handleTaskClick} />
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }

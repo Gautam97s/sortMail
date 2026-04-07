@@ -4,30 +4,29 @@ import React, { useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { User, Mail, Brain, Palette, Check, Plus, AlertCircle, Save, LifeBuoy, ArrowRight, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api, endpoints } from '@/lib/api';
+
+const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
+    <span 
+        className={`material-symbols-outlined ${className}`}
+        style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
+    >
+        {icon}
+    </span>
+);
 
 export default function SettingsPage() {
     const { user, checkSession } = useAuth();
     const nameRef = useRef<HTMLInputElement>(null);
     const [saved, setSaved] = useState(false);
-
     const queryClient = useQueryClient();
 
     const updateProfile = useMutation({
         mutationFn: (name: string) =>
             api.patch(endpoints.updateProfile, { name }),
         onSuccess: async () => {
-            await checkSession(); // refresh user in AuthContext
+            await checkSession();
             setSaved(true);
             setTimeout(() => setSaved(false), 3000);
         },
@@ -43,249 +42,206 @@ export default function SettingsPage() {
         : "?";
 
     return (
-        <div className="space-y-8 pb-20">
+        <div className="space-y-10 pb-20 max-w-4xl">
+            {/* Header */}
+            <div>
+                <h1 className="text-3xl font-headline font-bold text-on-surface">Account Overview</h1>
+                <p className="text-on-surface-variant mt-1.5 font-medium">Manage your profile, intelligence preferences, and connected ecosystems.</p>
+            </div>
 
             {/* Profile Section */}
-            <section className="space-y-4">
+            <section className="space-y-6">
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                        <User className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <h2 className="font-display text-xl text-ink font-semibold">Profile</h2>
-                        <p className="text-sm text-ink-light">Your account information</p>
-                    </div>
+                    <MaterialSymbol icon="person" className="text-primary text-2xl" />
+                    <h2 className="font-headline text-xl text-on-surface font-bold">Personal Profile</h2>
                 </div>
 
-                <Card>
-                    <CardContent className="p-4 md:p-6">
-                        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
-                            <Avatar className="h-16 w-16 md:h-20 md:w-20 border-2 border-border-light shrink-0">
-                                {user?.picture && <AvatarImage src={user.picture} />}
-                                <AvatarFallback className="bg-primary/5 text-primary text-lg md:text-xl font-display">
-                                    {initials}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="space-y-4 flex-1 w-full max-w-md">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="name">Display Name</Label>
-                                    <Input ref={nameRef} id="name" defaultValue={user?.name || ""} className="bg-paper" />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="email">Email Address</Label>
-                                    <Input id="email" defaultValue={user?.email || ""} disabled className="bg-paper-mid opacity-70" />
-                                </div>
+                <div className="bg-white rounded-3xl border border-outline-variant/10 shadow-sm overflow-hidden">
+                    <div className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-8">
+                        <div className="relative group shrink-0">
+                            <div className="h-24 w-24 rounded-full overflow-hidden ring-4 ring-primary-fixed/20 border-4 border-white shadow-lg transition-transform group-hover:scale-105">
+                                {user?.picture ? (
+                                    <img src={user.picture} alt={user.name || "User"} className="h-full w-full object-cover" />
+                                ) : (
+                                    <div className="h-full w-full bg-primary-fixed flex items-center justify-center text-primary text-2xl font-bold font-headline">
+                                        {initials}
+                                    </div>
+                                )}
                             </div>
-                            <div className="md:ml-auto w-full md:w-auto self-start flex flex-col-reverse sm:flex-row md:flex-row items-center gap-2 pt-2 md:pt-0">
-                                {saved && <span className="text-success text-sm flex items-center gap-1"><Check className="w-4 h-4" /> Saved</span>}
-                                <Button onClick={handleSave} disabled={updateProfile.isPending} className="w-full md:w-auto gap-2">
-                                    <Save className="w-4 h-4" />
-                                    {updateProfile.isPending ? "Saving..." : "Save Changes"}
-                                </Button>
-                            </div>
+                            <button className="absolute -bottom-1 -right-1 p-2 bg-primary text-on-primary rounded-xl shadow-lg border-2 border-white scale-90 hover:scale-100 transition-transform">
+                                <MaterialSymbol icon="edit" className="text-sm" />
+                            </button>
                         </div>
-                        <div className="mt-4 flex gap-3 text-xs text-muted-foreground">
-                            <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
-                                <Check className="h-3 w-3 mr-1" />
-                                Signed in via {user?.provider || "Google"}
-                            </Badge>
-                            {user?.credits !== undefined && (
-                                <Badge variant="secondary">
-                                    {user.credits} credits remaining
-                                </Badge>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-            </section>
 
-            <Separator />
+                        <div className="flex-1 space-y-5 w-full">
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-outline uppercase tracking-wider pl-1">Display Name</label>
+                                    <input 
+                                        ref={nameRef}
+                                        type="text" 
+                                        defaultValue={user?.name || ""} 
+                                        className="w-full h-11 px-4 bg-surface-container-lowest border border-outline-variant/15 rounded-xl focus:ring-2 focus:ring-primary-fixed focus:border-primary transition-all font-medium text-on-surface"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-outline uppercase tracking-wider pl-1">Email Address</label>
+                                    <input 
+                                        type="email" 
+                                        defaultValue={user?.email || ""} 
+                                        disabled 
+                                        className="w-full h-11 px-4 bg-surface-container text-on-surface-variant border border-outline-variant/10 rounded-xl font-medium cursor-not-allowed"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between pt-2">
+                                <div className="flex gap-2">
+                                    <div className="px-3 py-1 bg-primary-fixed/20 text-primary text-[10px] font-bold rounded-full border border-primary/10 uppercase tracking-wide flex items-center gap-1.5">
+                                        <MaterialSymbol icon="verified" className="text-sm" />
+                                        {user?.provider || "Google"} SSO
+                                    </div>
+                                    {user?.credits !== undefined && (
+                                        <div className="px-3 py-1 bg-tertiary-fixed/20 text-tertiary text-[10px] font-bold rounded-full border border-tertiary/10 uppercase tracking-wide">
+                                            {user.credits} Intelligence Credits
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    {saved && <span className="text-primary text-sm font-bold flex items-center gap-1"><MaterialSymbol icon="check_circle" className="text-sm" /> Changes Saved</span>}
+                                    <button 
+                                        onClick={handleSave} 
+                                        disabled={updateProfile.isPending}
+                                        className="px-6 py-2.5 bg-primary text-on-primary rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-md shadow-primary/10 disabled:opacity-50"
+                                    >
+                                        {updateProfile.isPending ? <MaterialSymbol icon="sync" className="animate-spin" /> : <MaterialSymbol icon="save" />}
+                                        Update Profile
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             {/* Integrations Section */}
-            <section className="space-y-4">
+            <section className="space-y-6">
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
-                        <Mail className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <h2 className="font-display text-xl text-ink font-semibold">Integrations</h2>
-                        <p className="text-sm text-ink-light">Connected email providers</p>
-                    </div>
+                    <MaterialSymbol icon="mail" className="text-primary text-2xl" />
+                    <h2 className="font-headline text-xl text-on-surface font-bold">Inbox Integrations</h2>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                    {/* Gmail - Connected */}
-                    <Card className="border-l-4 border-l-success">
-                        <CardHeader className="pb-3">
-                            <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 bg-white rounded-full border border-border-light flex items-center justify-center p-2">
-                                        <Image src="https://www.gstatic.com/images/branding/product/1x/gmail_2020q4_48dp.png" alt="Gmail" width={24} height={24} className="h-6 w-6" />
-                                    </div>
-                                    <div>
-                                        <CardTitle className="text-base font-body">Gmail</CardTitle>
-                                        <CardDescription>{user?.email}</CardDescription>
-                                    </div>
-                                </div>
-                                <Badge variant="secondary" className="bg-success/10 text-success hover:bg-success/20 border-success/20">
-                                    <Check className="h-3 w-3 mr-1" /> Connected
-                                </Badge>
+                <div className="grid gap-6 md:grid-cols-2">
+                    {/* Gmail */}
+                    <div className="group bg-white rounded-3xl border-2 border-primary-fixed p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4">
+                            <div className="px-2.5 py-1 bg-primary-fixed text-primary font-bold text-[9px] rounded-full uppercase tracking-tighter">Active</div>
+                        </div>
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="h-12 w-12 bg-white rounded-2xl border border-outline-variant/15 flex items-center justify-center p-2.5 shadow-inner">
+                                <Image src="https://www.gstatic.com/images/branding/product/1x/gmail_2020q4_48dp.png" alt="Gmail" width={32} height={32} />
                             </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Switch id="gmail-sync" defaultChecked />
-                                    <Label htmlFor="gmail-sync" className="font-normal text-sm">Auto-sync emails</Label>
-                                </div>
-                                <Button variant="outline" size="sm" className="text-muted-foreground">Manage</Button>
+                            <div>
+                                <h3 className="font-bold text-on-surface">Google Workspace</h3>
+                                <p className="text-xs text-on-surface-variant font-medium">{user?.email}</p>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-outline-variant/10">
+                            <div className="flex items-center gap-2.5">
+                                <div className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" className="sr-only peer" defaultChecked />
+                                    <div className="w-9 h-5 bg-surface-container rounded-full peer peer-checked:bg-primary transition-all after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                                </div>
+                                <span className="text-xs font-bold text-on-surface-variant">Intelligent Syncing</span>
+                            </div>
+                            <button className="text-xs font-bold text-primary hover:underline">Settings</button>
+                        </div>
+                    </div>
 
-                    {/* Outlook - Not Connected */}
-                    <Card className="opacity-80 hover:opacity-100 transition-opacity">
-                        <CardHeader className="pb-3">
-                            <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 bg-white rounded-full border border-border-light flex items-center justify-center p-2">
-                                        <Image src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg" alt="Outlook" width={24} height={24} className="h-6 w-6" />
-                                    </div>
-                                    <div>
-                                        <CardTitle className="text-base font-body">Outlook</CardTitle>
-                                        <CardDescription>Office 365 / Exchange</CardDescription>
-                                    </div>
-                                </div>
-                                <Button variant="outline" size="sm" className="h-7 text-xs">
-                                    <Plus className="h-3 w-3 mr-1" /> Connect
-                                </Button>
+                    {/* Outlook */}
+                    <div className="group bg-surface-container-lowest rounded-3xl border border-outline-variant/10 p-6 opacity-80 hover:opacity-100 hover:border-primary-fixed/30 transition-all">
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="h-12 w-12 bg-white rounded-2xl border border-outline-variant/15 flex items-center justify-center p-2.5">
+                                <Image src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg" alt="Outlook" width={32} height={32} />
                             </div>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-muted-foreground">Connect your Outlook account to sync emails and calendar events.</p>
-                        </CardContent>
-                    </Card>
+                            <div>
+                                <h3 className="font-bold text-on-surface">Microsoft Outlook</h3>
+                                <p className="text-xs text-on-surface-variant font-medium italic">Not connected</p>
+                            </div>
+                        </div>
+                        <button className="w-full py-2.5 bg-surface-container-high hover:bg-primary-fixed/20 text-on-surface font-bold rounded-xl text-sm transition-all border border-outline-variant/10 flex items-center justify-center gap-2">
+                            <MaterialSymbol icon="add" className="text-lg" />
+                            Connect Account
+                        </button>
+                    </div>
                 </div>
             </section>
-
-            <Separator />
 
             {/* AI Configuration */}
-            <section className="space-y-4">
+            <section className="space-y-6">
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-ai/10 rounded-xl flex items-center justify-center text-ai">
-                        <Brain className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <h2 className="font-display text-xl text-ink font-semibold">Intelligence</h2>
-                        <p className="text-sm text-ink-light">Configure AI behavior</p>
-                    </div>
+                    <MaterialSymbol icon="psychology" className="text-primary text-2xl" />
+                    <h2 className="font-headline text-xl text-on-surface font-bold">Cognitive Intelligence</h2>
                 </div>
 
-                <Card>
-                    <CardContent className="p-6 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                                <Label className="text-base">Draft Autopilot</Label>
-                                <p className="text-xs text-muted-foreground">Automatically generate drafts for incoming emails</p>
-                            </div>
-                            <Switch defaultChecked />
-                        </div>
-                        <Separator />
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                                <Label className="text-base">Priority Analysis</Label>
-                                <p className="text-xs text-muted-foreground">Analyze and score email priority on arrival</p>
-                            </div>
-                            <Switch defaultChecked />
-                        </div>
-                        <Separator />
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                                <Label className="text-base">Calendar Detection</Label>
-                                <p className="text-xs text-muted-foreground">Detect meeting requests in emails automatically</p>
-                            </div>
-                            <Switch defaultChecked />
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="bg-white rounded-3xl border border-outline-variant/10 shadow-sm overflow-hidden divide-y divide-outline-variant/5">
+                    <AIControlToggle 
+                        title="Draft Autopilot" 
+                        desc="Automatically generate smart drafts for incoming priority threads using your tonal profile." 
+                        icon="edit_note"
+                        defaultChecked
+                    />
+                    <AIControlToggle 
+                        title="Sentiment & Intent Analysis" 
+                        desc="Deep-scan communications for emotional context and underlying action items." 
+                        icon="sentiment_satisfied"
+                        defaultChecked
+                    />
+                    <AIControlToggle 
+                        title="Relationship Prioritization" 
+                        desc="Boost visibility of threads from high-value stakeholders and frequent collaborators." 
+                        icon="star"
+                        defaultChecked
+                    />
+                </div>
             </section>
 
-            <Separator />
-
-            {/* Appearance */}
-            <section className="space-y-4">
-                <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-700">
-                        <Palette className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <h2 className="font-display text-xl text-ink font-semibold">Appearance</h2>
-                        <p className="text-sm text-ink-light">Customize the interface</p>
-                    </div>
-                </div>
-
-                <Card>
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="font-medium">Interface Theme</p>
-                                <p className="text-sm text-muted-foreground">SortMail v1.0 Standard (Light)</p>
-                            </div>
-                            <Button variant="outline" disabled>Customize (Pro)</Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            </section>
-            <Separator />
-
-            {/* Support & Resources */}
-            <section className="space-y-4">
-                <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
-                        <LifeBuoy className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <h2 className="font-display text-xl text-ink font-semibold">Support & Resources</h2>
-                        <p className="text-sm text-ink-light">Get help and stay updated</p>
-                    </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <SupportLink
-                        title="Contact Support"
-                        desc="Start a conversation"
-                        href="/support"
-                    />
-                    <SupportLink
-                        title="Help Center"
-                        desc="Read documentation"
-                        href="/help"
-                    />
-                    <SupportLink
-                        title="System Status"
-                        desc="Check platform health"
-                        href="/status"
-                    />
-                    <SupportLink
-                        title="Changelog"
-                        desc="See what's new"
-                        href="/changelog"
-                    />
-                </div>
+            {/* Support Links */}
+            <section className="grid gap-4 md:grid-cols-4">
+                <SupportLink icon="help_center" title="Help Center" href="/help" />
+                <SupportLink icon="chat" title="Contact Us" href="/support" />
+                <SupportLink icon="health_and_safety" title="System Health" href="/status" />
+                <SupportLink icon="new_releases" title="Changelog" href="/changelog" />
             </section>
         </div>
     );
 }
 
-function SupportLink({ title, desc, href }: { title: string, desc: string, href: string }) {
+function AIControlToggle({ title, desc, icon, defaultChecked = false }: { title: string, desc: string, icon: string, defaultChecked?: boolean }) {
     return (
-        <Link href={href} className="flex flex-col gap-1 p-5 rounded-2xl border border-border bg-white hover:border-accent hover:shadow-lg hover:shadow-ink/5 transition-all group">
-            <div className="flex items-center justify-between">
-                <h3 className="font-bold text-ink group-hover:text-accent transition-colors">{title}</h3>
-                <ArrowRight className="h-4 w-4 text-muted group-hover:text-accent group-hover:translate-x-1 transition-all" />
+        <div className="p-6 flex items-start gap-5 hover:bg-surface-container-lowest transition-colors">
+            <div className="h-10 w-10 bg-primary-fixed/20 text-primary rounded-xl flex items-center justify-center shrink-0">
+                <MaterialSymbol icon={icon} />
             </div>
-            <p className="text-sm text-muted leading-relaxed">{desc}</p>
+            <div className="flex-1">
+                <h3 className="font-bold text-on-surface">{title}</h3>
+                <p className="text-xs text-on-surface-variant font-medium leading-relaxed max-w-lg mt-0.5">{desc}</p>
+            </div>
+            <div className="relative inline-flex items-center cursor-pointer mt-1">
+                <input type="checkbox" className="sr-only peer" defaultChecked={defaultChecked} />
+                <div className="w-11 h-6 bg-surface-container rounded-full peer peer-checked:bg-primary transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+            </div>
+        </div>
+    );
+}
+
+function SupportLink({ title, icon, href }: { title: string, icon: string, href: string }) {
+    return (
+        <Link href={href} className="p-4 bg-surface-container-lowest border border-outline-variant/10 rounded-2xl flex flex-col items-center gap-3 group hover:border-primary-fixed hover:shadow-lg transition-all">
+            <div className="h-10 w-10 bg-surface-container text-outline group-hover:bg-primary-fixed/20 group-hover:text-primary rounded-xl flex items-center justify-center transition-all">
+                <MaterialSymbol icon={icon} />
+            </div>
+            <span className="text-xs font-bold text-on-surface-variant group-hover:text-on-surface">{title}</span>
         </Link>
     );
 }

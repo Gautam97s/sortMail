@@ -4,27 +4,25 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AppShell from '@/components/layout/AppShell';
 import { useDashboard } from '@/hooks/useDashboard';
-import { Button } from '@/components/ui/button';
+import { useUser } from '@/hooks/useUser';
 import TaskCreateModal from '@/components/modals/TaskCreateModal';
-import { 
-    Sparkles, Mail, AlertTriangle, CheckSquare, Clock, Zap, RefreshCw, 
-    PenSquare, RefreshCcw, PlusSquare, BarChart2, Plus, ArrowUpRight, 
-    ChevronRight, FileText, Settings, Rocket
-} from 'lucide-react';
-import type { TaskDTOv1, ThreadListItem, PriorityLevel } from '@/types/dashboard';
 import Link from 'next/link';
+import type { TaskDTOv1, ThreadListItem } from '@/types/dashboard';
 
-// Priority Configuration mapping for visual styling
-const priorityConfig = {
-    do_now: { label: 'Do Now', color: 'bg-danger', text: 'text-danger', bgSoft: 'bg-danger/10' },
-    do_today: { label: 'Today', color: 'bg-warning', text: 'text-warning', bgSoft: 'bg-warning/10' },
-    can_wait: { label: 'Can Wait', color: 'bg-success', text: 'text-success', bgSoft: 'bg-success/10' },
-};
+const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
+    <span 
+        className={`material-symbols-outlined ${className}`}
+        style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
+    >
+        {icon}
+    </span>
+);
 
 function DashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { data, isLoading, error } = useDashboard();
+    const { data: dashboardData, isLoading, error } = useDashboard();
+    const { data: userData } = useUser();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     useEffect(() => {
@@ -37,48 +35,66 @@ function DashboardContent() {
     if (isLoading) {
         return (
             <div className="p-8 space-y-8 animate-pulse">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-48">
-                    <div className="lg:col-span-2 rounded-xl bg-paper-mid" />
-                    <div className="rounded-xl bg-ai/20" />
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 h-32">
-                    {[1, 2, 3, 4].map(i => <div key={i} className="rounded-xl bg-paper-mid" />)}
+                <div className="h-64 rounded-2xl bg-surface-container" />
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {[1, 2, 3, 4].map(i => <div key={i} className="h-32 rounded-2xl bg-surface-container-low" />)}
                 </div>
             </div>
         );
     }
 
-    if (error || !data) {
+    if (error || !dashboardData) {
         return (
-            <div className="p-8 text-center text-danger font-medium">
-                Failed to load dashboard data. Please try refreshing.
+            <div className="p-12 text-center">
+                <MaterialSymbol icon="error" className="text-error text-4xl mb-4" />
+                <p className="text-on-surface-variant font-semibold">Failed to load intelligence data.</p>
+                <button onClick={() => window.location.reload()} className="mt-4 text-primary font-bold hover:underline">
+                    Retry Sync
+                </button>
             </div>
         );
     }
 
-    const { briefing, stats, recent_threads, priority_tasks } = data;
+    const { briefing, stats, recent_threads, priority_tasks } = dashboardData;
+    const firstName = userData?.name?.split(' ')[0] || 'there';
 
     return (
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8">
-            {/* ─── Hero Section ────────────────────────────── */}
+        <div className="flex flex-col p-6 md:p-10 gap-10 max-w-[1600px] mx-auto">
+            {/* Header Greeting */}
+            <header className="flex flex-col gap-1">
+                <h1 className="text-3xl md:text-4xl font-headline font-bold text-on-surface tracking-tight">
+                    Good morning, {firstName}
+                </h1>
+                <p className="text-on-surface-variant font-medium">
+                    Here's your intelligence briefing for <span className="text-primary font-bold">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</span>.
+                </p>
+            </header>
+
+            {/* Top Row: AI Briefing + Quick Stats */}
             <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* AI Briefing */}
-                <div className="lg:col-span-2 glass-card p-8 flex flex-col md:flex-row gap-8 relative overflow-hidden">
-                    <div className="absolute -top-10 -right-10 p-4 opacity-5 pointer-events-none">
-                        <Sparkles className="h-[200px] w-[200px] text-accent" />
+                {/* AI Briefing Card */}
+                <div className="lg:col-span-2 bg-gradient-to-br from-tertiary-fixed/40 to-primary-fixed/20 rounded-[32px] p-8 md:p-10 tonal-shadow relative overflow-hidden border border-white/40">
+                    <div className="absolute top-0 right-0 p-8 opacity-10 blur-sm">
+                        <MaterialSymbol icon="auto_awesome" filled className="text-[120px] text-tertiary" />
                     </div>
                     
-                    <div className="flex-1 z-10">
-                        <h2 className="text-xl font-display font-bold flex items-center gap-2 mb-4 text-ink">
-                            <Sparkles className="h-6 w-6 text-accent" />
-                            AI Morning Briefing
-                        </h2>
-                        <p className="text-muted text-base leading-relaxed mb-8">
+                    <div className="relative z-10 flex flex-col gap-6 md:pr-20">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-white/60 flex items-center justify-center text-tertiary shadow-sm border border-white">
+                                <MaterialSymbol icon="auto_awesome" filled className="text-xl" />
+                            </div>
+                            <span className="font-headline font-bold text-tertiary uppercase tracking-widest text-xs">
+                                Morning Intel
+                            </span>
+                        </div>
+                        
+                        <p className="text-lg md:text-xl font-medium text-on-surface leading-snug">
                             {briefing.summary}
                         </p>
-                        <div className="flex flex-wrap gap-2 mb-4">
+                        
+                        <div className="flex flex-wrap gap-2 mt-2">
                             {briefing.suggested_actions.map((action: string, i: number) => (
-                                <button key={i} className="px-4 py-2 bg-white/40 hover:bg-accent/10 border border-white/50 text-accent transition-colors rounded-xl text-xs font-bold shadow-sm">
+                                <button key={i} className="px-4 py-2 bg-white/80 hover:bg-white text-on-surface border border-outline-variant/30 transition-all rounded-full text-xs font-bold shadow-sm hover:scale-105 active:scale-95">
                                     {action}
                                 </button>
                             ))}
@@ -86,245 +102,174 @@ function DashboardContent() {
                     </div>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="glass-card bg-accent/90 p-6 text-slate-900 overflow-hidden flex flex-col justify-between group">
-                    <div className="relative z-10">
-                        <h2 className="text-lg font-bold mb-6 font-display text-slate-900">Quick Actions</h2>
-                        <div className="grid grid-cols-2 gap-4">
-                            <button className="flex flex-col items-center justify-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all border border-white/20 hover:scale-[1.02]">
-                                <PenSquare className="h-6 w-6" />
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-900">Compose</span>
-                            </button>
-                            <button className="flex flex-col items-center justify-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all border border-white/20 hover:scale-[1.02]">
-                                <RefreshCcw className="h-6 w-6" />
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-900">Sync</span>
-                            </button>
-                            <button 
-                                onClick={() => setIsCreateModalOpen(true)}
-                                className="flex flex-col items-center justify-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all border border-white/20 hover:scale-[1.02]"
-                            >
-                                <PlusSquare className="h-6 w-6" />
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-900">Task</span>
-                            </button>
-                            <button className="flex flex-col items-center justify-center gap-3 p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all border border-white/20 hover:scale-[1.02]">
-                                <BarChart2 className="h-6 w-6" />
-                                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-900">Stats</span>
-                            </button>
+                {/* Focus Card / AI Performance */}
+                <div className="bg-surface-container-low rounded-[32px] p-8 border border-outline-variant/10 flex flex-col justify-between tonal-shadow">
+                    <div className="flex flex-col gap-1">
+                        <span className="text-[11px] font-bold text-outline uppercase tracking-[0.2em] mb-2">Focus Score</span>
+                        <div className="flex items-end gap-2">
+                            <span className="text-5xl font-headline font-bold text-primary tracking-tighter">88</span>
+                            <span className="text-lg font-bold text-outline mb-1.5">/100</span>
+                        </div>
+                        <div className="w-full h-2 bg-surface-container-high rounded-full mt-4 overflow-hidden">
+                            <div className="w-[88%] h-full bg-primary rounded-full shadow-[0_0_8px_rgba(0,91,191,0.4)]" />
                         </div>
                     </div>
+                    
+                    <div className="mt-8">
+                        <p className="text-sm font-semibold text-on-surface-variant leading-relaxed">
+                            You're <span className="text-primary font-bold">12% more efficient</span> today. Your response time to urgent threads is under <span className="text-on-surface font-bold">4 mins</span>.
+                        </p>
+                    </div>
+
+                    <button className="mt-8 flex items-center justify-between w-full p-4 bg-white rounded-2xl border border-black/5 hover:bg-slate-50 transition-colors group">
+                        <span className="text-sm font-bold text-on-surface">View Insights</span>
+                        <MaterialSymbol icon="arrow_forward" className="text-primary group-hover:translate-x-1 transition-transform" />
+                    </button>
                 </div>
             </section>
 
-            {/* ─── Metrics Section ─────────────────────────── */}
+            {/* Metrics Grid */}
             <section className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                {/* Unread */}
-                <div className="glass-card p-6 flex items-center gap-5 group relative overflow-hidden">
-                    <div className="relative">
-                        {/* Fake circular graph/ring */}
-                        <svg className="w-16 h-16 rotate-[-90deg] text-accent2/20" viewBox="0 0 36 36">
-                            <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
-                            <path strokeDasharray="75, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" className="text-accent2 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-accent2">75%</span>
+                {[
+                    { label: 'Unread Mails', value: stats.unread, delta: stats.unread_delta, icon: 'mail', color: 'primary' },
+                    { label: 'Urgent Action', value: stats.urgent, icon: 'priority_high', color: 'error' },
+                    { label: 'Tasks Due', value: stats.tasks_due, icon: 'checklist', color: 'secondary' },
+                    { label: 'Waiting On', value: stats.awaiting_reply, icon: 'hourglass_empty', color: 'tertiary' },
+                ].map((stat, i) => (
+                    <div key={i} className="bg-white rounded-[24px] p-6 border border-outline-variant/10 hover:border-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] group cursor-pointer tonal-shadow">
+                        <div className="flex items-start justify-between mb-4">
+                            <div className={`p-3 rounded-2xl bg-${stat.color}-fixed/30 text-${stat.color} group-hover:scale-110 transition-transform`}>
+                                <MaterialSymbol icon={stat.icon} filled className="text-2xl" />
+                            </div>
+                            {stat.delta && (
+                                <span className="text-[10px] font-bold text-primary bg-primary-fixed/30 px-2 py-0.5 rounded-full">
+                                    {stat.delta}
+                                </span>
+                            )}
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-3xl font-headline font-bold text-on-surface leading-tight">
+                                {stat.value}
+                            </span>
+                            <span className="text-[11px] font-bold text-outline uppercase tracking-wider mt-1">
+                                {stat.label}
+                            </span>
                         </div>
                     </div>
-                    <div>
-                        <span className="text-2xl font-bold font-display text-ink">{stats.unread}</span>
-                        <p className="text-xs font-semibold text-muted uppercase tracking-wider mt-1">Unread Mails</p>
-                        {stats.unread_delta && <span className="text-[10px] text-accent font-bold mt-1 block">{stats.unread_delta}</span>}
-                    </div>
-                </div>
-
-                {/* Urgent */}
-                <div className="glass-card p-6 flex items-center gap-5 group relative overflow-hidden">
-                    <div className="relative">
-                        <svg className="w-16 h-16 rotate-[-90deg] text-danger/20" viewBox="0 0 36 36">
-                            <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
-                            <path strokeDasharray="30, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" className="text-danger drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-danger">30%</span>
-                        </div>
-                    </div>
-                    <div>
-                        <span className="text-2xl font-bold font-display text-ink">{stats.urgent}</span>
-                        <p className="text-xs font-semibold text-muted uppercase tracking-wider mt-1">Urgent</p>
-                    </div>
-                </div>
-
-                {/* Tasks */}
-                <div className="glass-card p-6 flex items-center gap-5 group relative overflow-hidden">
-                    <div className="relative">
-                        <svg className="w-16 h-16 rotate-[-90deg] text-success/20" viewBox="0 0 36 36">
-                            <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
-                            <path strokeDasharray="62, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" className="text-success drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-success">62%</span>
-                        </div>
-                    </div>
-                    <div>
-                        <span className="text-2xl font-bold font-display text-ink">{stats.tasks_due}</span>
-                        <p className="text-xs font-semibold text-muted uppercase tracking-wider mt-1">Due Tasks</p>
-                    </div>
-                </div>
-
-                {/* Waiting On */}
-                <div className="glass-card p-6 flex items-center gap-5 group relative overflow-hidden">
-                    <div className="relative">
-                        <svg className="w-16 h-16 rotate-[-90deg] text-accent/20" viewBox="0 0 36 36">
-                            <path strokeDasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
-                            <path strokeDasharray="88, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" className="text-accent drop-shadow-[0_0_8px_rgba(124,58,237,0.6)]" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-accent">88%</span>
-                        </div>
-                    </div>
-                    <div>
-                        <span className="text-2xl font-bold font-display text-ink">{stats.awaiting_reply}</span>
-                        <p className="text-xs font-semibold text-muted uppercase tracking-wider mt-1">Waiting On</p>
-                    </div>
-                </div>
+                ))}
             </section>
 
-            {/* ─── Main Content Grid ─────────────────────── */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* Main Content: Recent Intelligence (Activity) + Tasks List */}
+            <div className="grid grid-cols-1 xl:grid-cols-5 gap-10">
                 
-                {/* Urgent Threads (Mapped from recent_threads) */}
-                <div className="xl:col-span-2 space-y-8">
-                    <div className="glass-card overflow-hidden">
-                        <div className="p-6 border-b border-white/20 flex items-center justify-between bg-white/5">
-                            <h2 className="font-bold text-lg font-display text-ink">Recent Emails</h2>
-                            <Link href="/inbox" className="text-accent text-sm font-bold hover:underline flex items-center gap-1 cursor-pointer">
-                                View All <ArrowUpRight className="h-4 w-4" />
-                            </Link>
-                        </div>
-                        
-                        <div className="divide-y divide-border/60">
-                            {recent_threads.map((thread: ThreadListItem) => {
-                                const participantStr = thread.participants?.[0] || 'Unknown';
-                                const nameMatch = participantStr.match(/^"?([^"<]+)"?\s*</);
-                                const displayName = nameMatch ? nameMatch[1].trim() : participantStr.split('@')[0].replace(/[._]/g, ' ');
-                                const initials = displayName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
-                                
-                                // Simple mapping for urgency badge
-                                let urgencyTheme = { label: 'Low', bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-600 dark:text-slate-300' };
-                                if (thread.urgency_score >= 80) urgencyTheme = { label: 'High', bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-600 dark:text-red-400' };
-                                else if (thread.urgency_score >= 50) urgencyTheme = { label: 'Medium', bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-600 dark:text-amber-400' };
+                {/* Recent Intelligence Feed */}
+                <div className="xl:col-span-3 flex flex-col gap-6">
+                    <div className="flex items-center justify-between px-2">
+                        <h2 className="text-xl font-headline font-bold text-on-surface">Recent Activity</h2>
+                        <Link href="/inbox" className="text-sm font-bold text-primary flex items-center gap-1 hover:underline">
+                            Open Inbox <MaterialSymbol icon="arrow_outward" className="text-sm" />
+                        </Link>
+                    </div>
 
+                    <div className="bg-white rounded-[32px] border border-outline-variant/10 overflow-hidden tonal-shadow">
+                        <div className="divide-y divide-outline-variant/5">
+                            {recent_threads.map((thread: ThreadListItem) => {
+                                const participantName = thread.participants?.[0]?.split('<')[0]?.trim() || 'Internal';
+                                const initials = participantName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                                
                                 return (
                                     <Link key={thread.thread_id} href={`/inbox/${thread.thread_id}`}>
-                                        <div className="p-4 flex flex-col sm:flex-row sm:items-center hover:bg-paper-mid/50 transition-colors cursor-pointer group">
-                                            
-                                            <div className="flex items-center flex-1 min-w-0 pr-4">
-                                                <div className="size-10 rounded-full bg-white/50 border border-white/60 flex items-center justify-center font-bold text-accent text-xs mr-4 shrink-0 shadow-sm">
-                                                    {initials}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-bold text-ink truncate group-hover:text-accent transition-colors">{displayName}</p>
-                                                    <p className="text-xs text-muted truncate mt-0.5">{thread.subject}</p>
-                                                </div>
+                                        <div className="p-5 flex items-center gap-5 hover:bg-surface-container-lowest transition-colors cursor-pointer group">
+                                            <div className="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-primary font-bold text-sm shrink-0 border border-white">
+                                                {initials}
                                             </div>
-
-                                            <div className="flex items-center justify-between sm:justify-end gap-4 mt-3 sm:mt-0 pl-[56px] sm:pl-0">
-                                                <div className="px-3 shrink-0">
-                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${urgencyTheme.bg} ${urgencyTheme.text} shadow-sm border border-white/40`}>
-                                                        {urgencyTheme.label}
+                                            
+                                            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                                <div className="flex items-center justify-between">
+                                                    <h4 className="font-bold text-on-surface text-sm group-hover:text-primary transition-colors truncate">
+                                                        {participantName}
+                                                    </h4>
+                                                    <span className="text-[10px] font-bold text-outline uppercase tracking-tighter">
+                                                        {new Date(thread.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </span>
                                                 </div>
-                                                <div className="text-right shrink-0 w-16">
-                                                    <p className="text-[10px] font-bold text-muted uppercase tracking-tighter">
-                                                        {new Date(thread.last_updated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                    </p>
-                                                </div>
+                                                <p className="text-xs font-semibold text-on-surface-variant truncate">
+                                                    {thread.subject}
+                                                </p>
                                             </div>
 
+                                            <div className="flex items-center gap-2">
+                                                {thread.urgency_score >= 80 && (
+                                                    <div className="w-2 h-2 rounded-full bg-error animate-pulse shadow-[0_0_8px_rgba(186,26,26,0.5)]" title="Urgent" />
+                                                )}
+                                                <MaterialSymbol icon="chevron_right" className="text-outline text-lg group-hover:translate-x-1 transition-transform" />
+                                            </div>
                                         </div>
                                     </Link>
                                 );
                             })}
                             
                             {recent_threads.length === 0 && (
-                                <div className="p-8 text-center text-muted text-sm">
-                                    No recent threads found.
+                                <div className="p-12 text-center text-on-surface-variant italic font-medium">
+                                    No incoming intel yet.
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Tasks & Tips Sidebar */}
-                <div className="space-y-8">
-                    
-                    {/* Tasks Due Today */}
-                    <div className="glass-card p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="font-bold text-lg font-display text-ink">Tasks Due Today</h2>
-                            <span className="text-xs font-bold bg-white/50 px-2 py-0.5 rounded-md text-accent border border-white/60">
-                                {priority_tasks.length} total
-                            </span>
-                        </div>
-                        
-                        <div className="space-y-4">
-                            {priority_tasks.length > 0 ? priority_tasks.slice(0, 5).map((task: TaskDTOv1) => {
-                                const isCompleted = task.status === 'completed';
-                                
-                                return (
-                                    <div key={task.task_id} className="flex items-start gap-3 group">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={isCompleted}
-                                            readOnly
-                                            className="mt-1 rounded border-white/50 text-accent focus:ring-accent h-4 w-4 bg-white/50 cursor-pointer shadow-sm" 
-                                        />
-                                        <div className="flex-1 min-w-0 cursor-pointer">
-                                            <p className={`text-sm font-semibold leading-tight truncate transition-colors ${isCompleted ? 'line-through text-muted/60' : 'text-ink group-hover:text-accent'}`}>
-                                                {task.title}
-                                            </p>
-                                            <p className="text-[10px] text-muted mt-0.5 font-mono uppercase tracking-tighter">
-                                                {isCompleted ? 'Completed' : task.deadline ? `Due ${new Date(task.deadline).toLocaleDateString()}` : task.priority.replace('_', ' ')}
-                                            </p>
+                {/* Tasks Column */}
+                <div className="xl:col-span-2 flex flex-col gap-6">
+                    <div className="flex items-center justify-between px-2">
+                        <h2 className="text-xl font-headline font-bold text-on-surface">Intelligence Tasks</h2>
+                        <span className="text-[11px] font-bold bg-primary-fixed/30 text-primary px-3 py-1 rounded-full">
+                            {priority_tasks.length} Action Items
+                        </span>
+                    </div>
+
+                    <div className="bg-surface-container-low rounded-[32px] p-8 border border-outline-variant/10 tonal-shadow">
+                        <div className="space-y-6">
+                            {priority_tasks.length > 0 ? priority_tasks.slice(0, 6).map((task: TaskDTOv1) => (
+                                <div key={task.task_id} className="flex items-start gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
+                                    <div className={`mt-1 w-5 h-5 rounded-md border-2 border-primary/20 bg-white flex items-center justify-center transition-colors ${task.status === 'completed' ? 'bg-primary border-primary' : 'group-hover:border-primary/50'}`}>
+                                        {task.status === 'completed' && <MaterialSymbol icon="check" className="text-white text-xs" />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`text-sm font-bold leading-snug truncate ${task.status === 'completed' ? 'line-through text-outline' : 'text-on-surface'}`}>
+                                            {task.title}
+                                        </p>
+                                        <div className="flex items-center gap-3 mt-1 text-[10px] font-bold uppercase tracking-widest">
+                                            <span className={task.priority === 'do_now' ? 'text-error' : 'text-on-surface-variant'}>
+                                                {task.priority.replace('_', ' ')}
+                                            </span>
+                                            {task.deadline && (
+                                                <span className="text-outline flex items-center gap-1">
+                                                    <MaterialSymbol icon="event" className="text-xs" />
+                                                    {new Date(task.deadline).toLocaleDateString()}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
-                                );
-                            }) : (
-                                <p className="text-sm text-muted text-center py-4">No priority tasks today.</p>
+                                </div>
+                            )) : (
+                                <div className="py-8 flex flex-col items-center gap-4">
+                                    <MaterialSymbol icon="verified" className="text-primary text-4xl opacity-50" />
+                                    <p className="text-sm font-semibold text-on-surface-variant italic">All clear for today.</p>
+                                </div>
                             )}
                         </div>
 
                         <button 
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="w-full mt-6 py-2.5 text-sm font-bold bg-white/40 hover:bg-white/60 text-accent transition-colors rounded-xl flex items-center justify-center gap-2 border border-white/60 shadow-sm"
+                            className="w-full mt-10 py-4 text-sm font-bold bg-white text-primary rounded-2xl flex items-center justify-center gap-2 border border-outline-variant/10 shadow-sm hover:bg-primary-fixed/20 hover:border-primary/20 transition-all font-headline"
                         >
-                            <Plus className="h-4 w-4" />
-                            Add Task
+                            <MaterialSymbol icon="add" className="text-lg" />
+                            New Intelligence Task
                         </button>
-                    </div>
-
-                    {/* Smart Rules Tip */}
-                    <div className="glass-card bg-accent2/90 p-6 text-slate-900 overflow-hidden group">
-                        <div className="relative z-10">
-                            <p className="text-slate-900 flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
-                                <Zap className="h-3 w-3" /> Pro Tip
-                            </p>
-                            <h3 className="font-bold text-lg mb-3 font-display text-slate-900">Smart Rules</h3>
-                            <p className="text-slate-800 text-sm leading-relaxed mb-6 font-medium">
-                                Automate your workflow by setting up rules for incoming attachments from specific target clients.
-                            </p>
-                            <button className="px-4 py-2.5 bg-white text-accent2 hover:bg-white/90 transition-colors text-xs font-bold rounded-xl w-full flex items-center justify-center gap-2 shadow-sm">
-                                Manage Rules
-                                <ChevronRight className="h-4 w-4" />
-                            </button>
-                        </div>
-                        <div className="absolute -bottom-4 -right-4 opacity-20 group-hover:opacity-30 group-hover:scale-110 transition-all duration-500 pointer-events-none">
-                            <Settings className="w-32 h-32" />
-                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* ─── Modals ────────────────────────── */}
             <TaskCreateModal
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
@@ -335,10 +280,11 @@ function DashboardContent() {
 
 export default function DashboardPage() {
     return (
-        <AppShell>
+        <AppShell showRightSidebar={false}>
             <Suspense fallback={
-                <div className="p-8 space-y-8 animate-pulse w-full">
-                    <div className="h-48 rounded-xl bg-paper-mid w-full" />
+                <div className="p-10 space-y-10 animate-pulse w-full max-w-[1600px] mx-auto">
+                    <div className="h-12 w-64 bg-surface-container rounded-lg" />
+                    <div className="h-64 rounded-[32px] bg-surface-container w-full" />
                 </div>
             }>
                 <DashboardContent />

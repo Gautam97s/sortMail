@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Notifications Settings - Cognitive Flow</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#4f00d0",
+                        "tertiary-container": "#8155ff",
+                        "on-primary-fixed-variant": "#004493",
+                        "surface-container-high": "#e6e8e9",
+                        "on-secondary-fixed": "#181c20",
+                        "primary-fixed": "#d8e2ff",
+                        "primary-container": "#1a73e8",
+                        "tertiary-fixed": "#e8deff",
+                        "primary": "#005bbf",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#c3c7cc",
+                        "surface-variant": "#e1e3e4",
+                        "inverse-on-surface": "#eff1f2",
+                        "on-tertiary-fixed": "#20005f",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#dfe3e8",
+                        "surface-bright": "#f8fafb",
+                        "on-primary-fixed": "#001a41",
+                        "on-secondary-container": "#5f6368",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "tertiary": "#6833ea",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#5b5f64",
+                        "on-secondary-fixed-variant": "#43474c",
+                        "on-error-container": "#93000a",
+                        "on-secondary": "#ffffff",
+                        "surface-container-low": "#f2f4f5",
+                        "tertiary-fixed-dim": "#cdbdff",
+                        "on-primary-container": "#ffffff",
+                        "surface-dim": "#d8dadb",
+                        "on-surface": "#191c1d",
+                        "surface": "#f8fafb",
+                        "on-surface-variant": "#414754",
+                        "primary-fixed-dim": "#adc7ff",
+                        "on-background": "#191c1d",
+                        "background": "#f8fafb",
+                        "outline-variant": "#c1c6d6",
+                        "on-tertiary-container": "#060021",
+                        "surface-container": "#eceeef",
+                        "secondary-container": "#dde0e6",
+                        "inverse-surface": "#2e3132",
+                        "inverse-primary": "#adc7ff",
+                        "surface-container-highest": "#e1e3e4",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#005bc0",
+                        "outline": "#727785"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-shadow {
+            box-shadow: 0 12px 32px -4px rgba(0, 91, 191, 0.08);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #eceeef; /* surface-container */
+        }
+    </style>
+</head>
+<body class="bg-surface-container text-on-surface">
+<div class="flex h-screen overflow-hidden">
+<!-- SideNavBar Anchor -->
+<aside class="hidden md:flex flex-col h-screen py-6 px-4 space-y-2 bg-slate-100 dark:bg-slate-950 h-full w-64 border-r-0 font-['Inter'] text-sm font-medium">
+<div class="mb-8 px-2">
+<h1 class="text-lg font-black text-blue-700 dark:text-blue-400">The Canvas</h1>
+<p class="text-xs text-slate-500">AI-Prioritized</p>
+</div>
+<button class="mb-6 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-primary to-primary-container text-white rounded-xl tonal-shadow hover:opacity-90 transition-all active:scale-95 duration-150">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+<span class="font-semibold">Compose</span>
+</button>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/50 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="inbox">inbox</span>
+<span>Inbox</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/50 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="drafts">drafts</span>
+<span>Drafts</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/50 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span>Tasks</span>
+</a>
+<!-- Active Tab: Settings -->
+<a class="flex items-center gap-3 px-4 py-2.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-lg transition-all duration-200 ease-in-out font-semibold" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+</aside>
+<div class="flex-1 flex flex-col min-w-0 bg-surface">
+<!-- TopNavBar Anchor -->
+<header class="flex items-center justify-between px-6 w-full max-w-full bg-slate-50 dark:bg-slate-900 h-16 font-['Plus_Jakarta_Sans'] text-sm tracking-tight">
+<div class="flex items-center gap-4 flex-1">
+<div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-full w-full max-w-md">
+<span class="material-symbols-outlined text-slate-400" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full text-on-surface" placeholder="Search settings..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-full active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="flex items-center gap-2 p-1 pl-3 text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors rounded-full active:scale-95">
+<span class="text-xs font-medium">Alex Rivera</span>
+<span class="material-symbols-outlined text-3xl" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area: The Canvas -->
+<main class="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
+<header class="mb-10">
+<h2 class="text-3xl font-bold font-headline text-on-surface tracking-tight">Notification Settings</h2>
+<p class="text-on-surface-variant mt-2 font-body">Manage how Cognitive Flow keeps you updated across all your devices.</p>
+</header>
+<div class="space-y-8">
+<!-- Email Notifications Section -->
+<section class="bg-surface-container-lowest rounded-xl p-8 tonal-shadow border border-outline-variant/15">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+</div>
+<div>
+<h3 class="text-xl font-headline font-bold text-on-surface">Email Notifications</h3>
+<p class="text-xs text-on-surface-variant font-label uppercase tracking-widest mt-0.5">Primary Delivery</p>
+</div>
+</div>
+<div class="space-y-6">
+<div class="flex items-start justify-between">
+<div class="max-w-md">
+<p class="font-semibold text-on-surface">Urgent Email Alerts</p>
+<p class="text-sm text-on-surface-variant mt-1">AI automatically identifies high-priority messages and sends an immediate push.</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-high rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="flex items-start justify-between">
+<div class="max-w-md">
+<p class="font-semibold text-on-surface">Daily Intelligence Digest</p>
+<p class="text-sm text-on-surface-variant mt-1">A morning summary of your categorized inbox and upcoming tasks.</p>
+</div>
+<div class="flex flex-col items-end gap-2">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-high rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+<select class="text-xs font-medium border-none bg-surface-container-low rounded-md px-2 py-1 text-on-surface-variant focus:ring-1 focus:ring-primary/20 cursor-pointer">
+<option>8:00 AM</option>
+<option>9:00 AM</option>
+<option>10:00 AM</option>
+</select>
+</div>
+</div>
+</div>
+</section>
+<!-- In-App Notifications Section -->
+<section class="bg-surface-container-lowest rounded-xl p-8 tonal-shadow border border-outline-variant/15">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-10 h-10 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+</div>
+<div>
+<h3 class="text-xl font-headline font-bold text-on-surface">In-App Notifications</h3>
+<p class="text-xs text-on-surface-variant font-label uppercase tracking-widest mt-0.5">AI Insights &amp; Flows</p>
+</div>
+</div>
+<div class="grid md:grid-cols-2 gap-8">
+<div class="flex items-center justify-between p-4 rounded-xl bg-surface-container-low">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary" data-icon="task_alt">task_alt</span>
+<span class="font-medium text-sm">Task Created</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-surface-container-high rounded-full peer peer-checked:after:translate-x-4 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-tertiary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between p-4 rounded-xl bg-surface-container-low">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary" data-icon="event">event</span>
+<span class="font-medium text-sm">Meeting Detected</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-surface-container-high rounded-full peer peer-checked:after:translate-x-4 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-tertiary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between p-4 rounded-xl bg-surface-container-low">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary" data-icon="summarize">summarize</span>
+<span class="font-medium text-sm">Thread Summary Ready</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-surface-container-high rounded-full peer peer-checked:after:translate-x-4 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-tertiary"></div>
+</label>
+</div>
+<div class="flex items-center justify-between p-4 rounded-xl bg-surface-container-low">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary" data-icon="bolt">bolt</span>
+<span class="font-medium text-sm">Auto-Draft Proposed</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-9 h-5 bg-surface-container-high rounded-full peer peer-checked:after:translate-x-4 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-tertiary"></div>
+</label>
+</div>
+</div>
+</section>
+<!-- Preferences Section (Quiet Hours) -->
+<section class="bg-surface-container-lowest rounded-xl p-8 tonal-shadow border border-outline-variant/15 overflow-hidden relative">
+<!-- Intelligence Accent Strip -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary"></div>
+<div class="flex items-center justify-between mb-8">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined" data-icon="bedtime">bedtime</span>
+</div>
+<h3 class="text-xl font-headline font-bold text-on-surface">Quiet Hours &amp; Focus</h3>
+</div>
+<span class="bg-tertiary-fixed text-on-tertiary-fixed text-[10px] font-bold px-2 py-0.5 rounded tracking-tighter uppercase">Intelligent Mode</span>
+</div>
+<div class="space-y-6">
+<div class="p-6 rounded-2xl bg-surface-container-low/50 backdrop-blur-md border border-white/40">
+<div class="flex items-center justify-between mb-4">
+<div>
+<p class="font-semibold text-on-surface">Deep Focus Protection</p>
+<p class="text-sm text-on-surface-variant">Suppress all non-critical notifications during your scheduled work hours.</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-high rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<div class="flex items-center gap-4 mt-6 pt-6 border-t border-outline-variant/10">
+<div class="flex flex-col gap-1.5 flex-1">
+<span class="text-xs font-label text-on-surface-variant">Quiet Start</span>
+<input class="bg-surface-container-lowest border-none rounded-lg text-sm px-4 py-2 ring-1 ring-outline-variant/20 focus:ring-primary" type="time" value="20:00"/>
+</div>
+<div class="flex items-center pt-5">
+<span class="material-symbols-outlined text-outline" data-icon="trending_flat">trending_flat</span>
+</div>
+<div class="flex flex-col gap-1.5 flex-1">
+<span class="text-xs font-label text-on-surface-variant">Quiet End</span>
+<input class="bg-surface-container-lowest border-none rounded-lg text-sm px-4 py-2 ring-1 ring-outline-variant/20 focus:ring-primary" type="time" value="08:00"/>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Action Bar Footer -->
+<div class="mt-12 flex items-center justify-end gap-4 pb-12">
+<button class="px-6 py-2.5 rounded-lg text-sm font-semibold text-on-surface hover:bg-surface-container-high transition-colors">Discard Changes</button>
+<button class="px-8 py-2.5 bg-primary text-on-primary rounded-lg text-sm font-semibold tonal-shadow hover:opacity-95 transition-opacity active:scale-95">Save Preferences</button>
+</div>
+</main>
+</div>
+</div>
+</body></html>
