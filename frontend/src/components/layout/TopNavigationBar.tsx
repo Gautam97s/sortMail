@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { useUser } from "@/hooks/useUser";
 
 interface TopNavigationBarProps {
@@ -73,9 +74,11 @@ export default function TopNavigationBar({
                 <div className="flex items-center gap-3 ml-2 pl-4 border-l border-outline-variant/20">
                     <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-outline-variant/15 border-2 border-white cursor-pointer hover:ring-primary/30 transition-all">
                         {user?.avatar ? (
-                            <img 
+                            <Image 
                                 src={user.avatar} 
                                 alt={user.name || "User"} 
+                                width={36} 
+                                height={36} 
                                 className="w-full h-full object-cover" 
                             />
                         ) : (

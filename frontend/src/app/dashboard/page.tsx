@@ -66,7 +66,7 @@ function DashboardContent() {
                     Good morning, {firstName}
                 </h1>
                 <p className="text-on-surface-variant font-medium">
-                    Here's your intelligence briefing for <span className="text-primary font-bold">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</span>.
+                    Here&apos;s your intelligence briefing for <span className="text-primary font-bold">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</span>.
                 </p>
             </header>
 
@@ -117,7 +117,7 @@ function DashboardContent() {
                     
                     <div className="mt-8">
                         <p className="text-sm font-semibold text-on-surface-variant leading-relaxed">
-                            You're <span className="text-primary font-bold">12% more efficient</span> today. Your response time to urgent threads is under <span className="text-on-surface font-bold">4 mins</span>.
+                            You&apos;re <span className="text-primary font-bold">12% more efficient</span> today. Your response time to urgent threads is under <span className="text-on-surface font-bold">4 mins</span>.
                         </p>
                     </div>
 

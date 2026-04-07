@@ -61,7 +61,13 @@ export default function SettingsPage() {
                         <div className="relative group shrink-0">
                             <div className="h-24 w-24 rounded-full overflow-hidden ring-4 ring-primary-fixed/20 border-4 border-white shadow-lg transition-transform group-hover:scale-105">
                                 {user?.picture ? (
-                                    <img src={user.picture} alt={user.name || "User"} className="h-full w-full object-cover" />
+                                    <Image 
+                                        src={user.picture} 
+                                        alt={user.name || "User"} 
+                                        width={96} 
+                                        height={96} 
+                                        className="h-full w-full object-cover"
+                                    />
                                 ) : (
                                     <div className="h-full w-full bg-primary-fixed flex items-center justify-center text-primary text-2xl font-bold font-headline">
                                         {initials}
