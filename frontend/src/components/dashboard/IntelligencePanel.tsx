@@ -87,6 +87,30 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
         });
     };
 
+    const getEntitiesForAttachment = () => {
+        if (!activeAttachmentId || !email?.attachments) return [];
+        const attachment = email.attachments.find(a => a.id === activeAttachmentId);
+        if (!attachment) return [];
+
+        if (attachment.type === 'pdf') {
+            return [
+                { label: 'Classification', value: 'Financial/Strategy' },
+                { label: 'Risk Factor', value: 'Medium' },
+                { label: 'Pages', value: '12' }
+            ];
+        } else if (attachment.type === 'img') {
+            return [
+                { label: 'Format', value: 'PNG/RGBA' },
+                { label: 'Dimensions', value: '1920x1080' },
+                { label: 'Confidence', value: '94%' }
+            ];
+        }
+        return [
+            { label: 'Format', value: 'Plain Text' },
+            { label: 'Entropy', value: 'Low' }
+        ];
+    };
+
     useLayoutEffect(() => {
         if (!isReadingAttachment && attachmentSummary.length > 5) {
             gsap.fromTo(".att-detail-item",
@@ -174,7 +198,7 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
                         </div>
                         <div className="flex flex-col">
                             <span className="text-xs font-bold text-on-surface">Origin: {email.sender}</span>
-                            <span className="text-[9px] font-black text-outline-variant uppercase tracking-widest">{email.date}</span>
+                            <span className="text-[9px] font-black text-outline-variant uppercase tracking-widest">{email.timestamp}</span>
                         </div>
                     </div>
                 </div>
@@ -235,7 +259,7 @@ const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ email, onClose, o
                                     </p>
 
                                     <div className="flex flex-wrap gap-2">
-                                        {getEntitiesForAttachment().map((ent, i) => (
+                                        {getEntitiesForAttachment().map((ent: { label: string; value: string }, i: number) => (
                                             <div key={i} className="att-detail-item px-3 py-1.5 rounded-xl bg-surface-container-lowest border border-outline-variant/5 text-[9px] font-black uppercase tracking-tighter flex items-center gap-2 shadow-sm">
                                                 <span className="text-primary">{ent.label}:</span>
                                                 <span className="text-on-surface">{ent.value}</span>
