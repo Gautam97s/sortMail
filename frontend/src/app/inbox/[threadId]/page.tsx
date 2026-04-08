@@ -38,6 +38,8 @@ export default function ThreadDetailPage() {
     }
 
     const { thread, intel, tasks, draft } = data;
+    const taskItems = Array.isArray(tasks) ? tasks : [];
+    const attachmentItems = thread.attachments ?? [];
 
     const handleCreateTaskFromMessage = async (message: EmailMessage) => {
         try {
@@ -60,104 +62,184 @@ export default function ThreadDetailPage() {
 
     return (
         <ThreadPageShell title={thread.subject} subtitle={getSenderInfo(thread.messages[0]?.from_address || '').email}>
-            <div className="max-w-4xl mx-auto px-4 md:px-6 pb-10 space-y-6">
-                <div className="flex items-center justify-between gap-4">
-                    <Button variant="ghost" className="gap-2 text-on-surface-variant hover:text-on-surface" onClick={() => window.history.back()}>
-                        <ArrowLeft className="h-4 w-4" /> Back to inbox
-                    </Button>
-                    <div className="flex gap-2">
-                        <Button variant="outline" className="gap-2" onClick={() => window.history.back()}>
-                            <Archive className="h-4 w-4" /> Archive
+            <div className="max-w-[1280px] mx-auto px-4 md:px-6 pb-10 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6">
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between gap-4">
+                        <Button variant="ghost" className="gap-2 text-on-surface-variant hover:text-on-surface" onClick={() => window.history.back()}>
+                            <ArrowLeft className="h-4 w-4" /> Back to inbox
                         </Button>
-                        <Button variant="outline" className="gap-2 border-danger/20 text-danger hover:bg-danger/5">
-                            <Trash2 className="h-4 w-4" /> Trash
-                        </Button>
-                    </div>
-                </div>
-
-                <Card className="border-white/60 shadow-xl bg-white/70 backdrop-blur-md overflow-hidden">
-                    <CardHeader className="bg-[#f2f6fc] border-b border-white/80 px-6 py-4">
-                        <div className="flex items-center justify-between gap-4">
-                            <h1 className="text-lg font-semibold text-slate-800 truncate">{thread.subject}</h1>
-                            <span className="text-xs text-slate-500 font-mono uppercase tracking-widest">Thread view</span>
+                        <div className="flex gap-2">
+                            <Button variant="outline" className="gap-2" onClick={() => window.history.back()}>
+                                <Archive className="h-4 w-4" /> Archive
+                            </Button>
+                            <Button variant="outline" className="gap-2 border-danger/20 text-danger hover:bg-danger/5">
+                                <Trash2 className="h-4 w-4" /> Trash
+                            </Button>
                         </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="px-6 py-5 border-b border-slate-100">
+                    </div>
+
+                    <Card className="border-white/60 shadow-xl bg-white/70 backdrop-blur-md overflow-hidden">
+                        <CardHeader className="bg-[#f2f6fc] border-b border-white/80 px-6 py-4">
+                            <div className="flex items-center justify-between gap-4">
+                                <h1 className="text-lg font-semibold text-slate-800 truncate">{thread.subject}</h1>
+                                <span className="text-xs text-slate-500 font-mono uppercase tracking-widest">Thread view</span>
+                            </div>
                             {intel && (
-                                <div className="mb-4 rounded-lg bg-indigo-50 border border-indigo-600/10 p-4">
-                                    <div className="flex items-center gap-2">
-                                        <Sparkles className="text-indigo-600 h-5 w-5" />
-                                        <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">AI Summary</span>
+                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div className="rounded-xl bg-indigo-50 border border-indigo-600/10 p-3">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600">AI Intelligence</p>
+                                        <p className="mt-1 text-sm font-semibold text-slate-800 truncate">{intel.intent || 'Unclassified'}</p>
                                     </div>
-                                    <p className="mt-3 text-sm text-slate-600 leading-relaxed font-medium">
-                                        {intel.summary}
-                                    </p>
+                                    <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Urgency</p>
+                                        <p className="mt-1 text-sm font-semibold text-slate-800">Score {intel.urgencyScore}/100</p>
+                                    </div>
+                                    <div className="rounded-xl bg-emerald-50 border border-emerald-600/10 p-3">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Suggested Action</p>
+                                        <p className="mt-1 text-sm font-semibold text-slate-800 truncate">{intel.mainAsk || 'Review and respond'}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="px-6 py-5 border-b border-slate-100">
+                                <div className="flex justify-between items-start gap-4">
+                                    <div>
+                                        <h2 className="text-base font-bold text-slate-900 mb-1">{getSenderInfo(thread.messages[0]?.from_address || '').name}</h2>
+                                        <p className="text-[13px] text-slate-500">{getSenderInfo(thread.messages[0]?.from_address || '').email}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[13px] text-slate-500">
+                                            {new Date(thread.last_updated).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                        </p>
+                                        <p className="text-[11px] text-slate-400 mt-1 uppercase tracking-widest font-bold">
+                                            {new Date(thread.last_updated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="px-6 py-6 space-y-6 text-slate-700 leading-loose text-sm">
+                                {thread.messages.map((msg: EmailMessage) => (
+                                    <MessageContent
+                                        key={msg.message_id}
+                                        message={msg}
+                                        onCreateTask={() => handleCreateTaskFromMessage(msg)}
+                                        creating={creatingMessageId === msg.message_id}
+                                    />
+                                ))}
+                            </div>
+
+                            {draft && (
+                                <div className="px-6 pb-6">
+                                    <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+                                        <Send className="h-4 w-4 text-indigo-600" /> Auto-Drafted Reply
+                                    </h3>
+                                    <DraftCard draft={draft} />
                                 </div>
                             )}
 
-                            <div className="flex justify-between items-start gap-4">
+                            {attachmentItems.length > 0 && (
+                                <div className="px-6 pb-6 border-t border-slate-100 pt-6">
+                                    <h5 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4">
+                                        Attachments ({attachmentItems.length})
+                                    </h5>
+                                    <div className="flex flex-wrap gap-4">
+                                        {attachmentItems.map((att: AttachmentRef) => {
+                                            const sizeMB = (att.size_bytes / (1024 * 1024)).toFixed(1);
+                                            return (
+                                                <div key={att.attachment_id} className="group flex items-center gap-3 p-3 rounded-xl border border-indigo-600/10 bg-slate-50 transition-all min-w-[220px]">
+                                                    <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-red-600 shadow-sm shrink-0">
+                                                        <FileText className="h-5 w-5" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0 pr-2">
+                                                        <p className="text-[13px] font-semibold text-slate-800 truncate">{att.filename}</p>
+                                                        <p className="text-[11px] text-slate-400 font-medium">{sizeMB} MB</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <aside className="space-y-4 lg:sticky lg:top-24 h-fit">
+                    <Card className="border-white/60 shadow-lg bg-white/75 backdrop-blur-md overflow-hidden">
+                        <CardHeader className="px-4 py-4 border-b border-slate-100">
+                            <div className="flex items-center justify-between gap-3">
                                 <div>
-                                    <h2 className="text-base font-bold text-slate-900 mb-1">{getSenderInfo(thread.messages[0]?.from_address || '').name}</h2>
-                                    <p className="text-[13px] text-slate-500">{getSenderInfo(thread.messages[0]?.from_address || '').email}</p>
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">AI Intelligence</p>
+                                    <h3 className="text-sm font-semibold text-slate-800">Thread synthesis</h3>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-[13px] text-slate-500">
-                                        {new Date(thread.last_updated).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                                    </p>
-                                    <p className="text-[11px] text-slate-400 mt-1 uppercase tracking-widest font-bold">
-                                        {new Date(thread.last_updated).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                    </p>
+                                <Sparkles className="h-5 w-5 text-indigo-600" />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-4 space-y-4">
+                            <div className="rounded-xl bg-indigo-50 border border-indigo-600/10 p-3">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600">Summary</p>
+                                <p className="mt-1 text-sm text-slate-700 leading-relaxed">
+                                    {intel?.summary || 'No AI summary available for this thread.'}
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Messages</p>
+                                    <p className="mt-1 text-lg font-semibold text-slate-800">{thread.messages.length}</p>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div className="px-6 py-6 space-y-6 text-slate-700 leading-loose text-sm">
-                            {thread.messages.map((msg: EmailMessage) => (
-                                <MessageContent
-                                    key={msg.message_id}
-                                    message={msg}
-                                    onCreateTask={() => handleCreateTaskFromMessage(msg)}
-                                    creating={creatingMessageId === msg.message_id}
-                                />
-                            ))}
-                        </div>
-
-                        {draft && (
-                            <div className="px-6 pb-6">
-                                <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
-                                    <Send className="h-4 w-4 text-indigo-600" /> Auto-Drafted Reply
-                                </h3>
-                                <DraftCard draft={draft} />
-                            </div>
-                        )}
-
-                        {thread.attachments && thread.attachments.length > 0 && (
-                            <div className="px-6 pb-6 border-t border-slate-100 pt-6">
-                                <h5 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-4">
-                                    Attachments ({thread.attachments.length})
-                                </h5>
-                                <div className="flex flex-wrap gap-4">
-                                    {thread.attachments.map((att: AttachmentRef) => {
-                                        const sizeMB = (att.size_bytes / (1024 * 1024)).toFixed(1);
-                                        return (
-                                            <div key={att.attachment_id} className="group flex items-center gap-3 p-3 rounded-xl border border-indigo-600/10 bg-slate-50 transition-all min-w-[220px]">
-                                                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center text-red-600 shadow-sm shrink-0">
-                                                    <FileText className="h-5 w-5" />
-                                                </div>
-                                                <div className="flex-1 min-w-0 pr-2">
-                                                    <p className="text-[13px] font-semibold text-slate-800 truncate">{att.filename}</p>
-                                                    <p className="text-[11px] text-slate-400 font-medium">{sizeMB} MB</p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tasks</p>
+                                    <p className="mt-1 text-lg font-semibold text-slate-800">{taskItems.length}</p>
                                 </div>
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Linked Tasks</p>
+                                {taskItems.length > 0 ? taskItems.slice(0, 3).map((task: any) => (
+                                    <div key={task.task_id} className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                                        <p className="text-sm font-semibold text-slate-800 truncate">{task.title}</p>
+                                        <p className="text-[10px] text-slate-500 uppercase tracking-widest">{task.priority} · {task.status}</p>
+                                    </div>
+                                )) : (
+                                    <p className="text-sm text-slate-500">No linked workflow tasks yet.</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Attachments</p>
+                                <p className="text-sm text-slate-700">
+                                    {attachmentItems.length > 0 ? `${attachmentItems.length} attachments indexed and ready for intelligence review.` : 'No attachment intelligence available.'}
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
 
+                    {draft && (
+                        <Card className="border-white/60 shadow-lg bg-white/75 backdrop-blur-md overflow-hidden">
+                            <CardHeader className="px-4 py-4 border-b border-slate-100">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">Draft Intelligence</p>
+                                <h3 className="text-sm font-semibold text-slate-800">Auto-generated reply</h3>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-3">
+                                <div className="grid grid-cols-2 gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                                    <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                        Model
+                                        <div className="mt-1 text-sm text-slate-800 normal-case tracking-normal">{draft.model_version}</div>
+                                    </div>
+                                    <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                                        Placeholders
+                                        <div className="mt-1 text-sm text-slate-800 normal-case tracking-normal">
+                                            {draft.has_unresolved_placeholders ? 'Needs review' : 'Resolved'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="rounded-xl bg-indigo-50 border border-indigo-600/10 p-3 text-sm text-slate-700">
+                                    {draft.references_attachments ? 'References attachments' : 'No attachment references'} · {draft.references_deadlines ? 'References deadlines' : 'No deadline references'}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                </aside>
             </div>
         </ThreadPageShell>
     );

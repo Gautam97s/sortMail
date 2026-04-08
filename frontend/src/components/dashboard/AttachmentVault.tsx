@@ -62,17 +62,23 @@ const AttachmentVault: React.FC<AttachmentVaultProps> = ({ attachments }) => {
                         onMouseEnter={handleMouseEnter}
                         className="group bg-slate-800/40 border border-slate-700 rounded-2xl p-4 hover:bg-slate-800 hover:border-indigo-500/50 transition-all duration-300 relative overflow-hidden"
                     >
-                        <div className="flex items-start justify-between mb-4 relative z-10">
+                        <div className="flex items-start justify-between gap-3 mb-4 relative z-10">
                             <div className="p-3 bg-slate-900 rounded-xl relative overflow-hidden">
                                 {getIcon(file.type)}
                                 {/* Mini scan effect specific to icon container */}
                                 <div className="scan-bar absolute top-0 bottom-0 w-full bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full pointer-events-none" style={{ left: '-100%' }} />
                             </div>
-                            {file.aiSummary && (
-                                <span className="px-2 py-1 bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase rounded border border-indigo-500/20">
-                                    AI Analyzed
-                                </span>
-                            )}
+                            <div className="flex-1 min-w-0 space-y-2 text-right">
+                                <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-indigo-500/10 text-indigo-400 text-[9px] font-black uppercase tracking-widest rounded border border-indigo-500/20">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
+                                    AI Intelligence
+                                </div>
+                                {file.aiSummary && (
+                                    <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-2">
+                                        {file.aiSummary}
+                                    </p>
+                                )}
+                            </div>
                         </div>
 
                         <h3 className="font-semibold text-slate-200 truncate mb-1 relative z-10">{file.name}</h3>
@@ -80,8 +86,13 @@ const AttachmentVault: React.FC<AttachmentVaultProps> = ({ attachments }) => {
 
                         {file.aiSummary && (
                             <div className="p-3 bg-slate-900/50 rounded-lg mb-4 border border-slate-800 relative z-10">
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-400">AI Summary</span>
+                                    <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 text-[9px] font-black uppercase tracking-widest border border-indigo-500/20">
+                                        Indexed
+                                    </span>
+                                </div>
                                 <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
-                                    <span className="text-indigo-400 mr-1">✦</span>
                                     {file.aiSummary}
                                 </p>
                             </div>

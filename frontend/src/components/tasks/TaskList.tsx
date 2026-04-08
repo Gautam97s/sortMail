@@ -40,7 +40,7 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskClick, onStatus
                         <div
                             key={task.task_id}
                             onClick={() => onTaskClick(task.task_id)}
-                            className="group bg-white rounded-[24px] p-5 flex items-center justify-between border border-outline-variant/10 hover:border-primary-fixed/30 hover:shadow-lg transition-all cursor-pointer overflow-hidden relative"
+                            className="group bg-white rounded-[24px] p-5 flex flex-col xl:flex-row xl:items-center gap-4 border border-outline-variant/10 hover:border-primary-fixed/30 hover:shadow-lg transition-all cursor-pointer overflow-hidden relative"
                         >
                             <div className="flex items-center gap-6 min-w-0 flex-1">
                                 <div className={`h-11 w-11 rounded-2xl flex items-center justify-center shrink-0 border border-outline-variant/5 shadow-inner ${priority.bgClass} ${priority.colorClass}`}>
@@ -64,7 +64,23 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskClick, onStatus
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-6 shrink-0">
+                            <div className="w-full xl:w-60 shrink-0 rounded-2xl border border-primary-fixed/10 bg-primary-fixed/5 p-3 space-y-2">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">AI Intelligence</div>
+                                    <div className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${priority.colorClass} ${priority.bgClass}`}>
+                                        {task.priority_score.toFixed(0)}
+                                    </div>
+                                </div>
+                                <p className="text-[10px] font-medium text-on-surface-variant line-clamp-2 italic">
+                                    {task.priority_explanation}
+                                </p>
+                                <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-outline-variant">
+                                    <MaterialSymbol icon="auto_fix" className="text-[11px]" />
+                                    {task.effort.replace('_', ' ')} effort
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-6 shrink-0 xl:ml-auto">
                                 <div className="text-right space-y-1">
                                     <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${priority.colorClass}`}>
                                         {priority.label}

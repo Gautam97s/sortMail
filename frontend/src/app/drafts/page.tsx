@@ -129,7 +129,7 @@ export default function DraftsPage() {
                                     {drafts.map(draft => (
                                         <div
                                             key={draft.id}
-                                            className="group bg-surface-container-low border border-outline-variant/5 rounded-2xl p-4 flex items-center gap-5 hover:bg-white hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all"
+                                            className="group bg-surface-container-low border border-outline-variant/5 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center gap-4 hover:bg-white hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all"
                                         >
                                             <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-outline group-hover:text-primary transition-colors border border-outline-variant/5">
                                                 <MaterialSymbol icon="auto_fix" />
@@ -149,6 +149,20 @@ export default function DraftsPage() {
                                                     <MaterialSymbol icon="schedule" className="text-xs" />
                                                     Manifested {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
                                                 </div>
+                                            </div>
+                                            <div className="w-full lg:w-52 shrink-0 rounded-xl border border-primary-fixed/10 bg-primary-fixed/5 p-3 space-y-2">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">AI Intelligence</span>
+                                                    <span className="px-2 py-0.5 rounded-full bg-white border border-primary-fixed/20 text-[9px] font-black uppercase tracking-widest text-primary">
+                                                        {draft.status}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[10px] font-medium text-on-surface-variant">
+                                                    {draft.tone} · Generated {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
+                                                </p>
+                                                <p className="text-[10px] font-medium text-outline-variant truncate">
+                                                    Draft body length {draft.body.length} characters
+                                                </p>
                                             </div>
                                             <div className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
                                                 <button

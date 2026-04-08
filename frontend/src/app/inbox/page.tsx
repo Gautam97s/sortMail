@@ -107,10 +107,11 @@ function InboxContent() {
             </div>
 
             {/* List Header (Column Labels) */}
-            <div className="px-6 py-2 border-b border-outline-variant/5 bg-surface-container-lowest flex items-center gap-4 text-[10px] font-bold text-outline uppercase tracking-widest">
+            <div className="px-4 md:px-6 py-2 border-b border-outline-variant/5 bg-surface-container-lowest flex items-center gap-4 text-[10px] font-bold text-outline uppercase tracking-widest">
                 <div className="w-12 shrink-0" />
                 <div className="w-48 shrink-0">Sender</div>
-                <div className="flex-1">Subject & Intelligence</div>
+                <div className="flex-1">Subject</div>
+                <div className="w-52 shrink-0">AI Intelligence</div>
                 <div className="w-24 text-right">Date</div>
             </div>
 
@@ -177,7 +178,7 @@ function ThreadRow({ thread, onArchive, onTrash, busy }: { thread: ThreadListIte
     const participantName = thread.participants?.[0]?.split('<')[0]?.trim() || 'Internal';
     
     return (
-        <div className={`group flex items-center gap-4 px-6 py-3.5 hover:bg-surface-container-low transition-all cursor-pointer relative ${isUnread ? 'bg-primary-fixed/5' : ''}`}>
+        <div className={`group flex items-center gap-4 px-4 md:px-6 py-3.5 hover:bg-surface-container-low transition-all cursor-pointer relative ${isUnread ? 'bg-primary-fixed/5' : ''}`}>
             {/* Priority/Unread Indicator */}
             <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
             
@@ -210,17 +211,24 @@ function ThreadRow({ thread, onArchive, onTrash, busy }: { thread: ThreadListIte
                         </p>
                     </div>
                 </div>
-
-                {/* Badges/Indicators */}
-                <div className="flex items-center gap-2 shrink-0 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {thread.urgency_score >= 80 && (
-                        <div className="px-2 py-1 bg-error-container text-error font-bold text-[9px] rounded-full uppercase tracking-tighter">
-                            Urgent
-                        </div>
-                    )}
-                    <MaterialSymbol icon="attachment" className="text-outline text-lg" />
-                </div>
             </Link>
+
+            <div className="w-52 shrink-0 min-w-0 flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${thread.urgency_score >= 80 ? 'bg-error-container text-error' : 'bg-primary-fixed/15 text-primary'}`}>
+                        {thread.urgency_score >= 80 ? 'High signal' : 'Stable signal'}
+                    </span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-outline-variant">
+                        {thread.intent || 'Unclassified'}
+                    </span>
+                </div>
+                <p className="text-[10px] text-on-surface-variant italic truncate">
+                    AI urgency score {thread.urgency_score}/100
+                </p>
+                <p className="text-[10px] font-medium text-outline-variant truncate">
+                    {thread.has_attachments ? 'Attachment intelligence available' : 'No attachment context'}
+                </p>
+            </div>
 
             {/* Date/Time */}
             <div className="w-24 text-right shrink-0">
