@@ -140,7 +140,7 @@ export default function ContactDetailPage() {
     return (
         <div className="flex flex-col h-full bg-paper">
             {/* Header */}
-            <div className="border-b border-border bg-white px-8 py-6">
+            <div className="border-b border-border bg-white px-4 md:px-8 py-5 md:py-6">
                 <button
                     onClick={() => router.back()}
                     className="flex items-center gap-2 text-muted hover:text-ink mb-4 transition-colors"
@@ -149,19 +149,19 @@ export default function ContactDetailPage() {
                     <span className="text-sm">Back to Contacts</span>
                 </button>
 
-                <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                        <Avatar className="w-16 h-16">
+                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                    <div className="flex items-start gap-4 min-w-0">
+                        <Avatar className="w-14 h-14 md:w-16 md:h-16 shrink-0">
                             <AvatarFallback className="bg-accent text-white font-medium text-xl">
                                 {getInitials(contact.name || contact.email_address)}
                             </AvatarFallback>
                         </Avatar>
                         <div>
-                            <h1 className="font-display text-2xl text-ink mb-1">
+                            <h1 className="font-display text-xl md:text-2xl text-ink mb-1 truncate">
                                 {contact.name || contact.email_address}
                             </h1>
-                            <p className="text-muted mb-3">{contact.email_address}</p>
-                            <div className="flex items-center gap-4 text-xs text-muted">
+                            <p className="text-muted mb-3 truncate">{contact.email_address}</p>
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-muted">
                                 {contact.last_interaction_at && (
                                     <span>Last seen: {new Date(contact.last_interaction_at).toLocaleDateString()}</span>
                                 )}
@@ -181,7 +181,7 @@ export default function ContactDetailPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                         <Button
                             variant={contact.is_unsubscribed ? "default" : "outline"}
                             className={`gap-2 ${!contact.is_unsubscribed ? "text-muted hover:text-destructive" : "bg-primary text-white"}`}
@@ -203,12 +203,12 @@ export default function ContactDetailPage() {
             </div>
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto px-8 py-6">
-                <div className="max-w-5xl space-y-8">
-
-                    {/* Stats row */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card className="p-4">
+            <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
+                <div className="max-w-[1280px] space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6 lg:space-y-0">
+                    <div className="space-y-6 min-w-0">
+                        {/* Stats row */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card className="p-4 rounded-2xl shadow-sm">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
                                     <Mail className="w-5 h-5 text-accent" />
@@ -219,7 +219,7 @@ export default function ContactDetailPage() {
                                 </div>
                             </div>
                         </Card>
-                        <Card className="p-4">
+                        <Card className="p-4 rounded-2xl shadow-sm">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
                                     <ArrowDownLeft className="w-5 h-5 text-emerald-500" />
@@ -232,7 +232,7 @@ export default function ContactDetailPage() {
                                 </div>
                             </div>
                         </Card>
-                        <Card className="p-4">
+                        <Card className="p-4 rounded-2xl shadow-sm">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
                                     <ArrowUpRight className="w-5 h-5 text-blue-500" />
@@ -247,8 +247,10 @@ export default function ContactDetailPage() {
                         </Card>
                     </div>
 
-                    {/* Tags */}
-                    <div>
+                        </div>
+
+                        {/* Tags */}
+                        <div>
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="font-display text-lg text-ink">Tags & Categories</h2>
                             {!showTagInput ? (
@@ -298,23 +300,56 @@ export default function ContactDetailPage() {
                         </div>
                     </div>
 
-                    {/* From this contact */}
-                    <ThreadSection
-                        title="From this contact"
-                        icon={<ArrowDownLeft className="w-4 h-4 text-emerald-500" />}
-                        threads={fromThreads}
-                        isLoading={isLoadingFrom}
-                        emptyText="No emails received from this contact."
-                    />
+                        {/* From this contact */}
+                        <ThreadSection
+                            title="From this contact"
+                            icon={<ArrowDownLeft className="w-4 h-4 text-emerald-500" />}
+                            threads={fromThreads}
+                            isLoading={isLoadingFrom}
+                            emptyText="No emails received from this contact."
+                        />
 
-                    {/* To this contact */}
-                    <ThreadSection
-                        title="To this contact"
-                        icon={<ArrowUpRight className="w-4 h-4 text-blue-500" />}
-                        threads={toThreads}
-                        isLoading={isLoadingTo}
-                        emptyText="No emails sent to this contact."
-                    />
+                        {/* To this contact */}
+                        <ThreadSection
+                            title="To this contact"
+                            icon={<ArrowUpRight className="w-4 h-4 text-blue-500" />}
+                            threads={toThreads}
+                            isLoading={isLoadingTo}
+                            emptyText="No emails sent to this contact."
+                        />
+                    </div>
+
+                    <aside className="space-y-4 lg:sticky lg:top-24 h-fit">
+                        <Card className="rounded-2xl shadow-sm p-5">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <div>
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-muted">AI Intelligence</p>
+                                    <h2 className="font-display text-lg text-ink">Relationship signal</h2>
+                                </div>
+                                <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                                    <Mail className="w-5 h-5 text-accent" />
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="rounded-xl bg-paper-mid/50 border border-border/40 p-3">
+                                    <p className="text-[10px] uppercase tracking-widest text-muted font-bold">Engagement</p>
+                                    <p className="mt-1 text-sm font-semibold text-ink">{contact.interaction_count} total interactions</p>
+                                </div>
+                                <div className="rounded-xl bg-paper-mid/50 border border-border/40 p-3">
+                                    <p className="text-[10px] uppercase tracking-widest text-muted font-bold">Recent signal</p>
+                                    <p className="mt-1 text-sm font-semibold text-ink">
+                                        {contact.last_interaction_at ? formatDistanceToNow(new Date(contact.last_interaction_at), { addSuffix: true }) : "No recent activity"}
+                                    </p>
+                                </div>
+                                <div className="rounded-xl bg-paper-mid/50 border border-border/40 p-3">
+                                    <p className="text-[10px] uppercase tracking-widest text-muted font-bold">Status</p>
+                                    <p className="mt-1 text-sm font-semibold text-ink">
+                                        {contact.is_vip ? "Priority relationship" : contact.is_unsubscribed ? "Muted relationship" : "Active relationship"}
+                                    </p>
+                                </div>
+                            </div>
+                        </Card>
+                    </aside>
                 </div>
             </div>
         </div>

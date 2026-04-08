@@ -48,12 +48,12 @@ export default function ContactsPage() {
 
     return (
         <AppShell title="Contacts" subtitle={`${contacts.length} intelligence nodes`}>
-            <div className="max-w-[1280px] mx-auto p-4 md:p-6 space-y-6">
-                <section className="relative overflow-hidden rounded-2xl bg-white border border-outline-variant/10 p-5 md:p-6 tonal-shadow">
+            <div className="max-w-[1280px] mx-auto p-4 md:p-6 space-y-5">
+                <section className="relative overflow-hidden rounded-2xl bg-white border border-outline-variant/10 p-5 md:p-5 tonal-shadow">
                     <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-primary-fixed/20 blur-2xl -mr-10 -mt-10" />
-                    <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-                        <div className="space-y-3 max-w-2xl">
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-fixed/25 text-primary text-[10px] font-bold uppercase tracking-[0.24em] w-fit">
+                    <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                        <div className="space-y-2.5 max-w-2xl">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-fixed/25 text-primary text-[9px] font-bold uppercase tracking-[0.24em] w-fit">
                                 <MaterialSymbol icon="group" className="text-sm" />
                                 Relationship Intelligence
                             </div>
@@ -65,13 +65,13 @@ export default function ContactsPage() {
                             </div>
                         </div>
 
-                        <button className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-on-primary font-bold shadow-sm hover:scale-[1.01] active:scale-[0.99] transition-all w-full lg:w-auto text-[13px]">
+                        <button className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-on-primary font-bold shadow-sm hover:scale-[1.01] active:scale-[0.99] transition-all w-full lg:w-auto text-[13px] shrink-0">
                             <MaterialSymbol icon="person_add" className="text-lg" />
                             New Contact
                         </button>
                     </div>
 
-                    <div className="mt-6 flex flex-col md:flex-row gap-3 items-center justify-between">
+                    <div className="mt-5 flex flex-col xl:flex-row gap-3 items-stretch xl:items-center justify-between">
                         <div className="relative w-full md:max-w-md group">
                         <MaterialSymbol 
                             icon="search" 
@@ -86,12 +86,12 @@ export default function ContactsPage() {
                         />
                         </div>
                         
-                        <div className="flex bg-surface-container-low p-1 rounded-xl border border-outline-variant/10 shadow-inner overflow-hidden w-full md:w-auto">
+                        <div className="flex bg-surface-container-low p-1 rounded-xl border border-outline-variant/10 shadow-inner overflow-hidden w-full xl:w-auto">
                         {(["most_emails", "recent", "alphabetical"] as SortOption[]).map(s => (
                             <button
                                 key={s}
                                 onClick={() => setSort(s)}
-                                className={`px-4 py-1.5 text-[11px] font-bold rounded-lg transition-all flex-1 md:flex-none ${sort === s ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}
+                                className={`px-4 py-1.5 text-[10px] font-bold rounded-lg transition-all flex-1 md:flex-none whitespace-nowrap ${sort === s ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}
                             >
                                 {s === "most_emails" ? "Priority" : s === "recent" ? "Recency" : "A–Z"}
                             </button>
@@ -121,7 +121,7 @@ export default function ContactsPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                         {filtered.map(contact => (
                             <ContactCard 
                                 key={contact.id} 
@@ -144,9 +144,12 @@ function ContactCard({ contact, initials, onUnsubscribe, isPending }: {
     onUnsubscribe: () => void,
     isPending: boolean 
 }) {
+    const signalLabel = contact.interaction_count >= 20 ? "Core contact" : contact.interaction_count >= 8 ? "Warm lead" : "Low signal";
+    const signalTone = contact.interaction_count >= 20 ? "bg-primary-fixed/20 text-primary" : contact.interaction_count >= 8 ? "bg-tertiary-container text-tertiary" : "bg-surface-container-high text-outline";
+
     return (
-        <div className={`group bg-white rounded-2xl border border-outline-variant/10 p-4 hover:border-primary-fixed hover:shadow-md hover:shadow-primary/5 transition-all relative overflow-hidden flex flex-col justify-between ${contact.is_unsubscribed ? "opacity-60" : ""}`}>
-            <div className="flex items-start justify-between mb-4 gap-4">
+        <div className={`group bg-white rounded-2xl border border-outline-variant/10 p-4 hover:border-primary-fixed hover:shadow-md hover:shadow-primary/5 transition-all relative overflow-hidden flex flex-col justify-between min-h-[220px] ${contact.is_unsubscribed ? "opacity-60" : ""}`}>
+            <div className="flex items-start justify-between mb-3 gap-4">
                 <div className="h-11 w-11 rounded-xl bg-primary-fixed/20 text-primary font-bold flex items-center justify-center text-sm shadow-sm border border-primary/5 transition-transform group-hover:scale-105 shrink-0">
                     {initials}
                 </div>
@@ -176,6 +179,18 @@ function ContactCard({ contact, initials, onUnsubscribe, isPending }: {
                         {contact.company}
                     </div>
                 )}
+            </div>
+
+            <div className="mt-3 rounded-xl border border-primary-fixed/10 bg-primary-fixed/5 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">AI Intelligence</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${signalTone}`}>
+                        {signalLabel}
+                    </span>
+                </div>
+                <p className="text-[10px] font-medium text-on-surface-variant leading-relaxed">
+                    {contact.interaction_count} interactions indexed · {contact.last_interaction_at ? `last seen ${formatDistanceToNow(new Date(contact.last_interaction_at), { addSuffix: false })} ago` : 'no recent activity'}
+                </p>
             </div>
 
             <div className="mt-4 flex items-center justify-between pt-3 border-t border-outline-variant/5 gap-3">
