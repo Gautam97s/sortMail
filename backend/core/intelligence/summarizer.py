@@ -44,22 +44,22 @@ def extract_suggested_action(intel_json: dict) -> Optional[str]:
     """
     Generate a suggested action phrase from the intel output.
     """
-    intent = (intel_json.get("intent") or "fyi").lower()
+    intent = (intel_json.get("intent") or "FYI").upper()  # Uppercase to match IntentType enum
     urgency = int(intel_json.get("urgency_score") or 0)
     main_ask = intel_json.get("main_ask")
 
     if urgency >= 70:
         return f"Respond immediately — {main_ask or 'urgent action required'}"
-    elif intent == "action_required":
+    elif intent == "ACTION_REQUIRED":
         reply_by = intel_json.get("expected_reply_by")
         if reply_by:
             return f"Respond before {reply_by}"
         return f"Review and respond — {main_ask or 'action needed'}"
-    elif intent == "scheduling":
+    elif intent == "SCHEDULING":
         return "Confirm availability or propose an alternative time"
-    elif intent == "question":
+    elif intent == "QUESTION":
         return "Answer the question"
-    elif intent in ("newsletter", "social"):
+    elif intent in ("NEWSLETTER", "SOCIAL"):
         return None  # No action needed
     return None
 

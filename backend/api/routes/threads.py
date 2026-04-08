@@ -479,7 +479,7 @@ async def get_thread(
             thread_id=db_draft.thread_id,
             user_id=db_draft.user_id,
             content=db_draft.body,
-            tone=db_draft.tone.lower() if db_draft.tone else "normal",
+            tone=db_draft.tone.upper() if db_draft.tone else "NORMAL",
             placeholders=placeholders,
             has_unresolved_placeholders=len(placeholders) > 0,
             created_at=db_draft.created_at or datetime.now(timezone.utc),

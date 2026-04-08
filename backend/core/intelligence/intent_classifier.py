@@ -10,22 +10,23 @@ Architecture: pure extractor — no LLM calls, normalizes Gemini output
 from typing import Tuple
 
 
-# Valid intent values (mirror IntentType contract enum)
+# Valid intent values (mirror IntentType contract enum - MUST BE UPPERCASE)
 VALID_INTENTS = {
-    "urgent", "action_required", "scheduling", "fyi",
-    "question", "social", "newsletter", "other",
+    "URGENT", "ACTION_REQUIRED", "SCHEDULING", "FYI",
+    "QUESTION", "SOCIAL", "NEWSLETTER", "OTHER", "UNKNOWN",
 }
 
-# Intent → urgency score range (used for validation/clamping)
+# Intent → urgency score range (used for validation/clamping) - UPPERCASE keys to match enum
 INTENT_MIN_SCORES = {
-    "urgent": 70,
-    "action_required": 40,
-    "scheduling": 30,
-    "question": 20,
-    "fyi": 0,
-    "social": 0,
-    "newsletter": 0,
-    "other": 0,
+    "URGENT": 70,
+    "ACTION_REQUIRED": 40,
+    "SCHEDULING": 30,
+    "QUESTION": 20,
+    "FYI": 0,
+    "SOCIAL": 0,
+    "NEWSLETTER": 0,
+    "OTHER": 0,
+    "UNKNOWN": 0,
 }
 
 
@@ -34,10 +35,11 @@ def extract_intent(intel_json: dict) -> Tuple[str, int]:
     Extract intent label and urgency score from Gemini output.
 
     Returns:
-        (intent: str, urgency_score: int)  — both safe for DB storage
+        (intent: str, urgency_score: int)  — both safe for DB storage (UPPERCASE)
     """
-    raw_intent = (intel_json.get("intent") or "fyi").lower().strip()
-    intent = raw_intent if raw_intent in VALID_INTENTS else "fyi"
+    # Convert to uppercase to match enum values in IntentType contract
+    raw_intent = (intel_json.get("intent") or "fyi").upper().strip()
+    intent = raw_intent if raw_intent in VALID_INTENTS else "FYI"
 
     # Clamp urgency score 0–100
     raw_score = intel_json.get("urgency_score")
