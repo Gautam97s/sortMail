@@ -41,6 +41,7 @@ export const endpoints = {
     threadTrash: (id: string) => `/api/threads/${id}`,
     tasks: '/api/tasks',
     drafts: '/api/drafts',
+    chat: '/api/ai/chat',
     waitingFor: '/api/reminders',
     emailSync: '/api/emails/sync',
     emailSyncStatus: '/api/emails/sync/status',
