@@ -131,31 +131,32 @@ export default function FollowupsPage() {
 
     return (
         <AppShell title="Relationship Persistence" subtitle="AI-powered Response Monitoring">
-            <div className="max-w-6xl mx-auto p-6 md:p-10 space-y-16">
-                
-                {/* Header Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <StatCard icon="error" label="Critical Alerts" value={overdue.length} color="text-error" bg="bg-error-container" />
-                    <StatCard icon="schedule" label="Active Tracking" value={pending.length} color="text-tertiary" bg="bg-tertiary-container" />
-                    <StatCard icon="done_all" label="Engagement Efficiency" value="94%" color="text-primary" bg="bg-primary-container" />
-                </div>
+            <div className="max-w-6xl mx-auto p-6 md:p-10 space-y-12">
+                <section className="relative overflow-hidden rounded-[32px] bg-white border border-outline-variant/10 p-6 md:p-8 tonal-shadow">
+                    <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-tertiary-fixed/25 blur-3xl -mr-12 -mt-12" />
+                    <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+                        <div className="space-y-3 max-w-2xl">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-tertiary-fixed/25 text-tertiary text-[10px] font-bold uppercase tracking-[0.24em] w-fit">
+                                <MaterialSymbol icon="schedule" className="text-sm" />
+                                Follow-ups
+                            </div>
+                            <h1 className="font-headline text-3xl md:text-4xl font-bold text-on-surface tracking-tight">Keep the conversation moving</h1>
+                            <p className="text-on-surface-variant max-w-2xl">
+                                Surface stalled threads, focus on the ones with the longest delay, and resolve the rest quickly.
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto lg:min-w-[28rem]">
+                            <StatCard icon="error" label="Critical Alerts" value={overdue.length} color="text-error" bg="bg-error-container" />
+                            <StatCard icon="schedule" label="Active Tracking" value={pending.length} color="text-tertiary" bg="bg-tertiary-container" />
+                            <StatCard icon="done_all" label="Engagement Efficiency" value="94%" color="text-primary" bg="bg-primary-container" />
+                        </div>
+                    </div>
+                </section>
 
-                <div className="space-y-16">
-                    <FollowUpGroup
-                        title="Critical Nudges"
-                        items={overdue}
-                        status="OVERDUE"
-                    />
-                    <FollowUpGroup
-                        title="Active Monitoring"
-                        items={pending}
-                        status="PENDING"
-                    />
-                    <FollowUpGroup
-                        title="Suspended Persistent"
-                        items={snoozed}
-                        status="SNOOZED"
-                    />
+                <div className="space-y-14">
+                    <FollowUpGroup title="Critical Nudges" items={overdue} status="OVERDUE" />
+                    <FollowUpGroup title="Active Monitoring" items={pending} status="PENDING" />
+                    <FollowUpGroup title="Suspended Persistent" items={snoozed} status="SNOOZED" />
                 </div>
             </div>
         </AppShell>
@@ -164,7 +165,7 @@ export default function FollowupsPage() {
 
 function StatCard({ icon, label, value, color, bg }: { icon: string, label: string, value: string | number, color: string, bg: string }) {
     return (
-        <div className="bg-white p-6 rounded-[32px] border border-outline-variant/10 shadow-sm flex items-center gap-6 group hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all">
+        <div className="bg-surface-container-low p-4 rounded-[28px] border border-outline-variant/10 shadow-sm flex items-center gap-4 group hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all">
             <div className={`h-14 w-14 rounded-2xl ${bg} ${color} flex items-center justify-center border border-current/10 shadow-inner group-hover:scale-110 transition-transform`}>
                 <MaterialSymbol icon={icon} className="text-2xl" />
             </div>

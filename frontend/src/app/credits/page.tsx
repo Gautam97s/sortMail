@@ -1,16 +1,66 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, CreditCard, History, Zap, TrendingUp } from 'lucide-react';
+import { api, endpoints } from '@/lib/api';
+
+type CreditBalance = {
+    balance: number;
+    plan: string;
+    monthly_allowance: number;
+    used_this_month: number;
+    resets_on: string | null;
+};
+
+type CreditTransaction = {
+    id: string;
+    amount: number;
+    balance_after: number;
+    transaction_type: string;
+    operation_type?: string | null;
+    status: string;
+    created_at: string;
+};
 
 export default function CreditsPage() {
-    const [credits] = useState({ used: 450, total: 1000 });
-    const percentUsed = (credits.used / credits.total) * 100;
+    const [credits, setCredits] = useState<CreditBalance | null>(null);
+    const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const [balanceRes, transactionsRes] = await Promise.all([
+                    api.get(endpoints.creditsMe),
+                    api.get(endpoints.creditsTransactions),
+                ]);
+                if (!mounted) return;
+                setCredits(balanceRes.data);
+                setTransactions(transactionsRes.data || []);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        })();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    const percentUsed = useMemo(() => {
+        if (!credits || credits.monthly_allowance <= 0) return 0;
+        return Math.min(100, (credits.used_this_month / credits.monthly_allowance) * 100);
+    }, [credits]);
+
+    const available = credits?.balance ?? 0;
+    const used = credits?.used_this_month ?? 0;
+    const allowance = credits?.monthly_allowance ?? 0;
 
     return (
         <AppShell title="AI Credits" subtitle="Manage your intelligence quota">
@@ -25,24 +75,26 @@ export default function CreditsPage() {
                                     <Sparkles className="h-5 w-5 text-ai" />
                                     <CardTitle>Current Balance</CardTitle>
                                 </div>
-                                <Badge variant="outline" className="text-ai border-ai/30">Pro Plan</Badge>
+                                <Badge variant="outline" className="text-ai border-ai/30">{credits?.plan ? credits.plan.toUpperCase() : 'LOADING'}</Badge>
                             </div>
                         </CardHeader>
                         <CardContent className="p-8">
                             <div className="space-y-6">
                                 <div className="flex justify-between items-end">
                                     <div>
-                                        <p className="text-4xl font-display text-ink">{credits.total - credits.used}</p>
+                                        <p className="text-4xl font-display text-ink">{loading ? '...' : available}</p>
                                         <p className="text-sm text-muted-foreground uppercase font-mono tracking-tighter">Credits available</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm font-mono text-muted-foreground">{credits.used} / {credits.total} used</p>
+                                        <p className="text-sm font-mono text-muted-foreground">{loading ? '...' : `${used} / ${allowance} used`}</p>
                                     </div>
                                 </div>
                                 <Progress value={percentUsed} className="h-3 bg-paper-mid [&>div]:bg-gradient-to-r from-ai to-purple-400" />
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <TrendingUp className="h-4 w-4 text-success" />
-                                    <span>Quota resets in <span className="text-ink font-medium">12 days</span></span>
+                                    <span>
+                                        Quota resets on <span className="text-ink font-medium">{credits?.resets_on ? new Date(credits.resets_on).toLocaleDateString() : 'unknown'}</span>
+                                    </span>
                                 </div>
                             </div>
                         </CardContent>
@@ -101,23 +153,20 @@ export default function CreditsPage() {
                     <Card>
                         <CardContent className="p-0">
                             <div className="divide-y divide-border">
-                                {[
-                                    { action: 'Thread Summary', date: 'Today, 10:45 AM', cost: '1 credit', detail: 'Thread: Project Launch' },
-                                    { action: 'Attachment Analysis', date: 'Today, 9:20 AM', cost: '5 credits', detail: 'File: contract_v2.pdf' },
-                                    { action: 'Draft Suggestion', date: 'Yesterday, 4:15 PM', cost: '2 credits', detail: 'Reply to: Sarah Jenkins' },
-                                    { action: 'Automated Rule', date: 'Yesterday, 8:00 AM', cost: '1 credit', detail: 'Labeling: Billing' },
-                                ].map((item, i) => (
+                                {transactions.length > 0 ? transactions.map((item, i) => (
                                     <div key={i} className="flex items-center justify-between p-4 hover:bg-paper-mid transition-colors">
                                         <div>
-                                            <p className="font-medium text-sm">{item.action}</p>
-                                            <p className="text-xs text-muted-foreground">{item.detail}</p>
+                                            <p className="font-medium text-sm">{item.operation_type || item.transaction_type}</p>
+                                            <p className="text-xs text-muted-foreground">Balance after: {item.balance_after}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-sm font-mono text-ink">-{item.cost}</p>
-                                            <p className="text-[10px] text-muted-foreground uppercase font-mono">{item.date}</p>
+                                            <p className="text-sm font-mono text-ink">{item.amount < 0 ? `${item.amount}` : `+${item.amount}`}</p>
+                                            <p className="text-[10px] text-muted-foreground uppercase font-mono">{new Date(item.created_at).toLocaleString()}</p>
                                         </div>
                                     </div>
-                                ))}
+                                )) : (
+                                    <div className="p-8 text-center text-sm text-muted-foreground">No credit activity yet.</div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

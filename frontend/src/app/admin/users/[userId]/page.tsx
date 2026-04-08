@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ArrowLeft,
     Mail,
@@ -20,28 +20,51 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { api, endpoints } from '@/lib/api';
+
+type AdminUser = {
+    id: string;
+    email: string;
+    name: string | null;
+    provider: string;
+    status: string;
+    is_superuser: boolean;
+    credits_balance: number;
+    plan: string;
+    created_at: string;
+    last_login_at: string | null;
+};
 
 export default function UserDetailPage() {
     const { userId } = useParams();
+    const [user, setUser] = useState<AdminUser | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    // Mock specific user data
-    const user = {
-        id: userId,
-        name: 'Marcus Aurelius',
-        email: 'marcus@stoic.com',
-        plan: 'Enterprise',
-        status: 'Active',
-        joined: 'October 12, 2023',
-        lastLogin: '2 hours ago',
-        totalEmails: 12450,
-        aiCredits: 450,
-        aiLimit: 500,
-        usageHistory: [
-            { date: '2024-02-28', credits: 42, threads: 125 },
-            { date: '2024-02-27', credits: 38, threads: 98 },
-            { date: '2024-02-26', credits: 55, threads: 210 },
-        ]
-    };
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const { data } = await api.get(endpoints.adminUser(String(userId)));
+                if (mounted) setUser(data);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        })();
+
+        return () => {
+            mounted = false;
+        };
+    }, [userId]);
+
+    const usageHistory = [
+        { date: '2024-02-28', credits: 42, threads: 125 },
+        { date: '2024-02-27', credits: 38, threads: 98 },
+        { date: '2024-02-26', credits: 55, threads: 210 },
+    ];
+
+    if (loading || !user) {
+        return <div className="p-8 max-w-7xl mx-auto text-sm text-muted-foreground">Loading user details...</div>;
+    }
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -53,7 +76,7 @@ export default function UserDetailPage() {
                     </Link>
                     <div>
                         <div className="flex items-center gap-3 mb-1">
-                            <h1 className="text-3xl font-display text-ink">{user.name}</h1>
+                            <h1 className="text-3xl font-display text-ink">{user.name || user.email}</h1>
                             <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-success/5 text-success border border-success/20">
                                 {user.status}
                             </span>
@@ -84,8 +107,8 @@ export default function UserDetailPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <DetailRow label="Current Plan" value={user.plan} />
-                            <DetailRow label="Member Since" value={user.joined} />
-                            <DetailRow label="Last Session" value={user.lastLogin} />
+                            <DetailRow label="Member Since" value={new Date(user.created_at).toLocaleDateString()} />
+                            <DetailRow label="Last Session" value={user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Never'} />
                             <div className="pt-4 flex flex-col gap-2">
                                 <Button variant="outline" className="w-full justify-start text-xs border-border-light font-medium text-ink-mid">
                                     <PauseCircle size={14} className="mr-2 text-warning" /> Suspend Account
@@ -107,21 +130,21 @@ export default function UserDetailPage() {
                             <div className="space-y-2">
                                 <div className="flex justify-between items-end">
                                     <span className="text-[10px] font-mono font-bold text-ink-mid uppercase">AI Credits</span>
-                                    <span className="text-xs font-mono">{user.aiCredits} / {user.aiLimit}</span>
+                                    <span className="text-xs font-mono">{user.credits_balance}</span>
                                 </div>
                                 <div className="h-2 rounded-full bg-paper-mid overflow-hidden border border-border-light/50">
-                                    <div className="h-full bg-ai" style={{ width: `${(user.aiCredits / user.aiLimit) * 100}%` }} />
+                                    <div className="h-full bg-ai" style={{ width: `${Math.min(100, user.credits_balance)}%` }} />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="p-3 bg-white border border-border-light rounded-lg">
                                     <p className="text-[9px] font-mono text-muted-foreground uppercase mb-1">Total Emails</p>
-                                    <p className="text-lg font-display text-accent">{user.totalEmails.toLocaleString()}</p>
+                                    <p className="text-lg font-display text-accent">0</p>
                                 </div>
                                 <div className="p-3 bg-white border border-border-light rounded-lg">
                                     <p className="text-[9px] font-mono text-muted-foreground uppercase mb-1">Threads Analyzed</p>
-                                    <p className="text-lg font-display text-ai">842</p>
+                                    <p className="text-lg font-display text-ai">0</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -179,7 +202,7 @@ export default function UserDetailPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border-light">
-                                        {user.usageHistory.map((row, i) => (
+                                        {usageHistory.map((row, i) => (
                                             <tr key={i} className="hover:bg-paper-mid/50 transition-colors">
                                                 <td className="px-6 py-3 text-xs font-medium text-ink-mid">{row.date}</td>
                                                 <td className="px-6 py-3 text-xs font-mono">{row.credits} credits</td>

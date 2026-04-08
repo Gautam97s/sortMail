@@ -2,6 +2,7 @@
 
 import React from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
     <span 
@@ -16,24 +17,38 @@ export default function RightSidebar() {
     const pathname = usePathname();
     const isInbox = pathname === "/inbox" || pathname?.startsWith("/inbox/");
 
+    const intentItems = [
+        { label: 'Urgent', icon: 'priority_high', active: true, colorClass: 'text-error' },
+        { label: 'Financial', icon: 'payments', active: true, colorClass: 'text-primary' },
+        { label: 'External', icon: 'public', active: false, colorClass: 'text-secondary' },
+        { label: 'Scheduling', icon: 'event_repeat', active: false, colorClass: 'text-tertiary' },
+    ];
+
     return (
-        <aside className="w-full h-full flex flex-col bg-surface-container-low overflow-y-auto custom-scrollbar select-none">
+        <aside className="w-full h-full flex flex-col bg-surface-container-low overflow-y-auto custom-scrollbar">
             {/* Header / Active Context */}
-            <div className="p-6 border-b border-outline-variant/10">
-                <div className="flex items-center gap-2 mb-4">
+            <div className="p-6 border-b border-outline-variant/10 space-y-4">
+                <div className="flex items-center gap-2">
                     <MaterialSymbol icon="psychology" filled className="text-primary text-xl" />
-                    <span className="text-[11px] font-bold text-outline uppercase tracking-widest">
+                    <span className="text-[11px] font-bold text-outline uppercase tracking-[0.28em]">
                         Intelligence Pane
                     </span>
                 </div>
                 
-                <div className="bg-white rounded-2xl p-4 border border-outline-variant/10 shadow-sm">
-                    <span className="text-[10px] font-bold text-primary uppercase tracking-tighter mb-1 block">Active Context</span>
-                    <h3 className="text-sm font-bold text-on-surface truncate">
-                        {isInbox ? "Thread: Q1 Budget Review" : "Global Overview"}
-                    </h3>
-                    <p className="text-[11px] text-on-surface-variant line-clamp-2 mt-1 leading-relaxed">
-                        Analyzing 12 messages with focus on pending approvals and fiscal deadlines.
+                <div className="bg-white rounded-[28px] p-4 border border-outline-variant/10 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <span className="text-[10px] font-bold text-primary uppercase tracking-[0.22em] block">Active Context</span>
+                            <h3 className="text-sm font-bold text-on-surface truncate mt-1">
+                                {isInbox ? "Thread: Q1 Budget Review" : "Global Overview"}
+                            </h3>
+                        </div>
+                        <Link href={isInbox ? "/inbox" : "/dashboard"} className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline shrink-0">
+                            Open
+                        </Link>
+                    </div>
+                    <p className="text-[11px] text-on-surface-variant leading-relaxed">
+                        Analyzing 12 messages with focus on pending approvals, follow-ups, and time-sensitive replies.
                     </p>
                 </div>
             </div>
@@ -72,14 +87,9 @@ export default function RightSidebar() {
 
             {/* Intent / Sentiment Grid */}
             <div className="p-6 border-b border-outline-variant/10">
-                <span className="text-[10px] font-bold text-outline uppercase tracking-widest mb-4 block text-center">Inferred Intent</span>
+                <span className="text-[10px] font-bold text-outline uppercase tracking-[0.28em] mb-4 block text-center">Inferred Intent</span>
                 <div className="grid grid-cols-2 gap-3">
-                    {[
-                        { label: 'Urgent', icon: 'priority_high', active: true, color: 'error' },
-                        { label: 'Financial', icon: 'payments', active: true, color: 'primary' },
-                        { label: 'External', icon: 'public', active: false, color: 'secondary' },
-                        { label: 'Scheduling', icon: 'event_repeat', active: false, color: 'tertiary' },
-                    ].map((item, i) => (
+                    {intentItems.map((item, i) => (
                         <div 
                             key={i} 
                             className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ${
@@ -91,7 +101,7 @@ export default function RightSidebar() {
                             <MaterialSymbol 
                                 icon={item.icon} 
                                 filled={item.active} 
-                                className={`text-xl ${item.active ? `text-${item.color}` : 'text-outline'}`} 
+                                className={`text-xl ${item.active ? item.colorClass : 'text-outline'}`} 
                             />
                             <span className="text-[10px] font-bold text-on-surface-variant">{item.label}</span>
                         </div>
@@ -101,7 +111,7 @@ export default function RightSidebar() {
 
             {/* Smart Actions */}
             <div className="p-6 mt-auto">
-                <span className="text-[10px] font-bold text-outline uppercase tracking-widest mb-4 block">Smart Actions</span>
+                <span className="text-[10px] font-bold text-outline uppercase tracking-[0.28em] mb-4 block">Smart Actions</span>
                 <div className="space-y-3">
                     <button className="w-full flex items-center justify-between p-4 bg-tertiary-fixed/30 text-tertiary-container hover:bg-tertiary-fixed/50 transition-all rounded-2xl border border-tertiary-fixed ring-1 ring-white/20">
                         <div className="flex items-center gap-3">
@@ -118,6 +128,13 @@ export default function RightSidebar() {
                         </div>
                         <MaterialSymbol icon="add" className="text-lg text-outline" />
                     </button>
+                    <Link href="/search" className="w-full flex items-center justify-between p-4 bg-surface-container-low hover:bg-white transition-all rounded-2xl border border-outline-variant/10 text-left group">
+                        <div className="flex items-center gap-3">
+                            <MaterialSymbol icon="travel_explore" className="text-lg text-secondary group-hover:text-primary transition-colors" />
+                            <span className="text-xs font-bold text-on-surface">Trace Connections</span>
+                        </div>
+                        <MaterialSymbol icon="arrow_outward" className="text-lg text-outline" />
+                    </Link>
                 </div>
             </div>
         </aside>

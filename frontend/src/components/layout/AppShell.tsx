@@ -24,7 +24,7 @@ export default function AppShell({
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     return (
-        <div className="flex w-full h-screen overflow-hidden bg-background text-on-surface select-none font-body">
+        <div className="flex w-full h-screen overflow-hidden bg-background text-on-surface font-body">
             {/* Mobile Overlay */}
             <div
                 className={`drawer-overlay ${mobileSidebarOpen ? 'open' : ''} z-40 transition-all duration-300`}
@@ -43,6 +43,8 @@ export default function AppShell({
                     onMobileSidebarOpen={() => setMobileSidebarOpen(true)}
                     onSearchChange={onSearchChange}
                     searchPlaceholder={title || "Search your intelligent workspace..."}
+                    title={title}
+                    subtitle={subtitle}
                 />
 
                 <div className="flex-1 overflow-auto w-full transition-all duration-300 custom-scrollbar">

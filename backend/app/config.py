@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
     # App
-    VERSION: str = "0.1.0"
+    VERSION: str = "0.1.0-beta"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     

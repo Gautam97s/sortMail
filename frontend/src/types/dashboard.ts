@@ -194,6 +194,8 @@ export interface ThreadListItem {
     participants: string[];
     is_unread?: number; // compat with backend
     tags: string[];
+    is_archived?: boolean;
+    is_trash?: boolean;
 }
 
 /** Dashboard aggregate (to be added as backend endpoint) */

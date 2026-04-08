@@ -9,6 +9,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useUser } from '@/hooks/useUser';
+import { api, endpoints } from '@/lib/api';
+import { isFeatureEnabled } from '@/lib/release';
 
 interface ChatMessage {
     id: string;
@@ -19,7 +21,9 @@ interface ChatMessage {
 
 export default function ChatPage() {
     const { data: user } = useUser();
+    const canUseChat = isFeatureEnabled('chatbot', user);
     const [inputValue, setInputValue] = useState('');
+    const [sending, setSending] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([
         {
             id: '1',
@@ -49,46 +53,93 @@ export default function ChatPage() {
         }
     ]);
 
-    const handleSend = () => {
-        if (!inputValue.trim()) return;
+    const handleSend = async () => {
+        const prompt = inputValue.trim();
+        if (!prompt || sending) return;
 
         const newMsg: ChatMessage = {
             id: Date.now().toString(),
             role: 'user',
-            content: inputValue,
+            content: prompt,
             timestamp: new Date()
         };
 
         setMessages(prev => [...prev, newMsg]);
         setInputValue('');
+        setSending(true);
 
-        // Simulate AI typing and response
-        setTimeout(() => {
-            const aiResponse: ChatMessage = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                timestamp: new Date(),
-                content: (
-                    <div className="space-y-3">
-                        <p className="text-sm">Based on the latest Q4 Project Timeline update, here are the main blockers:</p>
-                        <ul className="text-sm space-y-2 list-none pl-0">
-                            <li className="flex gap-2 items-start"><span className="text-accent mt-0.5">•</span> Backend migration is delayed by 2 weeks.</li>
-                            <li className="flex gap-2 items-start"><span className="text-accent mt-0.5">•</span> Pending budget approval for AWS resources.</li>
-                        </ul>
-                        <div className="flex items-center gap-2 mt-3 p-2 bg-white/40 border border-white/50 rounded-lg">
-                            <FileText className="h-4 w-4 text-accent" />
-                            <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold truncate">Q4_Roadmap_V3.pdf</p>
-                                <p className="text-[10px] text-muted-foreground font-mono">Source document</p>
-                            </div>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full"><ChevronRight className="h-3 w-3" /></Button>
-                        </div>
-                    </div>
-                )
+        const assistantId = (Date.now() + 1).toString();
+        setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: 'Thinking...', timestamp: new Date() }]);
+
+        try {
+            const response = await fetch(`${api.defaults.baseURL}${endpoints.chat}`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: prompt }),
+            });
+
+            if (!response.body) {
+                throw new Error('Chat stream unavailable');
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let assistantText = '';
+
+            const updateAssistant = (text: string) => {
+                setMessages(prev => prev.map(msg => msg.id === assistantId ? { ...msg, content: text } : msg));
             };
-            setMessages(prev => [...prev, aiResponse]);
-        }, 1500);
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+
+                let boundary = buffer.indexOf('\n\n');
+                while (boundary !== -1) {
+                    const rawEvent = buffer.slice(0, boundary).trim();
+                    buffer = buffer.slice(boundary + 2);
+
+                    const dataLine = rawEvent.split('\n').find(line => line.startsWith('data: '));
+                    const chunk = dataLine ? dataLine.slice(6) : '';
+
+                    if (chunk === '[DONE]') {
+                        updateAssistant(assistantText);
+                        setSending(false);
+                        return;
+                    }
+
+                    if (chunk) {
+                        assistantText += chunk.replace(/\\n/g, '\n');
+                        updateAssistant(assistantText);
+                    }
+
+                    boundary = buffer.indexOf('\n\n');
+                }
+            }
+        } catch (error) {
+            setMessages(prev => prev.map(msg => msg.id === assistantId ? { ...msg, content: 'I could not reach the AI backend right now.' } : msg));
+        } finally {
+            setSending(false);
+        }
     };
+
+    if (!canUseChat) {
+        return (
+            <AppShell title="AI Assistant" subtitle="Internal testing only during beta">
+                <div className="max-w-2xl mx-auto p-10">
+                    <div className="bg-white rounded-3xl border border-outline-variant/15 p-8 text-center space-y-3">
+                        <h1 className="text-2xl font-headline font-bold text-on-surface">AI Assistant is gated for beta</h1>
+                        <p className="text-sm text-on-surface-variant">
+                            This feature is currently available only to internal tester accounts.
+                        </p>
+                    </div>
+                </div>
+            </AppShell>
+        );
+    }
 
     return (
         <AppShell title="AI Assistant" subtitle="Your personal inbox intelligence">
@@ -167,7 +218,7 @@ export default function ChatPage() {
                                     onClick={handleSend}
                                     size="icon" 
                                     className="h-8 w-8 rounded-full shrink-0 bg-accent hover:bg-accent2 text-white shadow-md transition-all"
-                                    disabled={!inputValue.trim()}
+                                    disabled={!inputValue.trim() || sending}
                                 >
                                     <Send className="h-4 w-4 ml-0.5" />
                                 </Button>

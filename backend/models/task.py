@@ -8,7 +8,6 @@ import uuid
 from datetime import datetime, timezone
 from sqlalchemy import Column, String, DateTime, Integer, Text, ForeignKey, Enum, Boolean, Date
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
-from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 import enum
 
 from core.storage.database import Base
@@ -50,8 +49,16 @@ class Task(Base):
     # Task details
     title = Column(String, nullable=False)
     description = Column(Text)
-    status = Column(PG_ENUM(TaskStatus, name="TASKSTATUS", create_type=False), default=TaskStatus.PENDING, nullable=False)
-    task_type = Column(PG_ENUM(TaskType, name="TASKTYPE", create_type=False), default=TaskType.REPLY, nullable=False)
+    status = Column(
+        Enum(TaskStatus, name="taskstatus", native_enum=False, validate_strings=True),
+        default=TaskStatus.PENDING,
+        nullable=False,
+    )
+    task_type = Column(
+        Enum(TaskType, name="tasktype", native_enum=False, validate_strings=True),
+        default=TaskType.REPLY,
+        nullable=False,
+    )
     
     # Priority
     priority_level = Column(String, nullable=True) # urgent, high, medium, low

@@ -65,6 +65,8 @@ def upgrade() -> None:
     c('threads', 'labels', "TEXT[] DEFAULT '{}'")
     c('threads', 'is_unread', 'INTEGER DEFAULT 0')
     c('threads', 'is_starred', 'BOOLEAN DEFAULT FALSE')
+    c('threads', 'is_archived', 'BOOLEAN DEFAULT FALSE')
+    c('threads', 'is_trash', 'BOOLEAN DEFAULT FALSE')
     c('threads', 'has_attachments', 'BOOLEAN DEFAULT FALSE')
     c('threads', 'summary', 'TEXT')
     c('threads', 'intent', 'VARCHAR')

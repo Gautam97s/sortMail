@@ -37,6 +37,8 @@ class Thread(Base):
     labels = Column(ARRAY(String), default=list) # e.g. ["INBOX", "UNREAD", "IMPORTANT"]
     is_unread = Column(Integer, default=0) # 0=read, 1=unread (using int for bool compat if needed, or Boolean)
     is_starred = Column(Boolean, default=False)
+    is_archived = Column(Boolean, default=False)
+    is_trash = Column(Boolean, default=False)
     has_attachments = Column(Boolean, default=False)
     
     # Intelligence cache

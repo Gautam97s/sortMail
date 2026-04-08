@@ -41,6 +41,23 @@ export default function SettingsPage() {
         ? user.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
         : "?";
 
+    const connectedAccounts = [
+        {
+            name: "Google Workspace",
+            description: user?.email || "Primary inbox connection",
+            logo: "https://www.gstatic.com/images/branding/product/1x/gmail_2020q4_48dp.png",
+            active: true,
+            cta: "Manage connection",
+        },
+        {
+            name: "Microsoft Outlook",
+            description: "Available for secondary account sync",
+            logo: "https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg",
+            active: false,
+            cta: "Connect account",
+        },
+    ];
+
     return (
         <div className="space-y-10 pb-20 max-w-4xl">
             {/* Header */}
@@ -138,48 +155,39 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
-                    {/* Gmail */}
-                    <div className="group bg-white rounded-3xl border-2 border-primary-fixed p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-4">
-                            <div className="px-2.5 py-1 bg-primary-fixed text-primary font-bold text-[9px] rounded-full uppercase tracking-tighter">Active</div>
-                        </div>
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="h-12 w-12 bg-white rounded-2xl border border-outline-variant/15 flex items-center justify-center p-2.5 shadow-inner">
-                                <Image src="https://www.gstatic.com/images/branding/product/1x/gmail_2020q4_48dp.png" alt="Gmail" width={32} height={32} />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-on-surface">Google Workspace</h3>
-                                <p className="text-xs text-on-surface-variant font-medium">{user?.email}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center justify-between pt-2 border-t border-outline-variant/10">
-                            <div className="flex items-center gap-2.5">
-                                <div className="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" className="sr-only peer" defaultChecked />
-                                    <div className="w-9 h-5 bg-surface-container rounded-full peer peer-checked:bg-primary transition-all after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                    {connectedAccounts.map((account) => (
+                        <div
+                            key={account.name}
+                            className={`group rounded-[28px] border p-6 transition-all relative overflow-hidden ${account.active ? 'bg-white border-primary-fixed shadow-sm' : 'bg-surface-container-lowest border-outline-variant/10 opacity-90 hover:opacity-100 hover:border-primary-fixed/30'}`}
+                        >
+                            <div className="absolute top-0 right-0 p-4">
+                                <div className={`px-2.5 py-1 text-[9px] font-bold rounded-full uppercase tracking-[0.22em] ${account.active ? 'bg-primary-fixed text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                                    {account.active ? 'Active' : 'Not connected'}
                                 </div>
-                                <span className="text-xs font-bold text-on-surface-variant">Intelligent Syncing</span>
                             </div>
-                            <button className="text-xs font-bold text-primary hover:underline">Settings</button>
-                        </div>
-                    </div>
 
-                    {/* Outlook */}
-                    <div className="group bg-surface-container-lowest rounded-3xl border border-outline-variant/10 p-6 opacity-80 hover:opacity-100 hover:border-primary-fixed/30 transition-all">
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className="h-12 w-12 bg-white rounded-2xl border border-outline-variant/15 flex items-center justify-center p-2.5">
-                                <Image src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg" alt="Outlook" width={32} height={32} />
+                            <div className="flex items-center gap-4 mb-6 pr-20">
+                                <div className="h-12 w-12 bg-white rounded-2xl border border-outline-variant/15 flex items-center justify-center p-2.5 shadow-inner shrink-0">
+                                    <Image src={account.logo} alt={account.name} width={32} height={32} />
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="font-bold text-on-surface truncate">{account.name}</h3>
+                                    <p className="text-xs text-on-surface-variant font-medium truncate">{account.description}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="font-bold text-on-surface">Microsoft Outlook</h3>
-                                <p className="text-xs text-on-surface-variant font-medium italic">Not connected</p>
+
+                            <div className="flex items-center justify-between pt-4 border-t border-outline-variant/10 gap-3">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="relative inline-flex items-center cursor-pointer shrink-0">
+                                        <input type="checkbox" className="sr-only peer" defaultChecked={account.active} />
+                                        <div className="w-9 h-5 bg-surface-container rounded-full peer peer-checked:bg-primary transition-all after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                                    </div>
+                                    <span className="text-xs font-bold text-on-surface-variant truncate">Intelligent sync</span>
+                                </div>
+                                <button className="text-xs font-bold text-primary hover:underline shrink-0">{account.cta}</button>
                             </div>
                         </div>
-                        <button className="w-full py-2.5 bg-surface-container-high hover:bg-primary-fixed/20 text-on-surface font-bold rounded-xl text-sm transition-all border border-outline-variant/10 flex items-center justify-center gap-2">
-                            <MaterialSymbol icon="add" className="text-lg" />
-                            Connect Account
-                        </button>
-                    </div>
+                    ))}
                 </div>
             </section>
 

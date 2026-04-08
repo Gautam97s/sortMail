@@ -47,6 +47,8 @@ class ThreadListItem(BaseModel):
     participants: list = []   # needed by inbox ThreadRow for sender display
     is_unread: int = 0        # 0 = read, 1 = unread
     tags: List[str] = []      # contact and thread flags/tags
+    is_archived: bool = False
+    is_trash: bool = False
 
 @router.get("", response_model=List[ThreadListItem])
 @router.get("/", response_model=List[ThreadListItem], include_in_schema=False)
@@ -78,6 +80,8 @@ async def list_threads(
     # Build WHERE filters
     filters = [
         Thread.user_id == current_user.id,
+        Thread.is_archived == False,
+        Thread.is_trash == False,
         or_(
             Email.id == None,          # thread has no emails yet â€“ always show
             ~sender_is_unsubscribed    # sender is NOT a known unsubscribed contact
@@ -151,6 +155,8 @@ async def list_threads(
             # Sort participants so the user themselves appears last, putting the other sender at index 0
             participants=sorted(list(t.participants or []), key=lambda p: user_email in p.lower()),
             is_unread=t.is_unread or 0,
+            is_archived=t.is_archived or False,
+            is_trash=t.is_trash or False,
             tags=list(set(
                 ([tag.name for tag in t.tags] if t.tags else []) +
                 (contact_map.get((re.search(r'<(.+?)>', t.participants[0]).group(1).lower() if t.participants and re.search(r'<(.+?)>', t.participants[0]) else t.participants[0].lower().strip() if t.participants else ""), []))
@@ -179,10 +185,10 @@ async def get_nav_counts(
 
     result = await db.execute(
         select(
-            func.count().filter(Thread.is_unread > 0).label("inbox"),
-            func.count().filter(Thread.intent == "action_required").label("actions"),
-            func.count().filter(Thread.intent == "urgent").label("urgent"),
-            func.count().filter(Thread.intent == "fyi").label("fyi"),
+            func.count().filter(Thread.is_unread > 0, Thread.is_archived == False, Thread.is_trash == False).label("inbox"),
+            func.count().filter(Thread.intent == "action_required", Thread.is_archived == False, Thread.is_trash == False).label("actions"),
+            func.count().filter(Thread.intent == "urgent", Thread.is_archived == False, Thread.is_trash == False).label("urgent"),
+            func.count().filter(Thread.intent == "fyi", Thread.is_archived == False, Thread.is_trash == False).label("fyi"),
         ).where(Thread.user_id == current_user.id)
     )
     row = result.one()
@@ -203,6 +209,50 @@ async def get_nav_counts(
         fyi=row.fyi or 0,
         drafts=draft_count,
     )
+
+
+@router.post("/{thread_id}/archive")
+async def archive_thread(
+    thread_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    stmt = select(Thread).where(Thread.id == thread_id, Thread.user_id == current_user.id)
+    result = await db.execute(stmt)
+    thread = result.scalars().first()
+
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    thread.labels = [label for label in (thread.labels or []) if label not in {"INBOX", "TRASH"}]
+    thread.is_archived = True
+    thread.is_trash = False
+    await db.commit()
+    return {"thread_id": thread_id, "archived": True}
+
+
+@router.delete("/{thread_id}")
+async def trash_thread(
+    thread_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    stmt = select(Thread).where(Thread.id == thread_id, Thread.user_id == current_user.id)
+    result = await db.execute(stmt)
+    thread = result.scalars().first()
+
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    labels = [label for label in (thread.labels or []) if label != "INBOX"]
+    if "TRASH" not in labels:
+        labels.append("TRASH")
+    thread.labels = labels
+    thread.is_trash = True
+    thread.is_archived = True
+    thread.is_unread = 0
+    await db.commit()
+    return {"thread_id": thread_id, "trashed": True}
 
 
 

@@ -5,6 +5,7 @@ SortMail Backend - FastAPI Application Entry Point
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.config import settings
 import logging
@@ -130,8 +131,68 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Health check endpoint."""
-    return {"status": "healthy"}
+    """Comprehensive health check for monitoring and alerting."""
+    checks = {
+        "api": "healthy",
+        "database": "unknown",
+        "redis": "unknown",
+        "vector_store": "unknown",
+        "ai_worker": "unknown",
+    }
+
+    # Database health
+    try:
+        from core.storage.database import async_session
+
+        async with async_session() as session:
+            await session.execute(text("SELECT 1"))
+        checks["database"] = "healthy"
+    except Exception as exc:
+        checks["database"] = f"unhealthy: {str(exc)}"
+
+    # Redis health
+    try:
+        from core.redis import get_redis
+
+        redis = await get_redis()
+        await redis.ping()
+        checks["redis"] = "healthy"
+    except Exception as exc:
+        checks["redis"] = f"unhealthy: {str(exc)}"
+
+    # Vector store health
+    try:
+        from core.storage.vector_store import vector_store
+
+        checks["vector_store"] = "healthy" if vector_store._collection is not None else "not_initialized"
+    except Exception as exc:
+        checks["vector_store"] = f"unhealthy: {str(exc)}"
+
+    # AI worker health
+    worker_task = getattr(app.state, "ai_worker_task", None)
+    if worker_task is None:
+        checks["ai_worker"] = "not_running"
+    elif worker_task.done():
+        checks["ai_worker"] = "stopped"
+    else:
+        checks["ai_worker"] = "healthy"
+
+    service_states = [value for key, value in checks.items() if key != "api"]
+    degraded_states = ("unhealthy", "stopped")
+    overall_status = "degraded" if any(state.startswith(degraded_states) for state in service_states) else "healthy"
+
+    return {
+        "status": overall_status,
+        "version": settings.VERSION,
+        "environment": settings.ENVIRONMENT,
+        "checks": checks,
+    }
+
+
+@app.get("/health/simple")
+async def simple_health():
+    """Lightweight probe endpoint for uptime checks."""
+    return {"status": "ok", "version": settings.VERSION}
 
 
 # Import and include routers

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     Search,
     Filter,
@@ -17,23 +17,44 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { api, endpoints } from '@/lib/api';
 
-const mockUsers = [
-    { id: '1', name: 'Marcus Aurelius', email: 'marcus@stoic.com', plan: 'Enterprise', status: 'Active', joined: '2023-10-12', usage: '89%' },
-    { id: '2', name: 'Sarah Connor', email: 'sarah.c@resistance.org', plan: 'Pro', status: 'Active', joined: '2023-11-20', usage: '12%' },
-    { id: '3', name: 'Thomas Anderson', email: 'neo@neb.io', plan: 'Pro', status: 'Active', joined: '2023-12-05', usage: '94%' },
-    { id: '4', name: 'Ellen Ripley', email: 'ripley@weyland.corp', plan: 'Free', status: 'Suspended', joined: '2024-01-15', usage: '2%' },
-    { id: '5', name: 'Arthur Dent', email: 'arthur@hitchhiker.guide', plan: 'Free', status: 'Active', joined: '2024-01-20', usage: '45%' },
-    { id: '6', name: 'Dana Scully', email: 'scully@fbi.gov', plan: 'Pro', status: 'Active', joined: '2024-02-01', usage: '67%' },
-    { id: '7', name: 'Fox Mulder', email: 'mulder@fbi.gov', plan: 'Pro', status: 'Active', joined: '2024-02-02', usage: '78%' },
-    { id: '8', name: 'Rick Sanchez', email: 'rick@c137.dimension', plan: 'Enterprise', status: 'Active', joined: '2024-02-10', usage: '99%' },
-];
+type AdminUser = {
+    id: string;
+    email: string;
+    name: string | null;
+    provider: string;
+    status: string;
+    is_superuser: boolean;
+    credits_balance: number;
+    plan: string;
+    created_at: string;
+    last_login_at: string | null;
+};
 
 export default function UserListPage() {
     const [search, setSearch] = useState('');
+    const [users, setUsers] = useState<AdminUser[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const filteredUsers = mockUsers.filter(u =>
-        u.name.toLowerCase().includes(search.toLowerCase()) ||
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const { data } = await api.get(endpoints.adminUsers);
+                if (mounted) setUsers(data || []);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        })();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    const filteredUsers = users.filter(u =>
+        (u.name || '').toLowerCase().includes(search.toLowerCase()) ||
         u.email.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -94,15 +115,15 @@ export default function UserListPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border-light">
-                            {filteredUsers.length > 0 ? filteredUsers.map((user) => (
+                                {!loading && filteredUsers.length > 0 ? filteredUsers.map((user) => (
                                 <tr key={user.id} className="hover:bg-paper-mid/50 transition-colors group">
                                     <td className="px-6 py-5">
                                         <div className="flex items-center gap-3">
                                             <div className="w-9 h-9 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-accent font-bold text-xs">
-                                                {user.name.split(' ').map(n => n[0]).join('')}
+                                                {(user.name || user.email).split(' ').map(n => n[0]).join('').slice(0, 2)}
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-medium text-ink">{user.name}</span>
+                                                <span className="text-sm font-medium text-ink">{user.name || user.email}</span>
                                                 <span className="text-[10px] text-ink-light font-mono leading-none mt-1">{user.email}</span>
                                             </div>
                                         </div>
@@ -111,23 +132,23 @@ export default function UserListPage() {
                                         <PlanBadge plan={user.plan} />
                                     </td>
                                     <td className="px-6 py-5 text-center">
-                                        <span className={`text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${user.status === 'Active' ? 'bg-success/5 text-success border-success/20' : 'bg-danger/5 text-danger border-danger/20'
+                                        <span className={`text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${user.status === 'ACTIVE' ? 'bg-success/5 text-success border-success/20' : 'bg-danger/5 text-danger border-danger/20'
                                             }`}>
                                             {user.status}
                                         </span>
                                     </td>
                                     <td className="px-6 py-5 font-mono text-[10px] text-ink-mid">
-                                        {user.joined}
+                                        {new Date(user.created_at).toLocaleDateString()}
                                     </td>
                                     <td className="px-6 py-5">
                                         <div className="flex items-center gap-2">
                                             <div className="w-20 h-1.5 rounded-full bg-paper-mid overflow-hidden">
                                                 <div
-                                                    className={`h-full ${parseInt(user.usage) > 85 ? 'bg-danger' : 'bg-accent'}`}
-                                                    style={{ width: user.usage }}
+                                                    className={`h-full ${user.credits_balance > 85 ? 'bg-danger' : 'bg-accent'}`}
+                                                    style={{ width: `${Math.min(100, user.credits_balance)}%` }}
                                                 />
                                             </div>
-                                            <span className="text-[10px] font-mono">{user.usage}</span>
+                                            <span className="text-[10px] font-mono">{user.credits_balance}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-5 text-right">
@@ -143,12 +164,12 @@ export default function UserListPage() {
                                         </div>
                                     </td>
                                 </tr>
-                            )) : (
+                                ) : (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-2 text-muted-foreground">
                                             <Search size={24} className="opacity-20" />
-                                            <p className="text-sm">No users found matching your search.</p>
+                                            <p className="text-sm">{loading ? 'Loading users...' : 'No users found matching your search.'}</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -159,7 +180,7 @@ export default function UserListPage() {
 
                 {/* Pagination */}
                 <div className="px-6 py-4 border-t border-border-light bg-paper-mid/30 flex items-center justify-between">
-                    <p className="text-[10px] text-ink-light font-mono">Showing 1 to {filteredUsers.length} of 1,284 entries</p>
+                    <p className="text-[10px] text-ink-light font-mono">Showing 1 to {filteredUsers.length} of {users.length} entries</p>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm" className="h-8 w-8 p-0 border-border-light text-ink-mid" disabled>
                             <ChevronLeft size={14} />

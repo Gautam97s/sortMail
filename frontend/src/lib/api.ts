@@ -37,6 +37,8 @@ if (typeof window !== 'undefined') {
 export const endpoints = {
     dashboard: '/api/dashboard',
     threads: '/api/threads',
+    threadArchive: (id: string) => `/api/threads/${id}/archive`,
+    threadTrash: (id: string) => `/api/threads/${id}`,
     tasks: '/api/tasks',
     drafts: '/api/drafts',
     waitingFor: '/api/reminders',
@@ -56,6 +58,7 @@ export const endpoints = {
     contactTags: (id: string) => `/api/contacts/${id}/tags`,
     contactTagRemove: (id: string, tagId: string) => `/api/contacts/${id}/tags/${tagId}`,
     tags: '/api/tags',
+    adminUser: (id: string) => `/api/admin/users/${id}`,
     draftApprove: (id: string) => `/api/drafts/${id}/approve`,
     draftSchedule: (id: string) => `/api/drafts/${id}/schedule`,
     draftRegenerate: (id: string) => `/api/drafts/${id}/regenerate`,

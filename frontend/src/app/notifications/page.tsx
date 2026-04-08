@@ -74,39 +74,64 @@ export default function NotificationsPage() {
 
     return (
         <AppShell title="Notifications" subtitle={unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}>
-            <div className="max-w-3xl mx-auto space-y-4 p-6">
-                {/* Header Actions */}
-                <div className="flex items-center justify-between">
-                    <h1 className="font-display text-2xl text-ink">Notifications</h1>
-                    <div className="flex gap-2">
+            <div className="max-w-3xl mx-auto space-y-6 p-6 md:p-10">
+                <section className="relative overflow-hidden rounded-[32px] bg-white border border-outline-variant/10 p-6 md:p-8 tonal-shadow">
+                    <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-tertiary-fixed/25 blur-3xl -mr-10 -mt-10" />
+                    <div className="relative flex flex-col md:flex-row md:items-end md:justify-between gap-5">
+                        <div className="space-y-2 max-w-2xl">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-tertiary-fixed/25 text-tertiary text-[10px] font-bold uppercase tracking-[0.24em] w-fit">
+                                <Bell className="h-3.5 w-3.5" />
+                                Notifications
+                            </div>
+                            <h1 className="font-headline text-3xl font-bold text-on-surface tracking-tight">What needs your attention</h1>
+                            <p className="text-sm text-on-surface-variant max-w-xl">
+                                Read the highest-signal updates first, then clear the rest in one pass.
+                            </p>
+                        </div>
                         {unreadCount > 0 && (
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => markAllRead.mutate()}
                                 disabled={markAllRead.isPending}
+                                className="rounded-2xl border-outline-variant/20 bg-surface-container-lowest hover:bg-surface-container"
                             >
                                 <CheckCheck className="h-4 w-4 mr-2" />
                                 Mark all read
                             </Button>
                         )}
                     </div>
-                </div>
+
+                    <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="rounded-2xl bg-surface-container-low px-4 py-3">
+                            <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-outline">Unread</div>
+                            <div className="text-2xl font-headline font-bold text-on-surface mt-1">{unreadCount}</div>
+                        </div>
+                        <div className="rounded-2xl bg-surface-container-low px-4 py-3">
+                            <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-outline">Delivered today</div>
+                            <div className="text-2xl font-headline font-bold text-on-surface mt-1">{notifications.length}</div>
+                        </div>
+                        <div className="rounded-2xl bg-surface-container-low px-4 py-3">
+                            <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-outline">Priority</div>
+                            <div className="text-2xl font-headline font-bold text-on-surface mt-1">{notifications.filter((n) => n.priority === 'high').length}</div>
+                        </div>
+                    </div>
+                </section>
 
                 {notifications.length === 0 ? (
-                    <Card className="p-12 text-center text-muted-foreground">
+                    <Card className="p-12 text-center text-muted-foreground rounded-[32px] border-outline-variant/10">
                         <Bell className="h-12 w-12 mx-auto mb-4 opacity-30" />
                         <p className="text-lg font-medium">No notifications</p>
                         <p className="text-sm">You&apos;re all caught up!</p>
                     </Card>
                 ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         {notifications.map((n) => (
                             <Card
                                 key={n.id}
-                                className={`p-4 flex items-start gap-4 transition-colors group ${!n.is_read ? "border-primary/30 bg-primary/5" : ""}`}
+                                className={`p-5 flex items-start gap-4 transition-all group rounded-[28px] border-outline-variant/10 ${!n.is_read ? "border-primary/30 bg-primary/5 shadow-sm" : "bg-white"}`}
                             >
-                                <div className="mt-0.5 p-2 rounded-lg bg-paper-mid">
+                                <div className="mt-0.5 p-2.5 rounded-2xl bg-surface-container">
                                     {getIcon(n.type)}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -125,16 +150,16 @@ export default function NotificationsPage() {
                                 </div>
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                     {!n.is_read && (
-                                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => markRead.mutate(n.id)}>
+                                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-xl" onClick={() => markRead.mutate(n.id)}>
                                             <CheckCheck className="h-3.5 w-3.5" />
                                         </Button>
                                     )}
                                     {n.action_url && (
-                                        <Button size="sm" variant="outline" asChild className="h-7 text-xs">
+                                        <Button size="sm" variant="outline" asChild className="h-7 text-xs rounded-xl">
                                             <Link href={n.action_url}>View</Link>
                                         </Button>
                                     )}
-                                    <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-danger" onClick={() => dismiss.mutate(n.id)}>
+                                    <Button size="icon" variant="ghost" className="h-7 w-7 rounded-xl text-muted-foreground hover:text-danger" onClick={() => dismiss.mutate(n.id)}>
                                         <X className="h-3.5 w-3.5" />
                                     </Button>
                                 </div>

@@ -74,7 +74,10 @@
 
   body {
     font-family: var(--ff-body);
-    background: var(--background);
+    background:
+      radial-gradient(circle at top left, rgba(216, 226, 255, 0.55), transparent 26%),
+      radial-gradient(circle at top right, rgba(232, 222, 255, 0.42), transparent 20%),
+      linear-gradient(180deg, #fbfcfe 0%, var(--background) 36%, #f4f7fb 100%);
     color: var(--on-surface);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;

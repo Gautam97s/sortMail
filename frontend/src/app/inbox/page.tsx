@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useQueryClient } from '@tanstack/react-query';
 import AppShell from '@/components/layout/AppShell';
+import { api, endpoints } from '@/lib/api';
 import { useThreads } from '@/hooks/useThreads';
 import { useSmartSync } from '@/hooks/useSmartSync';
 import { useRealtimeEvents } from '@/hooks/useRealtimeEvents';
@@ -20,6 +22,8 @@ const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string
 function InboxContent() {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [busyThreadId, setBusyThreadId] = useState<string | null>(null);
+    const queryClient = useQueryClient();
     
     useEffect(() => {
         const t = setTimeout(() => setDebouncedSearch(search), 400);
@@ -32,6 +36,24 @@ function InboxContent() {
 
     const isSyncing = syncState === 'syncing' || syncState === 'checking';
     const filtered = threads ?? [];
+
+    const mutateThread = async (threadId: string, action: 'archive' | 'trash') => {
+        setBusyThreadId(threadId);
+        try {
+            if (action === 'archive') {
+                await api.post(endpoints.threadArchive(threadId));
+            } else {
+                await api.delete(endpoints.threadTrash(threadId));
+            }
+
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['threads'] }),
+                queryClient.invalidateQueries({ queryKey: ['nav-counts'] }),
+            ]);
+        } finally {
+            setBusyThreadId((current) => (current === threadId ? null : current));
+        }
+    };
 
     return (
         <div className="flex flex-col h-full bg-surface-container-lowest">
@@ -133,7 +155,13 @@ function InboxContent() {
                 ) : (
                     <div className="divide-y divide-outline-variant/10">
                         {filtered.map((thread: ThreadListItem) => (
-                            <ThreadRow key={thread.thread_id} thread={thread} />
+                            <ThreadRow
+                                key={thread.thread_id}
+                                thread={thread}
+                                onArchive={(threadId) => mutateThread(threadId, 'archive')}
+                                onTrash={(threadId) => mutateThread(threadId, 'trash')}
+                                busy={busyThreadId === thread.thread_id}
+                            />
                         ))}
                     </div>
                 )}
@@ -142,7 +170,7 @@ function InboxContent() {
     );
 }
 
-function ThreadRow({ thread }: { thread: ThreadListItem }) {
+function ThreadRow({ thread, onArchive, onTrash, busy }: { thread: ThreadListItem; onArchive: (threadId: string) => void; onTrash: (threadId: string) => void; busy: boolean }) {
     const isUnread = (thread as any).is_unread ?? false;
     const isUrgent = thread.urgency_score >= 80;
     
@@ -204,13 +232,21 @@ function ThreadRow({ thread }: { thread: ThreadListItem }) {
             {/* Inline Toggle Actions (Hover only) */}
             <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
                 <div className="flex items-center gap-1 bg-white/90 backdrop-blur shadow-sm border border-outline-variant/10 rounded-xl p-1">
-                    <button className="p-1.5 hover:bg-surface-container rounded-lg text-outline hover:text-primary transition-colors">
+                    <button
+                        disabled={busy}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onArchive(thread.thread_id); }}
+                        className="p-1.5 hover:bg-surface-container rounded-lg text-outline hover:text-primary transition-colors disabled:opacity-50"
+                    >
                         <MaterialSymbol icon="archive" className="text-lg" />
                     </button>
-                    <button className="p-1.5 hover:bg-surface-container rounded-lg text-outline hover:text-error transition-colors">
+                    <button
+                        disabled={busy}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onTrash(thread.thread_id); }}
+                        className="p-1.5 hover:bg-surface-container rounded-lg text-outline hover:text-error transition-colors disabled:opacity-50"
+                    >
                         <MaterialSymbol icon="delete" className="text-lg" />
                     </button>
-                    <button className="p-1.5 hover:bg-surface-container rounded-lg text-outline hover:text-on-surface transition-colors">
+                    <button className="p-1.5 hover:bg-surface-container rounded-lg text-outline hover:text-on-surface transition-colors" disabled={busy}>
                         <MaterialSymbol icon="mark_email_read" className="text-lg" />
                     </button>
                 </div>

@@ -57,6 +57,25 @@ function DashboardContent() {
 
     const { briefing, stats, recent_threads, priority_tasks } = dashboardData;
     const firstName = userData?.name?.split(' ')[0] || 'there';
+    const statStyles = {
+        primary: {
+            chip: 'bg-primary-fixed/30 text-primary',
+            iconWrap: 'bg-primary-fixed/30 text-primary',
+        },
+        error: {
+            chip: 'bg-error-container/80 text-error',
+            iconWrap: 'bg-error-container/80 text-error',
+        },
+        secondary: {
+            chip: 'bg-secondary-container/70 text-secondary',
+            iconWrap: 'bg-secondary-container/70 text-secondary',
+        },
+        tertiary: {
+            chip: 'bg-tertiary-fixed/30 text-tertiary',
+            iconWrap: 'bg-tertiary-fixed/30 text-tertiary',
+        },
+    } as const;
+    type StatColor = keyof typeof statStyles;
 
     return (
         <div className="flex flex-col p-6 md:p-10 gap-10 max-w-[1600px] mx-auto">
@@ -138,11 +157,11 @@ function DashboardContent() {
                 ].map((stat, i) => (
                     <div key={i} className="bg-white rounded-[24px] p-6 border border-outline-variant/10 hover:border-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] group cursor-pointer tonal-shadow">
                         <div className="flex items-start justify-between mb-4">
-                            <div className={`p-3 rounded-2xl bg-${stat.color}-fixed/30 text-${stat.color} group-hover:scale-110 transition-transform`}>
+                            <div className={`p-3 rounded-2xl ${statStyles[stat.color as StatColor].iconWrap} group-hover:scale-110 transition-transform`}>
                                 <MaterialSymbol icon={stat.icon} filled className="text-2xl" />
                             </div>
                             {stat.delta && (
-                                <span className="text-[10px] font-bold text-primary bg-primary-fixed/30 px-2 py-0.5 rounded-full">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statStyles[stat.color as StatColor].chip}`}>
                                     {stat.delta}
                                 </span>
                             )}

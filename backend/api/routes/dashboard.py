@@ -122,7 +122,9 @@ async def get_dashboard_stats(
     # Unread count
     unread_stmt = select(func.count()).where(
         Thread.user_id == current_user.id,
-        Thread.is_unread > 0
+        Thread.is_unread > 0,
+        Thread.is_archived == False,
+        Thread.is_trash == False
     )
     unread_count = (await db.execute(unread_stmt)).scalar() or 0
     
@@ -130,6 +132,8 @@ async def get_dashboard_stats(
     urgent_stmt = select(func.count(Thread.id)).outerjoin(Email, and_(Email.thread_id == Thread.id, Email.received_at == Thread.last_email_at)).where(
         Thread.user_id == current_user.id,
         Thread.urgency_score >= 80,
+        Thread.is_archived == False,
+        Thread.is_trash == False,
         or_(
             Email.id == None,
             ~sender_is_unsubscribed
@@ -149,6 +153,8 @@ async def get_dashboard_stats(
     # Awaiting Reply (follow_up_needed in intel_json)
     awaiting_reply_stmt = select(func.count(Thread.id)).where(
         Thread.user_id == current_user.id,
+        Thread.is_archived == False,
+        Thread.is_trash == False,
         Thread.intel_json['follow_up_needed'].astext == 'true'
     )
     awaiting_reply_count = (await db.execute(awaiting_reply_stmt)).scalar() or 0
@@ -157,6 +163,8 @@ async def get_dashboard_stats(
     emails_today_stmt = select(func.count(Email.id)).outerjoin(Thread, Email.thread_id == Thread.id).where(
         Thread.user_id == current_user.id,
         Email.received_at >= today_start,
+        Thread.is_archived == False,
+        Thread.is_trash == False,
         ~sender_is_unsubscribed
     )
     emails_today_count = (await db.execute(emails_today_stmt)).scalar() or 0

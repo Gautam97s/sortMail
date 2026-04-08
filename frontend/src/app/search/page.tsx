@@ -111,33 +111,61 @@ export default function SearchPage() {
     return (
         <AppShell title="Search Intelligence" subtitle="Universal Discovery Engine">
             <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-12">
-                
-                {/* Discovery Command Bar */}
-                <div className="relative group">
-                    <div className="absolute inset-0 bg-primary-fixed/30 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity rounded-3xl" />
-                    <div className="relative">
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-3">
-                            <MaterialSymbol icon="search" className="text-2xl text-outline group-focus-within:text-primary transition-colors" />
-                            <div className="h-4 w-px bg-outline-variant/30 hidden md:block" />
+                <section className="relative overflow-hidden rounded-[32px] bg-white border border-outline-variant/10 p-6 md:p-8 tonal-shadow">
+                    <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-primary-fixed/25 blur-3xl -mr-12 -mt-12" />
+                    <div className="relative space-y-6">
+                        <div className="space-y-2 max-w-2xl">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-fixed/25 text-primary text-[10px] font-bold uppercase tracking-[0.24em] w-fit">
+                                <MaterialSymbol icon="travel_explore" className="text-sm" />
+                                Search Intelligence
+                            </div>
+                            <h1 className="font-headline text-3xl md:text-4xl font-bold text-on-surface tracking-tight">Find threads, people, and actions faster</h1>
+                            <p className="text-on-surface-variant max-w-2xl">
+                                Use the search field as a command bar, then narrow the result set with the facets below.
+                            </p>
                         </div>
-                        <input
-                            autoFocus
-                            type="text"
-                            placeholder="Interrogate emails, entities, and actions..."
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            className="w-full h-16 md:h-20 pl-16 pr-16 bg-white border border-outline-variant/15 focus:ring-2 focus:ring-primary-fixed rounded-3xl text-lg md:text-xl font-headline font-medium transition-all shadow-xl shadow-black/5 placeholder:text-outline-variant placeholder:font-normal"
-                        />
-                        {input && (
-                            <button
-                                onClick={() => { setInput(""); setQ(""); }}
-                                className="absolute right-5 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center bg-surface-container rounded-2xl text-outline hover:text-error transition-all"
-                            >
-                                <MaterialSymbol icon="close" className="text-xl" />
-                            </button>
-                        )}
+
+                        {/* Discovery Command Bar */}
+                        <div className="relative group">
+                            <div className="absolute inset-0 bg-primary-fixed/30 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity rounded-3xl" />
+                            <div className="relative">
+                                <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-3">
+                                    <MaterialSymbol icon="search" className="text-2xl text-outline group-focus-within:text-primary transition-colors" />
+                                    <div className="h-4 w-px bg-outline-variant/30 hidden md:block" />
+                                </div>
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    placeholder="Interrogate emails, entities, and actions..."
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    className="w-full h-16 md:h-20 pl-16 pr-16 bg-white border border-outline-variant/15 focus:ring-2 focus:ring-primary-fixed rounded-3xl text-lg md:text-xl font-headline font-medium transition-all shadow-xl shadow-black/5 placeholder:text-outline-variant placeholder:font-normal"
+                                />
+                                {input && (
+                                    <button
+                                        onClick={() => { setInput(""); setQ(""); }}
+                                        className="absolute right-5 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center bg-surface-container rounded-2xl text-outline hover:text-error transition-all"
+                                    >
+                                        <MaterialSymbol icon="close" className="text-xl" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {[
+                                { icon: 'mail', label: 'Email Threads', tone: 'primary' },
+                                { icon: 'group', label: 'Relationship Nodes', tone: 'tertiary' },
+                                { icon: 'check_circle', label: 'Actionable Tasks', tone: 'secondary' },
+                            ].map((item) => (
+                                <div key={item.label} className="px-4 py-3 bg-surface-container-low rounded-2xl border border-outline-variant/10 flex items-center gap-3 text-sm font-bold text-on-surface">
+                                    <MaterialSymbol icon={item.icon} className={`text-${item.tone}`} />
+                                    {item.label}
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                </div>
+                </section>
 
                 {/* Content States */}
                 {isLoading && (

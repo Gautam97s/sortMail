@@ -49,9 +49,30 @@ export default function ContactsPage() {
     return (
         <AppShell title="Relationship Intelligence" subtitle={`${contacts.length} intelligence nodes`}>
             <div className="max-w-6xl mx-auto p-6 md:p-10 space-y-8">
-                {/* Search & Intelligence Controls */}
-                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                    <div className="relative w-full md:max-w-md group">
+                <section className="relative overflow-hidden rounded-[32px] bg-white border border-outline-variant/10 p-6 md:p-8 tonal-shadow">
+                    <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-primary-fixed/20 blur-3xl -mr-16 -mt-16" />
+                    <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+                        <div className="space-y-3 max-w-2xl">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-fixed/25 text-primary text-[10px] font-bold uppercase tracking-[0.24em] w-fit">
+                                <MaterialSymbol icon="group" className="text-sm" />
+                                Relationship Intelligence
+                            </div>
+                            <div>
+                                <h1 className="font-headline text-3xl md:text-4xl font-bold text-on-surface tracking-tight">People you actually need to remember</h1>
+                                <p className="mt-2 text-on-surface-variant max-w-2xl">
+                                    Search the network, sort by momentum, and keep the strongest relationships in view.
+                                </p>
+                            </div>
+                        </div>
+
+                        <button className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-primary text-on-primary font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all w-full lg:w-auto">
+                            <MaterialSymbol icon="person_add" className="text-lg" />
+                            New Contact
+                        </button>
+                    </div>
+
+                    <div className="mt-8 flex flex-col md:flex-row gap-4 items-center justify-between">
+                        <div className="relative w-full md:max-w-md group">
                         <MaterialSymbol 
                             icon="search" 
                             className="absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors" 
@@ -63,20 +84,21 @@ export default function ContactsPage() {
                             placeholder="Find contacts, companies or domains..."
                             className="w-full h-12 pl-12 pr-4 bg-white border border-outline-variant/15 focus:ring-2 focus:ring-primary-fixed rounded-2xl text-sm transition-all shadow-sm font-medium"
                         />
-                    </div>
-                    
-                    <div className="flex bg-surface-container-low p-1 rounded-2xl border border-outline-variant/10 shadow-inner overflow-hidden">
+                        </div>
+                        
+                        <div className="flex bg-surface-container-low p-1 rounded-2xl border border-outline-variant/10 shadow-inner overflow-hidden w-full md:w-auto">
                         {(["most_emails", "recent", "alphabetical"] as SortOption[]).map(s => (
                             <button
                                 key={s}
                                 onClick={() => setSort(s)}
-                                className={`px-5 py-2 text-xs font-bold rounded-xl transition-all ${sort === s ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}
+                                className={`px-5 py-2 text-xs font-bold rounded-xl transition-all flex-1 md:flex-none ${sort === s ? "bg-white text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}
                             >
                                 {s === "most_emails" ? "Priority" : s === "recent" ? "Recency" : "A–Z"}
                             </button>
                         ))}
                     </div>
-                </div>
+                    </div>
+                </section>
 
                 {isLoading ? (
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -123,9 +145,9 @@ function ContactCard({ contact, initials, onUnsubscribe, isPending }: {
     isPending: boolean 
 }) {
     return (
-        <div className={`group bg-white rounded-3xl border border-outline-variant/10 p-6 hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all relative overflow-hidden flex flex-col justify-between ${contact.is_unsubscribed ? "opacity-60" : ""}`}>
-            <div className="flex items-start justify-between mb-4">
-                <div className="h-14 w-14 rounded-2xl bg-primary-fixed/20 text-primary font-bold flex items-center justify-center text-lg shadow-sm border border-primary/5 transition-transform group-hover:scale-110">
+        <div className={`group bg-white rounded-[32px] border border-outline-variant/10 p-6 hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all relative overflow-hidden flex flex-col justify-between ${contact.is_unsubscribed ? "opacity-60" : ""}`}>
+            <div className="flex items-start justify-between mb-4 gap-4">
+                <div className="h-14 w-14 rounded-2xl bg-primary-fixed/20 text-primary font-bold flex items-center justify-center text-lg shadow-sm border border-primary/5 transition-transform group-hover:scale-110 shrink-0">
                     {initials}
                 </div>
                 <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -156,7 +178,7 @@ function ContactCard({ contact, initials, onUnsubscribe, isPending }: {
                 )}
             </div>
 
-            <div className="mt-6 flex items-center justify-between pt-4 border-t border-outline-variant/5">
+            <div className="mt-6 flex items-center justify-between pt-4 border-t border-outline-variant/5 gap-3">
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-on-surface-variant">
                         <MaterialSymbol icon="mail" className="text-sm text-outline" />
