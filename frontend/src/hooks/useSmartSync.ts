@@ -49,9 +49,10 @@ export function useSmartSync() {
                 try {
                     const { data } = await api.get(endpoints.emailSyncStatus);
                     setLastSyncAt(data.last_sync_at);
-                    if (data.status === 'idle' || data.status === 'failed' || attempts > 20) {
+                    const remoteStatus = String(data.status || '').toUpperCase();
+                    if (remoteStatus === 'IDLE' || remoteStatus === 'FAILED' || attempts > 20) {
                         stopPolling();
-                        setSyncState(data.status === 'failed' ? 'error' : 'done');
+                        setSyncState(remoteStatus === 'FAILED' ? 'error' : 'done');
                         invalidateThreads(); // Refresh threads from DB with new emails
                     }
                 } catch {
@@ -79,8 +80,9 @@ export function useSmartSync() {
                 }
 
                 setLastSyncAt(data.last_sync_at);
+                const remoteStatus = String(data.status || '').toUpperCase();
 
-                if (data.needs_sync) {
+                if (data.needs_sync || remoteStatus === 'FAILED') {
                     await triggerSync();
                 } else {
                     setSyncState('idle');

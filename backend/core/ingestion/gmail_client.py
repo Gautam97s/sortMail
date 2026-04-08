@@ -43,10 +43,14 @@ class GmailClient:
         # Use run_in_executor for the blocking build() call if needed, 
         # but build() is usually fast. .execute() is the slow part.
         def _build():
-            return build('GMAIL', 'v1', credentials=creds, cache_discovery=False)
+            return build('gmail', 'v1', credentials=creds, cache_discovery=False)
             
         loop = asyncio.get_running_loop()
-        self._service = await loop.run_in_executor(None, _build)
+        try:
+            self._service = await loop.run_in_executor(None, _build)
+        except Exception as exc:
+            logger.error(f"Failed to initialize Gmail API client for {self.user_id}: {exc}")
+            raise
         
     async def _execute(self, request_factory: Callable[[], Any]) -> Any:
         """

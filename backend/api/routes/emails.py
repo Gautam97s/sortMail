@@ -66,13 +66,26 @@ async def sync_status(
         last_sync = last_sync.replace(tzinfo=timezone.utc)
 
     stale_cutoff = datetime.now(timezone.utc) - timedelta(minutes=STALE_AFTER_MINUTES)
-    needs_sync = (last_sync is None) or (last_sync < stale_cutoff)
+    status_value = account.sync_status.value if account.sync_status else "IDLE"
+
+    # Force sync when account is failed or has never completed initial setup,
+    # even if last_sync_at is recent (failed runs also update timestamps).
+    if status_value == "SYNCING":
+        needs_sync = False
+    else:
+        needs_sync = (
+            status_value in {"FAILED", "REVOKED"}
+            or not account.initial_sync_done
+            or not account.last_history_id
+            or last_sync is None
+            or last_sync < stale_cutoff
+        )
 
     return {
         "has_account": True,
         "provider": account.provider.value,
         "provider_email": account.provider_email,
-        "status": account.sync_status.value if account.sync_status else "IDLE",
+        "status": status_value,
         "last_sync_at": last_sync.isoformat() + "Z" if last_sync else None,
         "initial_sync_done": account.initial_sync_done,
         "needs_sync": needs_sync,           # Key flag for frontend
