@@ -41,7 +41,7 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
     const hasActiveFilters = searchQuery !== '' || sourceFilter !== '' || priorityFilter !== 'all' || statusFilter !== 'all';
 
     return (
-        <div className="flex flex-col md:flex-row items-center gap-4 bg-surface-container-low p-2 rounded-[28px] border border-outline-variant/10 shadow-inner">
+        <div className="flex flex-col xl:flex-row xl:items-center gap-3 bg-surface-container-low p-2 rounded-[28px] border border-outline-variant/10 shadow-inner w-full">
             <div className="flex-1 relative group w-full">
                 <div className="absolute left-6 top-1/2 -translate-y-1/2 text-outline-variant group-focus-within:text-primary transition-colors">
                     <MaterialSymbol icon="search" />
@@ -55,7 +55,7 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
                 />
             </div>
 
-            <div className="flex items-center gap-2 p-1.5 shrink-0 bg-white/40 rounded-2xl border border-outline-variant/5">
+            <div className="flex flex-wrap items-center gap-2 p-1.5 shrink-0 bg-white/40 rounded-2xl border border-outline-variant/5 w-full xl:w-auto">
                 <div className="flex items-center gap-2 px-3 py-2 bg-surface-container rounded-xl">
                     <MaterialSymbol icon="link" className="text-sm text-outline-variant" />
                     <input
@@ -98,7 +98,7 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
                 {hasActiveFilters && (
                     <button
                         onClick={onClearFilters}
-                        className="h-10 w-10 flex items-center justify-center bg-error-container text-error rounded-xl hover:bg-error transition-all hover:text-white"
+                        className="h-10 w-10 flex items-center justify-center bg-error-container text-error rounded-xl hover:bg-error transition-all hover:text-white shrink-0"
                         title="Reset Filters"
                     >
                         <MaterialSymbol icon="filter_alt_off" className="text-lg" />
@@ -108,7 +108,7 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
                 <button
                     onClick={onCreateTask}
                     disabled={isSaving}
-                    className="h-10 px-4 flex items-center justify-center bg-primary text-on-primary rounded-xl hover:opacity-90 disabled:opacity-60 transition-all text-[10px] font-black uppercase tracking-widest"
+                    className="h-10 px-4 flex items-center justify-center bg-primary text-on-primary rounded-xl hover:opacity-90 disabled:opacity-60 transition-all text-[10px] font-black uppercase tracking-widest shrink-0"
                 >
                     <MaterialSymbol icon="add" className="text-base mr-1" />
                     {isSaving ? 'Saving...' : 'New Task'}

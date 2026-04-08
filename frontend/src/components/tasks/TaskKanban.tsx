@@ -34,11 +34,11 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ tasks, onTaskClick, onSt
     };
 
     return (
-        <div className="flex gap-8 h-full overflow-x-auto pb-4 scrollbar-none">
+        <div className="flex gap-4 min-h-0 overflow-x-auto overflow-y-hidden pb-4 scrollbar-none">
             {Object.entries(COLUMN_CONFIG).map(([status, config]) => (
-                <div key={status} className="flex-1 min-w-[320px] flex flex-col bg-surface-container-low/40 rounded-[40px] border border-outline-variant/5 shadow-inner p-4 hover:shadow-xl hover:shadow-black/5 transition-all">
+                <div key={status} className="flex-1 min-w-[260px] flex flex-col bg-surface-container-low/40 rounded-2xl border border-outline-variant/5 shadow-inner p-3 hover:shadow-xl hover:shadow-black/5 transition-all min-h-0">
                     {/* Column Header */}
-                    <div className="flex items-center justify-between px-6 py-4 mb-4">
+                    <div className="flex items-center justify-between px-4 py-3 mb-3">
                         <div className="flex items-center gap-3">
                             <div className={`h-8 w-8 rounded-xl bg-white border border-outline-variant/10 flex items-center justify-center ${config.color} shadow-sm`}>
                                 <MaterialSymbol icon={config.icon} />
@@ -55,7 +55,7 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ tasks, onTaskClick, onSt
 
                     {/* Task List */}
                     <div
-                        className="flex-1 overflow-y-auto pr-2 space-y-4 scrollbar-none"
+                        className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3 scrollbar-none"
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={(e) => {
                             const taskId = e.dataTransfer.getData('taskId');
@@ -72,12 +72,12 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ tasks, onTaskClick, onSt
                                     e.dataTransfer.setData('taskId', task.task_id);
                                 }}
                                 onClick={() => onTaskClick(task.task_id)}
-                                className="group bg-white rounded-[28px] border border-outline-variant/10 p-5 shadow-sm hover:border-primary-fixed/30 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden"
+                                className="group bg-white rounded-2xl border border-outline-variant/10 p-4 shadow-sm hover:border-primary-fixed/30 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden"
                             >
                                 <div className={`absolute top-0 left-0 w-1.5 h-full ${task.priority === 'DO_NOW' ? 'bg-error' : task.priority === 'DO_TODAY' ? 'bg-tertiary-fixed' : 'bg-primary-fixed'}`} />
                                 
-                                <div className="space-y-4 relative z-10">
-                                    <div className="flex items-start justify-between gap-4">
+                                <div className="space-y-3 relative z-10">
+                                    <div className="flex items-start justify-between gap-3">
                                         <h4 className="text-sm font-bold text-on-surface leading-tight tracking-tight group-hover:text-primary transition-colors">
                                             {task.title}
                                         </h4>
@@ -92,7 +92,7 @@ export const TaskKanban: React.FC<TaskKanbanProps> = ({ tasks, onTaskClick, onSt
                                         </p>
                                     )}
 
-                                    <div className="flex items-center justify-between pt-2">
+                                    <div className="flex items-center justify-between gap-2 pt-1.5">
                                         <div className="flex items-center gap-2">
                                             <div className="h-6 w-6 rounded-full bg-surface-container border border-outline-variant/10 overflow-hidden">
                                                 {/* Mock user or source avatar */}
