@@ -11,12 +11,15 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useThreadDetail } from '@/hooks/useThreadDetail';
+import { useCreateTask } from '@/hooks/useTasks';
 
 export default function ThreadDetailPage() {
     const params = useParams();
     const threadId = params?.threadId as string;
     const { data, isLoading, error } = useThreadDetail(threadId);
+    const createTask = useCreateTask();
     const [mounted, setMounted] = useState(false);
+    const [creatingMessageId, setCreatingMessageId] = useState<string | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -35,6 +38,25 @@ export default function ThreadDetailPage() {
     }
 
     const { thread, intel, tasks, draft } = data;
+
+    const handleCreateTaskFromMessage = async (message: EmailMessage) => {
+        try {
+            setCreatingMessageId(message.message_id);
+            const bodySnippet = (message.body_text || '').replace(/\s+/g, ' ').trim().slice(0, 220);
+            await createTask.mutateAsync({
+                title: message.subject ? `Follow up: ${message.subject}` : `Follow up from ${getSenderInfo(message.from_address).name}`,
+                description: bodySnippet || `Created from message ${message.message_id}`,
+                thread_id: thread.thread_id,
+                source_email_id: message.message_id,
+                source_type: 'email_converted',
+                task_type: 'REPLY',
+                priority: 'DO_TODAY',
+                status: 'PENDING',
+            });
+        } finally {
+            setCreatingMessageId(null);
+        }
+    };
 
     return (
         <ThreadPageShell title={thread.subject} subtitle={getSenderInfo(thread.messages[0]?.from_address || '').email}>
@@ -92,7 +114,12 @@ export default function ThreadDetailPage() {
 
                         <div className="px-6 py-6 space-y-6 text-slate-700 leading-loose text-sm">
                             {thread.messages.map((msg: EmailMessage) => (
-                                <MessageContent key={msg.message_id} message={msg} />
+                                <MessageContent
+                                    key={msg.message_id}
+                                    message={msg}
+                                    onCreateTask={() => handleCreateTaskFromMessage(msg)}
+                                    creating={creatingMessageId === msg.message_id}
+                                />
                             ))}
                         </div>
 
@@ -198,9 +225,19 @@ function getSenderInfo(fromAddress: string) {
     return { name, email };
 }
 
-function MessageContent({ message }: { message: EmailMessage }) {
+function MessageContent({ message, onCreateTask, creating }: { message: EmailMessage; onCreateTask: () => void; creating: boolean }) {
     return (
         <div className="border-b border-slate-100 pb-6 mb-6 last:border-0 last:pb-0 last:mb-0">
+            <div className="flex items-center justify-end mb-2">
+                <button
+                    type="button"
+                    onClick={onCreateTask}
+                    disabled={creating}
+                    className="h-8 px-3 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-bold uppercase tracking-wider disabled:opacity-60"
+                >
+                    {creating ? 'Creating...' : 'Create Task from Email'}
+                </button>
+            </div>
             {message.body_html ? (
                 <div
                     className="email-body-html prose prose-sm max-w-none prose-slate"

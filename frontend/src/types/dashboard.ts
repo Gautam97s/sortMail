@@ -116,7 +116,9 @@ export interface Placeholder {
 /** Mirrors backend: contracts/workflow.py → TaskDTOv1 */
 export interface TaskDTOv1 {
     task_id: string;
-    thread_id: string;
+    thread_id: string | null;
+    source_email_id?: string | null;
+    source_type?: string | null;
     user_id: string;
     title: string;
     description: string | null;

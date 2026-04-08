@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { TaskFilters } from '@/components/tasks/TaskFilters';
 import { TaskKanban } from '@/components/tasks/TaskKanban';
 import { TaskList } from '@/components/tasks/TaskList';
 import { useCreateTask, useDeleteTask, useTasks, useUpdateTask } from '@/hooks/useTasks';
 import { TaskDTOv1 } from '@/types/dashboard';
+import Link from 'next/link';
+import { api, endpoints } from '@/lib/api';
 
 const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
     <span 
@@ -17,6 +19,12 @@ const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string
 );
 
 export default function TasksPage() {
+    type SourceContext = {
+        threadId: string;
+        subject?: string;
+        attachments: Array<{ attachment_id?: string; filename?: string; mime_type?: string }>;
+    } | null;
+
     const [view, setView] = useState<'board' | 'list'>('board');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<TaskDTOv1 | null>(null);
@@ -28,6 +36,8 @@ export default function TasksPage() {
     const [newDescription, setNewDescription] = useState('');
     const [newPriority, setNewPriority] = useState('DO_TODAY');
     const [newType, setNewType] = useState('OTHER');
+    const [sourceContext, setSourceContext] = useState<SourceContext>(null);
+    const [sourceLoading, setSourceLoading] = useState(false);
 
     const taskFilters = useMemo(() => ({
         q: searchQuery || undefined,
@@ -104,6 +114,34 @@ export default function TasksPage() {
     const updateSelected = (patch: Partial<TaskDTOv1>) => {
         setSelectedTask((prev) => (prev ? { ...prev, ...patch } : prev));
     };
+
+    useEffect(() => {
+        const loadSource = async () => {
+            if (!selectedTask?.thread_id) {
+                setSourceContext(null);
+                return;
+            }
+            try {
+                setSourceLoading(true);
+                const { data } = await api.get(`${endpoints.threads}/${selectedTask.thread_id}`);
+                const attachments = data?.thread?.attachments || [];
+                setSourceContext({
+                    threadId: selectedTask.thread_id,
+                    subject: data?.thread?.subject,
+                    attachments,
+                });
+            } catch {
+                setSourceContext({
+                    threadId: selectedTask.thread_id,
+                    subject: undefined,
+                    attachments: [],
+                });
+            } finally {
+                setSourceLoading(false);
+            }
+        };
+        void loadSource();
+    }, [selectedTask?.thread_id]);
 
     if (isLoading) {
         return (
@@ -272,6 +310,61 @@ export default function TasksPage() {
                                 <option value="FOLLOWUP">Followup</option>
                             </select>
                         </div>
+
+                        <div className="rounded-2xl border border-outline-variant/20 bg-surface-container-low p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-bold text-on-surface">Source Reference</h3>
+                                {selectedTask.source_type && (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-outline-variant/20 font-bold uppercase tracking-widest text-outline">
+                                        {selectedTask.source_type}
+                                    </span>
+                                )}
+                            </div>
+
+                            {!selectedTask.thread_id ? (
+                                <p className="text-xs text-outline">No source thread attached to this task.</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-bold text-on-surface truncate">{sourceContext?.subject || `Thread ${selectedTask.thread_id}`}</p>
+                                            <p className="text-[10px] text-outline truncate">ID: {selectedTask.thread_id}</p>
+                                        </div>
+                                        <Link
+                                            href={`/inbox/${selectedTask.thread_id}`}
+                                            className="text-[10px] font-black uppercase tracking-widest h-8 px-3 rounded-lg bg-primary text-on-primary flex items-center"
+                                        >
+                                            Open Thread
+                                        </Link>
+                                    </div>
+
+                                    {selectedTask.source_email_id && (
+                                        <p className="text-[10px] text-outline">Source Email: {selectedTask.source_email_id}</p>
+                                    )}
+
+                                    <div className="pt-1">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider text-outline mb-2">Attachments</p>
+                                        {sourceLoading ? (
+                                            <p className="text-xs text-outline">Loading attachment context...</p>
+                                        ) : (sourceContext?.attachments?.length || 0) > 0 ? (
+                                            <div className="flex flex-wrap gap-2">
+                                                {(sourceContext?.attachments || []).slice(0, 8).map((a, idx) => (
+                                                    <span
+                                                        key={a.attachment_id || `${a.filename || 'att'}-${idx}`}
+                                                        className="text-[10px] px-2 py-1 rounded-lg bg-white border border-outline-variant/20 text-on-surface"
+                                                    >
+                                                        {a.filename || a.attachment_id || `Attachment ${idx + 1}`}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-outline">No attachments found for this source thread.</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         <div className="flex justify-between pt-2">
                             <button
                                 onClick={async () => {

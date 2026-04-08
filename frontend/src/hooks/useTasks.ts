@@ -13,6 +13,8 @@ export interface CreateTaskPayload {
     title: string;
     description?: string;
     thread_id?: string;
+    source_email_id?: string;
+    source_type?: string;
     task_type?: string;
     priority?: string;
     status?: string;

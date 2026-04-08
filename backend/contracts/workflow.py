@@ -97,6 +97,14 @@ class TaskDTOv1(BaseModel):
         default=None,
         description="References the source email thread"
     )
+    source_email_id: Optional[str] = Field(
+        default=None,
+        description="References the source email message when available"
+    )
+    source_type: Optional[str] = Field(
+        default=None,
+        description="Origin of task creation (ai_generated, user_created, email_converted)"
+    )
     user_id: str = Field(
         description="Owner of this task"
     )

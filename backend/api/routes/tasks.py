@@ -18,6 +18,8 @@ class TaskCreateRequest(BaseModel):
     title: str
     description: Optional[str] = None
     thread_id: Optional[str] = None
+    source_email_id: Optional[str] = None
+    source_type: Optional[str] = None
     task_type: Optional[str] = None
     priority: Optional[str] = None
     status: Optional[str] = None
@@ -77,6 +79,8 @@ def _to_task_dto(t: Task) -> TaskDTOv1:
     return TaskDTOv1(
         task_id=t.id,
         thread_id=t.source_thread_id,
+        source_email_id=t.source_email_id,
+        source_type=t.source_type,
         user_id=t.user_id,
         title=t.title,
         description=t.description,
@@ -147,13 +151,14 @@ async def create_task(
     task = Task(
         user_id=current_user.id,
         source_thread_id=payload.thread_id,
+        source_email_id=payload.source_email_id,
         title=title,
         description=(payload.description or None),
         task_type=_map_task_type(payload.task_type),
         status=_map_status(payload.status) or DBTaskStatus.PENDING.value,
         priority_level=_map_priority_to_db(payload.priority),
         due_time=payload.deadline,
-        source_type="USER_CREATED",
+        source_type=(payload.source_type or "USER_CREATED"),
         created_at=datetime.now(timezone.utc),
         updated_at=datetime.now(timezone.utc),
     )
