@@ -44,7 +44,7 @@ def verify_auth_dependency():
         response = client.post("/api/emails/sync")
         print(f"Valid Token Response: {response.status_code}")
         assert response.status_code == 200
-        assert response.json()["status"] == "completed"
+        assert response.json()["status"] == "COMPLETED"
         
     app.dependency_overrides = {}
     print("✅ Auth accepted valid token (Mocked)")

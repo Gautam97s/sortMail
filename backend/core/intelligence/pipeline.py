@@ -1,16 +1,16 @@
-"""
+﻿"""
 Intelligence Pipeline
 ----------------------
 Orchestrates the full AI analysis of a saved thread.
 
 Flow:
   1. Load thread + messages from DB
-   2. Run llama_engine.run_intelligence() — single Llama 3.3 70B call via HF API
+   2. Run llama_engine.run_intelligence() â€” single Llama 3.3 70B call via HF API
   3. Each module extracts its slice from the Gemini JSON:
-       - summarizer        → summary, key_points, suggested_action
-       - intent_classifier → intent, urgency_score, follow_up
-       - deadline_extractor→ calendar events / deadlines
-       - entity_extractor  → people, companies, action_items
+       - summarizer        â†’ summary, key_points, suggested_action
+       - intent_classifier â†’ intent, urgency_score, follow_up
+       - deadline_extractorâ†’ calendar events / deadlines
+       - entity_extractor  â†’ people, companies, action_items
   4. Save enriched intel back to Thread model (intel_json, summary, intent, urgency_score)
   5. Auto-create Tasks from action_items (no duplicates)
   6. Publish SSE event so frontend refreshes instantly
@@ -27,7 +27,7 @@ from sqlalchemy import select
 from models.thread import Thread
 from models.task import Task, TaskStatus, TaskType, PriorityLevel
 
-# Intelligence engine — Llama 3.3 70B via HF Inference API
+# Intelligence engine â€” Llama 3.3 70B via HF Inference API
 from .llama_engine import run_intelligence
 from .summarizer import extract_summary, extract_key_points, extract_suggested_action, extract_suggested_draft
 from .intent_classifier import extract_intent, extract_priority_level, should_follow_up
@@ -40,9 +40,9 @@ from models.draft import Draft, DraftStatus, DraftTone
 logger = logging.getLogger(__name__)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Public entry point
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async def process_thread_intelligence(
     thread_id: str,
@@ -51,10 +51,10 @@ async def process_thread_intelligence(
 ) -> Optional[dict]:
     """
     Full intelligence pipeline for one thread.
-    Safe to call in background — never raises, always returns.
+    Safe to call in background â€” never raises, always returns.
     """
     try:
-        # ── 1. Load thread ────────────────────────────────────────────
+        # â”€â”€ 1. Load thread â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         thread = await _load_thread(thread_id, user_id, db)
         if not thread:
             return None
@@ -66,10 +66,10 @@ async def process_thread_intelligence(
                 logger.debug(f"Thread {thread_id} intel fresh, skipping")
                 return None
 
-        # ── 2. Load messages ──────────────────────────────────────────
+        # â”€â”€ 2. Load messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         messages = await _load_messages(thread_id, db)
 
-        # ── 3. Single Gemini Flash call ───────────────────────────────
+        # â”€â”€ 3. Single Gemini Flash call â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         raw_intel = await run_intelligence(
             thread_id=thread_id,
             subject=thread.subject or "",
@@ -77,7 +77,7 @@ async def process_thread_intelligence(
             messages=messages,
         )
 
-        # ── 4. Module extraction (pure functions, no LLM calls) ───────
+        # â”€â”€ 4. Module extraction (pure functions, no LLM calls) â”€â”€â”€â”€â”€â”€â”€
         summary          = extract_summary(raw_intel)
         key_points       = extract_key_points(raw_intel)
         suggested_action = extract_suggested_action(raw_intel)
@@ -92,7 +92,7 @@ async def process_thread_intelligence(
         tags_list              = extract_tags(raw_intel)
         suggested_draft        = extract_suggested_draft(raw_intel)
 
-        # ── 5. Assemble final intel dict ──────────────────────────────
+        # â”€â”€ 5. Assemble final intel dict â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         final_intel = {
             **raw_intel,                          # keep all Gemini fields
             "summary"          : summary,
@@ -111,32 +111,32 @@ async def process_thread_intelligence(
             "processed_at"     : datetime.now(timezone.utc).isoformat(),
         }
 
-        # ── 6. Persist intel to Thread model ─────────────────────────
+        # â”€â”€ 6. Persist intel to Thread model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         thread.summary              = summary
         thread.intent               = intent
         thread.urgency_score        = urgency_score
         thread.intel_json           = final_intel
         thread.intel_generated_at   = datetime.now(timezone.utc)
         
-        # ── 6a. Process Contacts FIRST (so tags can be linked) ─────────
+        # â”€â”€ 6a. Process Contacts FIRST (so tags can be linked) â”€â”€â”€â”€â”€â”€â”€â”€â”€
         await _process_contacts(user_id, messages, db)
 
-        # ── 6b. Process Tags (Gemini tags + Contact tags) ─────────────
+        # â”€â”€ 6b. Process Tags (Gemini tags + Contact tags) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         await _process_tags(user_id, thread, tags_list, db)
 
-        # ── 6c. Process Suggested Draft ───────────────────────────────
+        # â”€â”€ 6c. Process Suggested Draft â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if suggested_draft:
             await _create_draft(user_id, thread_id, suggested_draft, db)
 
         await db.commit()
         logger.info(f"Intel saved: thread={thread_id} intent={intent} score={urgency_score}")
 
-        # ── 6.5 Embed thread into ChromaDB if valuable ─────────────────
+        # â”€â”€ 6.5 Embed thread into ChromaDB if valuable â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         from core.intelligence.embedding_strategy import embed_thread_if_valuable
         messages_text = "\n".join([m.get("body", "") for m in messages])
         await embed_thread_if_valuable(thread, user_id, messages_text, db)
 
-        # ── 6.7 Check if sender is unsubscribed ────────────────────────
+        # â”€â”€ 6.7 Check if sender is unsubscribed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         # If the thread sender is unsubscribed, skip auto-creating tasks.
         is_unsubscribed = False
         import re
@@ -153,12 +153,12 @@ async def process_thread_intelligence(
                     is_unsubscribed = True
                     break
 
-        # ── 7. Auto-create Tasks from action items ────────────────────
+        # â”€â”€ 7. Auto-create Tasks from action items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if not is_unsubscribed:
             for item in action_items:
                 await _create_task(user_id, thread_id, item, db)
 
-        # ── 8. Publish SSE event → frontend invalidates cache ─────────
+        # â”€â”€ 8. Publish SSE event â†’ frontend invalidates cache â”€â”€â”€â”€â”€â”€â”€â”€â”€
         await _publish_intel_ready(user_id, thread_id, final_intel)
 
         return final_intel
@@ -169,9 +169,9 @@ async def process_thread_intelligence(
         return None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Helpers
-# ─────────────────────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async def _load_thread(thread_id: str, user_id: str, db: AsyncSession) -> Optional[Thread]:
     """Load thread with tags eagerly to avoid lazy-load in async context."""
@@ -200,10 +200,10 @@ async def _load_messages(thread_id: str, db: AsyncSession) -> list[dict]:
 
 
 _PRIORITY_MAP = {
-    "urgent": ("do_now", 90),
-    "high"  : ("do_now", 80),
-    "medium": ("do_today", 55),
-    "low"   : ("can_wait", 20),
+    "urgent": ("DO_NOW", 90),
+    "high"  : ("DO_NOW", 80),
+    "medium": ("DO_TODAY", 55),
+    "low"   : ("CAN_WAIT", 20),
 }
 
 
@@ -335,7 +335,7 @@ async def _create_task(
     db: AsyncSession,
 ) -> None:
 
-    """Create a Task from an action item. Idempotent — skips if duplicate exists."""
+    """Create a Task from an action item. Idempotent â€” skips if duplicate exists."""
     title = item.get("title", "")
     if not title:
         return
@@ -352,7 +352,7 @@ async def _create_task(
         return
 
     priority_str = (item.get("priority") or "medium").lower()
-    priority_value, priority_score = _PRIORITY_MAP.get(priority_str, ("do_today", 55))
+    priority_value, priority_score = _PRIORITY_MAP.get(priority_str, ("DO_TODAY", 55))
 
     # Parse due_date
     due_date = None
@@ -364,8 +364,8 @@ async def _create_task(
         except ValueError:
             pass
 
-    raw_type = (item.get("task_type") or "reply").lower()
-    ALLOWED_TASK_TYPES = {"reply", "review", "schedule", "followup"}
+    raw_type = (item.get("task_type") or "REPLY").upper()
+    ALLOWED_TASK_TYPES = {"REPLY", "REVIEW", "SCHEDULE", "FOLLOWUP"}
     
     if raw_type not in ALLOWED_TASK_TYPES:
         logger.warning(f"Invalid task type '{raw_type}', defaulting to '{TaskType.REPLY.value}'")

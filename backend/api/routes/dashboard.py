@@ -1,4 +1,4 @@
-"""
+﻿"""
 API Routes - Dashboard
 ----------------------
 Aggregation endpoints for the main dashboard.
@@ -104,11 +104,11 @@ async def get_dashboard_stats(
             user_id=t.user_id,
             title=t.title,
             description=t.description,
-            task_type=t.task_type or "other", # Default to other
-            priority=t.priority_level or "can_wait", # Default to can_wait
+            task_type=t.task_type or "OTHER", # Default to other
+            priority=t.priority_level or "CAN_WAIT", # Default to can_wait
             priority_score=t.priority_score,
             priority_explanation=t.metadata_json.get("priority_explanation", ""), 
-            effort=t.metadata_json.get("effort") or "quick", # Default to quick
+            effort=t.metadata_json.get("effort") or "QUICK", # Default to quick
             deadline=t.due_date, # Model: due_date
             deadline_source=t.metadata_json.get("deadline_source"), # In metadata
             status=t.status,

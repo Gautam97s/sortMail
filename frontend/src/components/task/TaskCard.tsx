@@ -1,26 +1,26 @@
-import { clsx } from "clsx";
+﻿import { clsx } from "clsx";
 
 interface Task {
     id: string;
     title: string;
-    priority: "do_now" | "do_today" | "can_wait";
+    priority: "DO_NOW" | "DO_TODAY" | "CAN_WAIT";
     priorityScore: number;
     explanation: string;
     deadline: string | null;
-    effort: "quick" | "deep_work";
+    effort: "QUICK" | "DEEP_WORK";
 }
 
 export function TaskCard({ task }: { task: Task }) {
     const priorityStyles = {
-        do_now: "priority-badge priority-do-now",
-        do_today: "priority-badge priority-do-today",
-        can_wait: "priority-badge priority-can-wait",
+        DO_NOW: "priority-badge priority-do-now",
+        DO_TODAY: "priority-badge priority-do-today",
+        CAN_WAIT: "priority-badge priority-can-wait",
     };
 
     const priorityLabels = {
-        do_now: "Do Now",
-        do_today: "Do Today",
-        can_wait: "Can Wait",
+        DO_NOW: "Do Now",
+        DO_TODAY: "Do Today",
+        CAN_WAIT: "Can Wait",
     };
 
     return (
@@ -31,8 +31,8 @@ export function TaskCard({ task }: { task: Task }) {
                         <span className={priorityStyles[task.priority]}>
                             {priorityLabels[task.priority]}
                         </span>
-                        {task.effort === "deep_work" && (
-                            <span className="text-xs text-gray-500">🧠 Deep work</span>
+                        {task.effort === "DEEP_WORK" && (
+                            <span className="text-xs text-gray-500">ðŸ§  Deep work</span>
                         )}
                     </div>
 

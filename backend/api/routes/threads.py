@@ -1,4 +1,4 @@
-"""
+﻿"""
 API Routes - Threads
 --------------------
 Email thread endpoints.
@@ -25,7 +25,7 @@ from app.config import settings
 from core.storage.database import get_db
 from api.dependencies import get_current_user
 from models.user import User
-from models.thread import Thread
+from models.thread import Thread, IntelStatus
 from models.email import Email
 from models.contact import Contact
 from sqlalchemy import and_, or_, func, exists
@@ -70,7 +70,7 @@ async def list_threads(
         select(Contact.id).where(
             Contact.user_id == current_user.id,
             Contact.is_unsubscribed == True,
-            # sender may be "Name <email>" — ILIKE with % handles both formats
+            # sender may be "Name <email>" â€” ILIKE with % handles both formats
             Email.sender.ilike(func.concat('%', Contact.email_address, '%'))
         ).correlate(Email)
     )
@@ -79,7 +79,7 @@ async def list_threads(
     filters = [
         Thread.user_id == current_user.id,
         or_(
-            Email.id == None,          # thread has no emails yet – always show
+            Email.id == None,          # thread has no emails yet â€“ always show
             ~sender_is_unsubscribed    # sender is NOT a known unsubscribed contact
         )
     ]
@@ -173,7 +173,7 @@ async def get_nav_counts(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Lightweight counts for sidebar badges — avoids loading full thread list."""
+    """Lightweight counts for sidebar badges â€” avoids loading full thread list."""
     from models.draft import Draft, DraftStatus as DS
     from sqlalchemy import case, literal_column
 
@@ -265,11 +265,11 @@ async def get_intel_status(
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
         
-    status = "COMPLETED" if thread.summary else "PROCESSING"
+    status = IntelStatus.COMPLETED if thread.summary else IntelStatus.PROCESSING
     
     return {
-        "status": status,
-        "summary": thread.summary if status == "COMPLETED" else None
+        "status": status.value,
+        "summary": thread.summary if status == IntelStatus.COMPLETED else None
     }
 
 
@@ -401,9 +401,9 @@ async def get_thread(
     
     def _map_priority(level: str) -> str:
         level = (level or "").lower()
-        if level in ["urgent", "critical", "do_now"]: return "do_now"
-        if level in ["high", "do_today"]: return "do_today"
-        return "can_wait"
+        if level in ["urgent", "critical", "do_now"]: return "DO_NOW"
+        if level in ["high", "do_today"]: return "DO_TODAY"
+        return "CAN_WAIT"
 
     tasks = [
         TaskDTOv1(
@@ -412,10 +412,10 @@ async def get_thread(
             user_id=t.user_id,
             title=t.title,
             description=t.description,
-            task_type=t.task_type.value if hasattr(t.task_type, 'value') else str(t.task_type).lower(),
+            task_type=t.task_type.value if hasattr(t.task_type, 'value') else str(t.task_type).upper(),
             priority=_map_priority(t.priority_level),
             priority_score=t.priority_score or 0,
-            status=t.status.value if hasattr(t.status, 'value') else str(t.status).lower(),
+            status=t.status.value if hasattr(t.status, 'value') else str(t.status).upper(),
             created_at=t.created_at or datetime.now(timezone.utc),
             updated_at=t.updated_at or datetime.now(timezone.utc),
         ) for t in db_tasks

@@ -56,7 +56,7 @@ export default function TeamSettingsPage() {
                                     <div>
                                         <div className="flex items-center gap-2">
                                             <span className="font-medium text-ink">{member.name}</span>
-                                            {member.status === "Pending" && (
+                                            {member.status === "PENDING" && (
                                                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 uppercase tracking-wider">Pending</Badge>
                                             )}
                                         </div>

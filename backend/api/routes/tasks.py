@@ -1,4 +1,4 @@
-from typing import List, Optional
+﻿from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,9 +49,9 @@ async def list_tasks(
     ]
 
 
-# ─── Calendar Suggestions ──────────────────────────────────────────────────────
+# â”€â”€â”€ Calendar Suggestions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-from models.calendar_suggestion import CalendarSuggestion
+from models.calendar_suggestion import CalendarSuggestion, CalendarSuggestionStatus
 from contracts.workflow import CalendarSuggestionV1
 
 
@@ -66,7 +66,7 @@ async def list_calendar_suggestions(
             select(CalendarSuggestion)
             .where(
                 CalendarSuggestion.user_id == current_user.id,
-                CalendarSuggestion.status == "PENDING",
+                CalendarSuggestion.status == CalendarSuggestionStatus.SUGGESTED,
             )
             .order_by(desc(CalendarSuggestion.suggested_time))
         )
@@ -105,7 +105,7 @@ async def accept_calendar_suggestion(
         result = await db.execute(stmt)
         suggestion = result.scalars().first()
         if suggestion:
-            suggestion.status = "accepted"
+            suggestion.status = CalendarSuggestionStatus.ACCEPTED
             await db.commit()
     except Exception:
         pass
@@ -127,7 +127,7 @@ async def dismiss_calendar_suggestion(
         result = await db.execute(stmt)
         suggestion = result.scalars().first()
         if suggestion:
-            suggestion.status = "dismissed"
+            suggestion.status = CalendarSuggestionStatus.DISMISSED
             await db.commit()
     except Exception:
         pass
@@ -201,7 +201,7 @@ async def dismiss_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    task.status = DBTaskStatus.CANCELLED   # model: CANCELLED (no DISMISSED)
+    task.status = DBTaskStatus.DISMISSED
     task.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
