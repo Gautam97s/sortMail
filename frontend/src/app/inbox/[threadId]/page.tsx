@@ -92,11 +92,11 @@ export default function ThreadDetailPage() {
                                     </div>
                                     <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
                                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Urgency</p>
-                                        <p className="mt-1 text-sm font-semibold text-slate-800">Score {intel.urgencyScore}/100</p>
+                                        <p className="mt-1 text-sm font-semibold text-slate-800">Score {intel.urgency_score}/100</p>
                                     </div>
                                     <div className="rounded-xl bg-emerald-50 border border-emerald-600/10 p-3">
                                         <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Suggested Action</p>
-                                        <p className="mt-1 text-sm font-semibold text-slate-800 truncate">{intel.mainAsk || 'Review and respond'}</p>
+                                        <p className="mt-1 text-sm font-semibold text-slate-800 truncate">{intel.main_ask || 'Review and respond'}</p>
                                     </div>
                                 </div>
                             )}
