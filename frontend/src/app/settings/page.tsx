@@ -184,7 +184,9 @@ export default function SettingsPage() {
                                     </div>
                                     <span className="text-xs font-bold text-on-surface-variant truncate">Intelligent sync</span>
                                 </div>
-                                <button className="text-xs font-bold text-primary hover:underline shrink-0">{account.cta}</button>
+                                <Link href={account.active ? "/settings/accounts" : "/settings/integrations"} className="text-xs font-bold text-primary hover:underline shrink-0">
+                                    {account.cta}
+                                </Link>
                             </div>
                         </div>
                     ))}

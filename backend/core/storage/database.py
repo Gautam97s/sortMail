@@ -7,6 +7,7 @@ SQLAlchemy async database setup.
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import text
+import logging
 
 from app.config import settings
 
@@ -14,6 +15,8 @@ from app.config import settings
 from sqlalchemy.engine.url import make_url
 
 import ssl
+
+logger = logging.getLogger("db.schema")
 
 # Database Setup
 original_url = settings.DATABASE_URL
@@ -127,3 +130,58 @@ async def init_db():
         # Add critical columns idempotently so API queries don't crash on startup.
         await conn.execute(text("ALTER TABLE threads ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT FALSE"))
         await conn.execute(text("ALTER TABLE threads ADD COLUMN IF NOT EXISTS is_trash BOOLEAN DEFAULT FALSE"))
+
+        # Schema audit: warn on drift so missing objects are visible at startup.
+        required_columns = [
+            ("threads", "is_archived"),
+            ("threads", "is_trash"),
+            ("tasks", "status"),
+            ("tasks", "task_type"),
+        ]
+        missing_columns = []
+
+        for table_name, column_name in required_columns:
+            result = await conn.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = :table_name
+                      AND column_name = :column_name
+                    LIMIT 1
+                    """
+                ),
+                {"table_name": table_name, "column_name": column_name},
+            )
+            if result.scalar() is None:
+                missing_columns.append(f"{table_name}.{column_name}")
+
+        required_types = ["taskstatus", "tasktype", "tonetype"]
+        missing_types = []
+
+        for type_name in required_types:
+            type_result = await conn.execute(
+                text(
+                    """
+                    SELECT 1
+                    FROM pg_type t
+                    JOIN pg_namespace n ON n.oid = t.typnamespace
+                    WHERE n.nspname = 'public'
+                      AND t.typname = :type_name
+                    LIMIT 1
+                    """
+                ),
+                {"type_name": type_name},
+            )
+            if type_result.scalar() is None:
+                missing_types.append(type_name)
+
+        if missing_columns or missing_types:
+            logger.warning(
+                "Schema drift detected at startup. missing_columns=%s missing_types=%s",
+                missing_columns,
+                missing_types,
+            )
+        else:
+            logger.info("Schema audit passed for critical columns and types")

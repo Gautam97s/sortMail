@@ -140,10 +140,10 @@ function DashboardContent() {
                         </p>
                     </div>
 
-                    <button className="mt-8 flex items-center justify-between w-full p-4 bg-white rounded-2xl border border-black/5 hover:bg-slate-50 transition-colors group">
+                    <Link href="/search" className="mt-8 flex items-center justify-between w-full p-4 bg-white rounded-2xl border border-black/5 hover:bg-slate-50 transition-colors group">
                         <span className="text-sm font-bold text-on-surface">View Insights</span>
                         <MaterialSymbol icon="arrow_forward" className="text-primary group-hover:translate-x-1 transition-transform" />
-                    </button>
+                    </Link>
                 </div>
             </section>
 
@@ -155,7 +155,7 @@ function DashboardContent() {
                     { label: 'Tasks Due', value: stats.tasks_due, icon: 'checklist', color: 'secondary' },
                     { label: 'Waiting On', value: stats.awaiting_reply, icon: 'hourglass_empty', color: 'tertiary' },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-white rounded-[24px] p-6 border border-outline-variant/10 hover:border-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] group cursor-pointer tonal-shadow">
+                    <div key={i} className="bg-white rounded-[20px] p-5 border border-outline-variant/10 hover:border-primary/20 transition-all group cursor-pointer tonal-shadow">
                         <div className="flex items-start justify-between mb-4">
                             <div className={`p-3 rounded-2xl ${statStyles[stat.color as StatColor].iconWrap} group-hover:scale-110 transition-transform`}>
                                 <MaterialSymbol icon={stat.icon} filled className="text-2xl" />
@@ -249,7 +249,8 @@ function DashboardContent() {
                     <div className="bg-surface-container-low rounded-[32px] p-8 border border-outline-variant/10 tonal-shadow">
                         <div className="space-y-6">
                             {priority_tasks.length > 0 ? priority_tasks.slice(0, 6).map((task: TaskDTOv1) => (
-                                <div key={task.task_id} className="flex items-start gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
+                                <Link href="/tasks" key={task.task_id} className="block">
+                                <div className="flex items-start gap-4 group cursor-pointer hover:translate-x-1 transition-transform">
                                     <div className={`mt-1 w-5 h-5 rounded-md border-2 border-primary/20 bg-white flex items-center justify-center transition-colors ${task.status === 'COMPLETED' ? 'bg-primary border-primary' : 'group-hover:border-primary/50'}`}>
                                         {task.status === 'COMPLETED' && <MaterialSymbol icon="check" className="text-white text-xs" />}
                                     </div>
@@ -270,6 +271,7 @@ function DashboardContent() {
                                         </div>
                                     </div>
                                 </div>
+                                </Link>
                             )) : (
                                 <div className="py-8 flex flex-col items-center gap-4">
                                     <MaterialSymbol icon="verified" className="text-primary text-4xl opacity-50" />

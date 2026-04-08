@@ -29,7 +29,7 @@ import Link from 'next/link';
 
 export default function AdminDashboardPage() {
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500">
+        <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-display text-ink mb-1">Admin Control Center</h1>
@@ -65,7 +65,7 @@ export default function AdminDashboardPage() {
                 <h2 className="text-xs font-mono font-bold text-ink-mid uppercase tracking-widest flex items-center gap-2">
                     <Activity size={14} className="text-info" /> System Oversight
                 </h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
                     {[
                         { label: 'Email Activity', href: '/admin/emails/activity', icon: Activity, color: 'text-info' },
                         { label: 'AI Usage', href: '/admin/ai/usage', icon: Zap, color: 'text-ai' },
@@ -88,11 +88,11 @@ export default function AdminDashboardPage() {
                         return (
                             <Link key={i} href={link.href}>
                                 <Card className="border-border-light hover:border-accent/30 hover:shadow-md transition-all cursor-pointer group h-full">
-                                    <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-                                        <div className={`w-10 h-10 rounded-xl bg-paper-mid flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                                            <Icon size={18} className={link.color} />
+                                    <CardContent className="p-3 flex flex-col items-center text-center gap-2 min-h-[94px] justify-center">
+                                        <div className={`w-9 h-9 rounded-lg bg-paper-mid flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                                            <Icon size={16} className={link.color} />
                                         </div>
-                                        <span className="text-[10px] font-mono font-bold uppercase tracking-tight text-ink-light group-hover:text-ink transition-colors">{link.label}</span>
+                                        <span className="text-[9px] font-mono font-bold uppercase tracking-tight text-ink-light group-hover:text-ink transition-colors">{link.label}</span>
                                     </CardContent>
                                 </Card>
                             </Link>
@@ -162,7 +162,7 @@ export default function AdminDashboardPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <Link href={`/admin/users/${user.id}`}>
+                                                <Link href="/admin/users">
                                                     <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <ArrowUpRight size={14} className="text-accent" />
                                                     </Button>
@@ -209,9 +209,11 @@ export default function AdminDashboardPage() {
                                 <h3 className="font-display text-lg mb-1">System Audit</h3>
                                 <p className="text-white/60 text-xs">Run a full security and integrity check.</p>
                             </div>
-                            <Button className="bg-white text-ink hover:bg-white/90 w-full mt-4 font-bold uppercase tracking-wider text-[10px] h-9">
-                                Start Audit Now
-                            </Button>
+                            <Link href="/admin/security/audit/export">
+                                <Button className="bg-white text-ink hover:bg-white/90 w-full mt-4 font-bold uppercase tracking-wider text-[10px] h-9">
+                                    Start Audit Now
+                                </Button>
+                            </Link>
                         </div>
                         <AlertTriangle className="absolute -right-4 -bottom-4 text-white/5 w-24 h-24 rotate-12 group-hover:scale-110 transition-transform duration-500" />
                     </Card>

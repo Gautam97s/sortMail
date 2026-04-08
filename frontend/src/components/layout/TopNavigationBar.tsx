@@ -80,14 +80,14 @@ export default function TopNavigationBar({
                     Explore
                 </Link>
 
-                <button className="p-2.5 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors relative">
+                <Link href="/notifications" className="p-2.5 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors relative" aria-label="Notifications">
                     <MaterialSymbol icon="notifications" className="text-xl" />
                     <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-error rounded-full ring-2 ring-surface-container-lowest"></span>
-                </button>
+                </Link>
                 
-                <button className="p-2.5 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors">
+                <Link href="/settings" className="p-2.5 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors" aria-label="Settings">
                     <MaterialSymbol icon="settings" className="text-xl" />
-                </button>
+                </Link>
 
                 <div className="flex items-center gap-3 ml-2 pl-4 border-l border-outline-variant/20">
                     <div className="hidden md:flex flex-col items-end leading-tight mr-1">

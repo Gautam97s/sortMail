@@ -72,7 +72,8 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
 
             {/* Compose Button */}
             <div className="px-4 mb-5 mt-5">
-                <button 
+                <Link
+                    href="/drafts"
                     className={`
                         w-full py-3.5 rounded-[18px] bg-gradient-to-br from-primary to-primary-container text-white font-headline font-bold text-sm flex items-center justify-center gap-2 tonal-shadow hover:opacity-95 transition-all
                         ${collapsed ? 'px-0' : 'px-4'}
@@ -81,7 +82,7 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
                 >
                     <MaterialSymbol icon="add" className="text-xl" />
                     {!collapsed && <span>Compose</span>}
-                </button>
+                </Link>
             </div>
 
             {/* Main Navigation */}
