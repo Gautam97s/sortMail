@@ -22,7 +22,7 @@ import { DynamicIcon } from "@/components/ui/dynamic-icon";
 export default function HelpCenterPage() {
     const [searchQuery, setSearchQuery] = useState("");
 
-    const mockHelpCategories = [
+    const helpCategories = [
         {
             title: "Getting Started",
             iconName: "Compass",
@@ -77,7 +77,7 @@ export default function HelpCenterPage() {
             {/* Categories Grid */}
             <div className="max-w-6xl mx-auto px-6 py-20">
                 <div className="grid md:grid-cols-2 gap-8">
-                    {mockHelpCategories.map((category) => {
+                    {helpCategories.map((category) => {
                         const colorClass = category.iconName === 'Compass' ? 'text-accent bg-accent/10' :
                             category.iconName === 'Sparkles' ? 'text-ai bg-ai/10' :
                                 category.iconName === 'Shield' ? 'text-success bg-success/10' :
@@ -128,14 +128,14 @@ export default function HelpCenterPage() {
                         </p>
                     </div>
                     <div className="flex gap-4">
-                        <button className="btn-secondary px-8 py-3">
+                        <Link href="/docs" className="btn-secondary px-8 py-3 inline-flex items-center gap-2">
                             <BookOpen size={18} />
                             Read Docs
-                        </button>
-                        <button className="btn-primary px-8 py-3 bg-ink hover:bg-ink/90 border-ink/10">
+                        </Link>
+                        <Link href="/support" className="btn-primary px-8 py-3 bg-ink hover:bg-ink/90 border-ink/10 inline-flex items-center gap-2">
                             <MessageCircle size={18} />
                             Contact Support
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>

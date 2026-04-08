@@ -17,13 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-const mockTransactions = [
-    { id: 't1', user: 'Marcus Aurelius', amount: '$499.00', status: 'Succeeded', date: '2024-02-28', plan: 'Enterprise' },
-    { id: 't2', user: 'Sarah Connor', amount: '$49.00', status: 'Succeeded', date: '2024-02-27', plan: 'Pro' },
-    { id: 't3', user: 'Thomas Anderson', amount: '$49.00', status: 'Pending', date: '2024-02-26', plan: 'Pro' },
-    { id: 't4', user: 'Ellen Ripley', amount: '$499.00', status: 'Failed', date: '2024-02-25', plan: 'Enterprise' },
-    { id: 't5', user: 'Arthur Dent', amount: '$0.00', status: 'Free', date: '2024-02-24', plan: 'Free' },
-];
+const transactions: Array<{ id: string; user: string; amount: string; status: string; date: string; plan: string }> = [];
 
 export default function BillingManagementPage() {
     return (
@@ -40,7 +34,7 @@ export default function BillingManagementPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" className="h-10 border-border-light text-ink text-xs font-bold uppercase tracking-wider shadow-sm">
+                    <Button variant="outline" disabled title="Export is not wired yet" className="h-10 border-border-light text-ink text-xs font-bold uppercase tracking-wider shadow-sm">
                         <Download size={14} className="mr-2" /> Financial Export
                     </Button>
                 </div>
@@ -48,10 +42,10 @@ export default function BillingManagementPage() {
 
             {/* Billing Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <BillingStat label="Monthly Revenue (MRR)" value="$42,500" sub="+8.2% vs last month" icon={TrendingUp} color="text-success" />
-                <BillingStat label="Active Paid Users" value="842" sub="65% conversion rate" icon={Users} color="text-info" />
-                <BillingStat label="Churn Rate" value="2.4%" sub="Industry leading" icon={ArrowUpRight} color="text-accent" />
-                <BillingStat label="Pending Invoices" value="12" sub="$4,280 total value" icon={AlertCircle} color="text-warning" />
+                <BillingStat label="Monthly Revenue (MRR)" value="--" sub="Connect billing provider" icon={TrendingUp} color="text-success" />
+                <BillingStat label="Active Paid Users" value="0" sub="No live data" icon={Users} color="text-info" />
+                <BillingStat label="Churn Rate" value="--" sub="No live data" icon={ArrowUpRight} color="text-accent" />
+                <BillingStat label="Pending Invoices" value="0" sub="No live data" icon={AlertCircle} color="text-warning" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -76,7 +70,7 @@ export default function BillingManagementPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border-light text-sm">
-                                    {mockTransactions.map((tx) => (
+                                    {transactions.map((tx) => (
                                         <tr key={tx.id} className="hover:bg-paper-mid/30 transition-colors">
                                             <td className="px-6 py-4 font-mono text-xs text-ink-light">{tx.date}</td>
                                             <td className="px-6 py-4 font-medium text-ink">{tx.user}</td>
@@ -87,6 +81,11 @@ export default function BillingManagementPage() {
                                             </td>
                                         </tr>
                                     ))}
+                                    {transactions.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-10 text-center text-sm text-ink-light">No billing transactions available.</td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -105,7 +104,7 @@ export default function BillingManagementPage() {
                             <BillingMetricItem label="Avg Revenue per User" value="$42.50" />
                             <BillingMetricItem label="LTV (Estimated)" value="$1,240" />
                             <BillingMetricItem label="CAC (Global)" value="$85.00" />
-                            <Button className="w-full h-10 font-bold uppercase tracking-wider text-[10px] bg-accent mt-2 shadow-sm">
+                            <Button className="w-full h-10 font-bold uppercase tracking-wider text-[10px] bg-accent mt-2 shadow-sm" disabled title="External dashboard is not wired yet">
                                 Open Billing Stripe Dashboard
                             </Button>
                         </CardContent>

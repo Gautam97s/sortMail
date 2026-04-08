@@ -38,6 +38,17 @@ export default function HelpArticlePage() {
 
     const article = mockHelpArticles[slug];
 
+    const handleCopyShareLink = async () => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+        } catch {
+            // Ignore clipboard failures in unsupported environments.
+        }
+    };
+
     if (!article) {
         return notFound();
     }
@@ -118,10 +129,10 @@ export default function HelpArticlePage() {
                         <div className="card p-6 space-y-4">
                             <h3 className="font-display font-bold text-ink">In this category</h3>
                             <div className="space-y-2">
-                                <Link href="#" className="block text-sm text-accent font-medium">{article.title}</Link>
-                                <Link href="#" className="block text-sm text-ink-light hover:text-ink transition-colors">Setting up your profile</Link>
-                                <Link href="#" className="block text-sm text-ink-light hover:text-ink transition-colors">Customizing AI tone</Link>
-                                <Link href="#" className="block text-sm text-ink-light hover:text-ink transition-colors">Managing connected inboxes</Link>
+                                <Link href={`/help/${slug}`} className="block text-sm text-accent font-medium">{article.title}</Link>
+                                <Link href="/help/quickstart" className="block text-sm text-ink-light hover:text-ink transition-colors">Setting up your profile</Link>
+                                <Link href="/help/quickstart" className="block text-sm text-ink-light hover:text-ink transition-colors">Customizing AI tone</Link>
+                                <Link href="/help/adding-accounts" className="block text-sm text-ink-light hover:text-ink transition-colors">Managing connected inboxes</Link>
                             </div>
                         </div>
 
@@ -133,7 +144,7 @@ export default function HelpArticlePage() {
                             <p className="text-xs text-ink-light leading-relaxed">
                                 Share this article with your team members to help them get started faster.
                             </p>
-                            <button className="text-sm font-bold text-accent hover:underline flex items-center gap-2">
+                            <button onClick={handleCopyShareLink} className="text-sm font-bold text-accent hover:underline flex items-center gap-2">
                                 Copy Share Link
                                 <ChevronRight size={14} />
                             </button>

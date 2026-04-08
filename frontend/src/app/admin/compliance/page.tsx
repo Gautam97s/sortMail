@@ -19,11 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-const mockComplianceRequests = [
-    { id: 'c1', user: 'Marcus Aurelius', type: 'Data Deletion (GDPR)', status: 'Pending', requestedAt: '2024-02-28', deadline: '2024-03-28' },
-    { id: 'c2', user: 'Sarah Connor', type: 'Data Export (CCPA)', status: 'Resolved', requestedAt: '2024-02-15', deadline: '2024-03-15' },
-    { id: 'c3', user: 'Arthur Dent', type: 'Opt-out Request', status: 'In Progress', requestedAt: '2024-02-26', deadline: '2024-03-26' },
-];
+const complianceRequests: Array<{ id: string; user: string; type: string; status: string; requestedAt: string; deadline: string }> = [];
 
 export default function ComplianceOversightPage() {
     return (
@@ -43,9 +39,9 @@ export default function ComplianceOversightPage() {
 
             {/* Compliance Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <ComplianceStat label="Active Requests" value="8" sub="GDPR / CCPA" icon={Shield} color="text-info" />
-                <ComplianceStat label="Compliance Score" value="100%" sub="Fully Adhered" icon={CheckCircle2} color="text-success" />
-                <ComplianceStat label="Overdue Requests" value="0" sub="Zero backlog" icon={Lock} color="text-accent" />
+                <ComplianceStat label="Active Requests" value={String(complianceRequests.length)} sub="GDPR / CCPA" icon={Shield} color="text-info" />
+                <ComplianceStat label="Compliance Score" value="--" sub="Awaiting live data" icon={CheckCircle2} color="text-success" />
+                <ComplianceStat label="Overdue Requests" value="0" sub="No live backlog data" icon={Lock} color="text-accent" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -56,7 +52,7 @@ export default function ComplianceOversightPage() {
                             Pending Privacy Requests
                             <div className="relative w-48">
                                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                                <Input placeholder="Search requests..." className="pl-7 h-7 text-[10px] bg-white border-border-light" />
+                                <Input disabled title="Search is not wired yet" placeholder="Search requests..." className="pl-7 h-7 text-[10px] bg-white border-border-light" />
                             </div>
                         </CardTitle>
                     </CardHeader>
@@ -73,7 +69,7 @@ export default function ComplianceOversightPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border-light text-sm">
-                                    {mockComplianceRequests.map((req) => (
+                                    {complianceRequests.map((req) => (
                                         <tr key={req.id} className="hover:bg-paper-mid/30 transition-colors group">
                                             <td className="px-6 py-4 font-medium text-ink">{req.user}</td>
                                             <td className="px-6 py-4 text-xs font-mono text-ink-mid">{req.type}</td>
@@ -89,12 +85,17 @@ export default function ComplianceOversightPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Button variant="ghost" size="icon" disabled title="Row actions are not wired yet" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <MoreHorizontal size={14} />
                                                 </Button>
                                             </td>
                                         </tr>
                                     ))}
+                                    {complianceRequests.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-10 text-center text-sm text-ink-light">No compliance requests found.</td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -114,7 +115,7 @@ export default function ComplianceOversightPage() {
                             <PolicyItem label="CCPA (California)" active />
                             <PolicyItem label="VCDPA (Virginia)" active />
                             <PolicyItem label="LGPD (Brazil)" active />
-                            <Button className="w-full h-10 font-bold uppercase tracking-wider text-[10px] bg-accent mt-2 shadow-sm">
+                            <Button className="w-full h-10 font-bold uppercase tracking-wider text-[10px] bg-accent mt-2 shadow-sm" disabled title="Policy editor is not wired yet">
                                 Update Data Policies
                             </Button>
                         </CardContent>
@@ -130,7 +131,7 @@ export default function ComplianceOversightPage() {
                             <p className="text-[11px] text-ink-light leading-relaxed">
                                 Process manual account deletions and purge related backups across all edge nodes.
                             </p>
-                            <Button variant="outline" className="w-full h-10 text-[10px] font-bold uppercase tracking-wider border-border-light text-ink">
+                            <Button variant="outline" disabled title="Purge protocol is not wired yet" className="w-full h-10 text-[10px] font-bold uppercase tracking-wider border-border-light text-ink">
                                 Start Purge Protocol
                             </Button>
                         </CardContent>

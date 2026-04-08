@@ -20,17 +20,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-const mockCreditSummary = [
-    { label: 'Total Credits Issued', value: '4.2M', sub: 'Last 30 days' },
-    { label: 'Active Consumption', value: '1.8M', sub: '92% AI-driven' },
-    { label: 'Revenue Generated', value: '$84,200', sub: 'Add-on purchases' },
-    { label: 'Pending Refunds', value: '12', sub: 'Manual review required' },
+const creditSummary = [
+    { label: 'Total Credits Issued', value: '--', sub: 'No live data' },
+    { label: 'Active Consumption', value: '--', sub: 'No live data' },
+    { label: 'Revenue Generated', value: '--', sub: 'No live data' },
+    { label: 'Pending Refunds', value: '0', sub: 'No live data' },
 ];
 
-const recentAdjustments = [
-    { id: 'adj1', user: 'Marcus Aurelius', amount: '+5,000', reason: 'Service Interruption Comp', date: '2h ago' },
-    { id: 'adj2', user: 'Sarah Connor', amount: '-200', reason: 'Incorrect Billing Fixed', date: '5h ago' },
-];
+const recentAdjustments: Array<{ id: string; user: string; amount: string; reason: string; date: string }> = [];
 
 export default function CreditsOverviewPage() {
     return (
@@ -57,7 +54,7 @@ export default function CreditsOverviewPage() {
 
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {mockCreditSummary.map((stat, i) => (
+                {creditSummary.map((stat, i) => (
                     <Card key={i} className="border-border-light shadow-sm">
                         <CardContent className="p-5">
                             <h4 className="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</h4>
@@ -82,21 +79,21 @@ export default function CreditsOverviewPage() {
                                 <label className="text-[10px] font-mono font-bold text-ink uppercase tracking-wider">Search User</label>
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input placeholder="Email or User ID..." className="pl-10 h-10 text-sm border-border-light" />
+                                    <Input disabled title="Adjustment form is not wired yet" placeholder="Email or User ID..." className="pl-10 h-10 text-sm border-border-light" />
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-mono font-bold text-ink uppercase tracking-wider">Adjustment Amount</label>
-                                <Input type="number" placeholder="E.g. 500 or -200" className="h-10 text-sm border-border-light" />
+                                <Input disabled title="Adjustment form is not wired yet" type="number" placeholder="E.g. 500 or -200" className="h-10 text-sm border-border-light" />
                             </div>
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-mono font-bold text-ink uppercase tracking-wider">Reason for Audit Log</label>
-                            <Input placeholder="E.g. Beta tester reward" className="h-10 text-sm border-border-light" />
+                            <Input disabled title="Adjustment form is not wired yet" placeholder="E.g. Beta tester reward" className="h-10 text-sm border-border-light" />
                         </div>
                         <div className="pt-4 border-t border-border-light flex justify-end gap-3">
-                            <Button variant="ghost" className="h-10 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Reset</Button>
-                            <Button className="h-10 bg-accent font-bold uppercase tracking-widest text-xs px-8 shadow-md">Apply Adjustment</Button>
+                            <Button variant="ghost" disabled title="Adjustment form is not wired yet" className="h-10 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Reset</Button>
+                            <Button disabled title="Adjustment form is not wired yet" className="h-10 bg-accent font-bold uppercase tracking-widest text-xs px-8 shadow-md">Apply Adjustment</Button>
                         </div>
                     </CardContent>
                 </Card>
@@ -123,6 +120,9 @@ export default function CreditsOverviewPage() {
                                         </div>
                                     </div>
                                 ))}
+                                {recentAdjustments.length === 0 && (
+                                    <div className="p-6 text-center text-sm text-ink-light">No recent admin adjustments.</div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

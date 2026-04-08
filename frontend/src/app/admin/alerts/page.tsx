@@ -18,12 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-const mockAlerts = [
-    { id: 'a1', severity: 'critical', title: 'OpenAI API Error Rate High', desc: 'System detecting 15% error rate on GPT-4o inference requests.', time: '12 mins ago', icon: Zap },
-    { id: 'a2', severity: 'warning', title: 'Worker Backlog Increasing', desc: 'Sync worker queue has exceeded 5,000 items. Processing delay expected.', time: '45 mins ago', icon: Clock },
-    { id: 'a3', severity: 'info', title: 'New Admin Invited', desc: 'Admin invitation sent to isabella@sortmail.io.', time: '2 hours ago', icon: Info },
-    { id: 'a4', severity: 'critical', title: 'Database Connection Spike', desc: 'Postgres connection pool reaching 90% capacity (81/100).', time: '3 hours ago', icon: AlertCircle },
-];
+const alerts: Array<{ id: string; severity: string; title: string; desc: string; time: string; icon: any }> = [];
 
 export default function AlertsCenterPage() {
     return (
@@ -40,7 +35,7 @@ export default function AlertsCenterPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" className="h-10 border-border-light text-ink text-xs font-bold uppercase tracking-wider shadow-sm">
+                    <Button variant="outline" disabled title="Live alert actions are not wired yet" className="h-10 border-border-light text-ink text-xs font-bold uppercase tracking-wider shadow-sm">
                         <CheckCircle2 size={14} className="mr-2" /> Mark All as Read
                     </Button>
                 </div>
@@ -48,29 +43,34 @@ export default function AlertsCenterPage() {
 
             {/* Alert Summary */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <SummaryCard label="Critical Issues" count={2} color="text-danger" bg="bg-danger/5" />
-                <SummaryCard label="Warnings" count={1} color="text-warning" bg="bg-warning/5" />
-                <SummaryCard label="Resolved (24h)" count={12} color="text-success" bg="bg-success/5" />
+                <SummaryCard label="Critical Issues" count={alerts.filter((a) => a.severity === 'critical').length} color="text-danger" bg="bg-danger/5" />
+                <SummaryCard label="Warnings" count={alerts.filter((a) => a.severity === 'warning').length} color="text-warning" bg="bg-warning/5" />
+                <SummaryCard label="Resolved (24h)" count={0} color="text-success" bg="bg-success/5" />
             </div>
 
             {/* Alerts List */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
                     <h3 className="text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-widest">Active Alerts</h3>
-                    <Button variant="ghost" size="sm" className="h-8 text-[10px] uppercase font-bold text-accent">
+                    <Button variant="ghost" size="sm" disabled title="Filtering is coming soon" className="h-8 text-[10px] uppercase font-bold text-accent">
                         <Filter size={12} className="mr-2" /> Filter
                     </Button>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
-                    {mockAlerts.map((alert) => (
+                    {alerts.map((alert) => (
                         <AlertItem key={alert.id} {...alert} />
                     ))}
+                    {alerts.length === 0 && (
+                        <Card className="border-border-light border-dashed">
+                            <CardContent className="p-8 text-center text-sm text-ink-light">No live alerts available yet.</CardContent>
+                        </Card>
+                    )}
                 </div>
             </div>
 
             {/* Resolved History Link */}
-            <Card className="border-dashed border-border-light bg-paper-mid/20 hover:bg-paper-mid/40 transition-colors cursor-pointer">
+            <Card className="border-dashed border-border-light bg-paper-mid/20">
                 <CardContent className="p-6 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                     <Clock size={14} /> View Resolved Alerts History
                 </CardContent>
@@ -112,10 +112,10 @@ function AlertItem({ severity, title, desc, time, icon: Icon }: any) {
                     <div className="flex justify-between items-start mb-1">
                         <h4 className="text-sm font-bold text-ink">{title}</h4>
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-ink">
+                            <Button variant="ghost" size="icon" disabled title="Details are not wired yet" className="h-8 w-8 text-muted-foreground hover:text-ink">
                                 <ExternalLink size={14} />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-ink">
+                            <Button variant="ghost" size="icon" disabled title="More actions are not wired yet" className="h-8 w-8 text-muted-foreground hover:text-ink">
                                 <MoreHorizontal size={14} />
                             </Button>
                         </div>
@@ -124,8 +124,8 @@ function AlertItem({ severity, title, desc, time, icon: Icon }: any) {
                     <div className="flex items-center justify-between">
                         <span className="text-[10px] font-mono font-bold text-muted-foreground uppercase">{time}</span>
                         <div className="flex gap-2">
-                            <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] font-bold uppercase tracking-widest text-ink-mid hover:bg-paper-mid">Acknowledge</Button>
-                            <Button size="sm" className="h-7 px-3 text-[10px] font-bold uppercase tracking-widest shadow-sm">Resolve</Button>
+                            <Button variant="ghost" size="sm" disabled title="Acknowledge action is not wired yet" className="h-7 px-2 text-[10px] font-bold uppercase tracking-widest text-ink-mid hover:bg-paper-mid">Acknowledge</Button>
+                            <Button size="sm" disabled title="Resolve action is not wired yet" className="h-7 px-3 text-[10px] font-bold uppercase tracking-widest shadow-sm">Resolve</Button>
                         </div>
                     </div>
                 </div>

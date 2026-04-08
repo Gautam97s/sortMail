@@ -301,7 +301,7 @@ function DashboardContent() {
 
 export default function DashboardPage() {
     return (
-        <AppShell showRightSidebar={false}>
+        <AppShell>
             <Suspense fallback={
                 <div className="p-10 space-y-10 animate-pulse w-full max-w-[1600px] mx-auto">
                     <div className="h-12 w-64 bg-surface-container rounded-lg" />

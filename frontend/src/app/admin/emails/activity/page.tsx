@@ -17,14 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-const mockLogs = [
-    { id: 'l1', user: 'Isabella R.', subject: 'Project Update: Q1', status: 'Analyzed', time: '14:22:05', latency: '420ms' },
-    { id: 'l2', user: 'Marcus A.', subject: 'Stoic Principles Meeting', status: 'Synced', time: '14:21:50', latency: '150ms' },
-    { id: 'l3', user: 'Sarah C.', subject: 'Resistance Logistics', status: 'Error', time: '14:21:12', latency: '2.4s' },
-    { id: 'l4', user: 'Neo', subject: 'The Matrix Reloaded', status: 'Analyzed', time: '14:20:45', latency: '380ms' },
-    { id: 'l5', user: 'Ellen R.', subject: 'Nostromo Manifest', status: 'Deleted', time: '14:19:30', latency: '120ms' },
-    { id: 'l6', user: 'Arthur D.', subject: 'Guide Update', status: 'Analyzed', time: '14:18:15', latency: '450ms' },
-];
+const activityLogs: Array<{ id: string; user: string; subject: string; status: string; time: string; latency: string }> = [];
 
 export default function EmailActivityPage() {
     return (
@@ -40,16 +33,16 @@ export default function EmailActivityPage() {
                         <p className="text-ink-light text-sm">Real-time monitoring of global email synchronization and AI analysis.</p>
                     </div>
                 </div>
-                <Button variant="outline" className="h-10 border-border-light text-ink text-xs font-bold uppercase tracking-wider shadow-sm">
+                <Button variant="outline" disabled title="Live refresh is not wired yet" className="h-10 border-border-light text-ink text-xs font-bold uppercase tracking-wider shadow-sm">
                     <RefreshCcw size={14} className="mr-2" /> Live Refresh
                 </Button>
             </div>
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <ActivityStat label="Success Rate" value="99.4%" sub="Global processing" icon={CheckCircle2} color="text-success" />
-                <ActivityStat label="Avg Latency" value="342ms" sub="Sync + Analysis" icon={Clock} color="text-info" />
-                <ActivityStat label="AI Queue" value="12 items" sub="Currently active" icon={Zap} color="text-ai" />
+                <ActivityStat label="Success Rate" value="--" sub="No live data" icon={CheckCircle2} color="text-success" />
+                <ActivityStat label="Avg Latency" value="--" sub="No live data" icon={Clock} color="text-info" />
+                <ActivityStat label="AI Queue" value="0 items" sub="No live data" icon={Zap} color="text-ai" />
             </div>
 
             {/* Filter Bar */}
@@ -62,7 +55,7 @@ export default function EmailActivityPage() {
                             className="pl-10 h-10 border-border-light focus-visible:ring-accent"
                         />
                     </div>
-                    <Button variant="outline" className="h-10 gap-2 border-border-light text-ink w-full md:w-auto">
+                    <Button variant="outline" disabled title="Filters are not wired yet" className="h-10 gap-2 border-border-light text-ink w-full md:w-auto">
                         <Filter size={14} /> Filters
                     </Button>
                 </CardContent>
@@ -82,7 +75,7 @@ export default function EmailActivityPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border-light">
-                            {mockLogs.map((log) => (
+                            {activityLogs.map((log) => (
                                 <tr key={log.id} className="hover:bg-paper-mid/50 transition-colors group">
                                     <td className="px-6 py-4 text-xs font-mono text-ink-mid">
                                         {log.time}
@@ -103,6 +96,11 @@ export default function EmailActivityPage() {
                                     </td>
                                 </tr>
                             ))}
+                            {activityLogs.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-10 text-center text-sm text-ink-light">No email activity available.</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

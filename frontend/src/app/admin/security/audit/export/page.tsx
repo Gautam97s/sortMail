@@ -19,11 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-const mockExports = [
-    { id: 'ex1', name: 'Security_Audit_Feb_2024.pdf', type: 'Audit Log', format: 'PDF', date: '2024-02-28', status: 'Ready' },
-    { id: 'ex2', name: 'User_Access_Audit.csv', type: 'Access Log', format: 'CSV', date: '2024-02-25', status: 'Expired' },
-    { id: 'ex3', name: 'API_Key_Rotation_Report.json', type: 'Security Events', format: 'JSON', date: '2024-02-15', status: 'Ready' },
-];
+const exportsHistory: Array<{ id: string; name: string; type: string; format: string; date: string; status: string }> = [];
 
 export default function SecurityAuditExportPage() {
     return (
@@ -95,7 +91,7 @@ export default function SecurityAuditExportPage() {
                             </div>
 
                             <div className="pt-4 border-t border-border-light flex justify-end">
-                                <Button className="h-11 bg-accent font-bold uppercase tracking-widest text-xs px-8 shadow-md">
+                                <Button className="h-11 bg-accent font-bold uppercase tracking-widest text-xs px-8 shadow-md" disabled title="Audit export generation is not wired yet">
                                     Generate Audit Report
                                 </Button>
                             </div>
@@ -121,7 +117,7 @@ export default function SecurityAuditExportPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border-light text-sm">
-                                    {mockExports.map((exp) => (
+                                    {exportsHistory.map((exp) => (
                                         <tr key={exp.id} className="hover:bg-paper-mid/30 transition-colors group">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
@@ -136,13 +132,18 @@ export default function SecurityAuditExportPage() {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 {exp.status === 'Ready' && (
-                                                    <Button variant="ghost" size="sm" className="h-8 gap-2 text-[10px] font-bold uppercase tracking-widest text-accent hover:bg-accent/5">
+                                                    <Button variant="ghost" size="sm" disabled title="Download is not wired yet" className="h-8 gap-2 text-[10px] font-bold uppercase tracking-widest text-accent hover:bg-accent/5">
                                                         <Download size={12} /> Download
                                                     </Button>
                                                 )}
                                             </td>
                                         </tr>
                                     ))}
+                                    {exportsHistory.length === 0 && (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-10 text-center text-sm text-ink-light">No audit exports available.</td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </CardContent>
@@ -194,7 +195,7 @@ export default function SecurityAuditExportPage() {
 
 function FormatButton({ label, icon: Icon, active }: any) {
     return (
-        <button className={`flex-1 h-10 rounded border flex items-center justify-center gap-2 transition-all ${active ? 'bg-paper-mid border-accent text-accent shadow-inner' : 'bg-white border-border-light text-ink-light hover:border-accent/40 hover:bg-paper-mid/50'}`}>
+        <button disabled title="Format selection is not wired yet" className={`flex-1 h-10 rounded border flex items-center justify-center gap-2 transition-all ${active ? 'bg-paper-mid border-accent text-accent shadow-inner' : 'bg-white border-border-light text-ink-light hover:border-accent/40 hover:bg-paper-mid/50'}`}>
             <Icon size={14} />
             <span className="text-[10px] font-mono font-bold uppercase">{label}</span>
         </button>

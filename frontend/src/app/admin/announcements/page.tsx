@@ -20,11 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-const mockAnnouncements = [
-    { id: 'a1', title: 'Scheduled Maintenance', type: 'BANNER', status: 'ACTIVE', target: 'ALL_USERS', views: '2.4k', clicks: '142' },
-    { id: 'a2', title: 'New AI Features Released!', type: 'MODAL', status: 'SCHEDULED', target: 'PRO_USERS', views: '0', clicks: '0' },
-    { id: 'a3', title: 'Q1 Partnership Update', type: 'EMAIL_BANNER', status: 'EXPIRED', target: 'ENTERPRISE', views: '842', clicks: '56' },
-];
+const announcements: Array<{ id: string; title: string; type: string; status: string; target: string; views: string; clicks: string }> = [];
 
 export default function AnnouncementsPage() {
     return (
@@ -40,7 +36,7 @@ export default function AnnouncementsPage() {
                         <p className="text-ink-light text-sm">Create and manage horizontal broadcasts, modal alerts, and feature updates.</p>
                     </div>
                 </div>
-                <Button className="h-10 font-bold uppercase tracking-wider text-xs shadow-md bg-accent">
+                <Button className="h-10 font-bold uppercase tracking-wider text-xs shadow-md bg-accent" disabled title="Announcement creation is not wired yet">
                     <Plus size={14} className="mr-2" /> New Announcement
                 </Button>
             </div>
@@ -56,7 +52,7 @@ export default function AnnouncementsPage() {
                         </CardHeader>
                         <CardContent className="p-0">
                             <div className="divide-y divide-border-light">
-                                {mockAnnouncements.map((ann) => (
+                                {announcements.map((ann) => (
                                     <div key={ann.id} className="p-5 flex items-start gap-4 hover:bg-paper-mid/30 transition-colors group">
                                         <div className={`mt-1 p-2 rounded-lg bg-paper-mid border border-border-light group-hover:bg-white transition-colors`}>
                                             <Layout size={16} className="text-ink-mid" />
@@ -77,15 +73,18 @@ export default function AnnouncementsPage() {
                                             </div>
                                         </div>
                                         <div className="flex gap-2 self-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-accent">
+                                            <Button variant="ghost" size="icon" disabled title="Edit is not wired yet" className="h-8 w-8 text-muted-foreground hover:text-accent">
                                                 <Edit3 size={14} />
                                             </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-danger">
+                                            <Button variant="ghost" size="icon" disabled title="Delete is not wired yet" className="h-8 w-8 text-muted-foreground hover:text-danger">
                                                 <Trash2 size={14} />
                                             </Button>
                                         </div>
                                     </div>
                                 ))}
+                                {announcements.length === 0 && (
+                                    <div className="p-8 text-center text-sm text-ink-light">No announcements available.</div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -100,11 +99,11 @@ export default function AnnouncementsPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-[9px] font-mono font-bold text-ink uppercase mb-1 block">Title</label>
-                                    <Input placeholder="E.g. Website Maintenance" className="h-9 text-xs border-border-light" />
+                                    <Input disabled title="Composer is not wired yet" placeholder="E.g. Website Maintenance" className="h-9 text-xs border-border-light" />
                                 </div>
                                 <div>
                                     <label className="text-[9px] font-mono font-bold text-ink uppercase mb-1 block">Type</label>
-                                    <select className="w-full h-9 rounded-md border border-border-light bg-white text-xs px-2 focus:ring-1 focus:ring-accent outline-none">
+                                    <select disabled title="Composer is not wired yet" className="w-full h-9 rounded-md border border-border-light bg-white text-xs px-2 focus:ring-1 focus:ring-accent outline-none">
                                         <option>Header Banner</option>
                                         <option>Fullscreen Modal</option>
                                         <option>Toast Notification</option>
@@ -113,11 +112,11 @@ export default function AnnouncementsPage() {
                             </div>
                             <div>
                                 <label className="text-[9px] font-mono font-bold text-ink uppercase mb-1 block">Message Content</label>
-                                <textarea className="w-full min-h-[80px] rounded-md border border-border-light bg-white text-xs p-3 focus:ring-1 focus:ring-accent outline-none resize-none" placeholder="Enter your announcement message..."></textarea>
+                                <textarea disabled title="Composer is not wired yet" className="w-full min-h-[80px] rounded-md border border-border-light bg-white text-xs p-3 focus:ring-1 focus:ring-accent outline-none resize-none" placeholder="Enter your announcement message..."></textarea>
                             </div>
                             <div className="flex justify-end gap-2">
-                                <Button variant="ghost" className="h-9 text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-4">Save Draft</Button>
-                                <Button className="h-9 text-[10px] font-bold uppercase tracking-widest bg-accent px-6 shadow-sm">Schedule Broadcast</Button>
+                                <Button variant="ghost" disabled title="Composer is not wired yet" className="h-9 text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-4">Save Draft</Button>
+                                <Button disabled title="Composer is not wired yet" className="h-9 text-[10px] font-bold uppercase tracking-widest bg-accent px-6 shadow-sm">Schedule Broadcast</Button>
                             </div>
                         </CardContent>
                     </Card>

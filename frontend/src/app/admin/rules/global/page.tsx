@@ -20,12 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-const mockGlobalRules = [
-    { id: 'r1', name: 'Spam Auto-Categorization', description: 'Use AI to detect and move marketing fluff to the low-priority queue.', priority: 1, type: 'AI Logic', status: 'Active' },
-    { id: 'r2', name: 'Financial Deadline Alert', description: 'Force high-priority notification for any email containing "Invoice" or "Due Date".', priority: 2, type: 'Filtering', status: 'Active' },
-    { id: 'r3', name: 'Global Newsletter Digest', description: 'Batch all bulk sender emails into a single 6PM briefing.', priority: 3, type: 'Aggregation', status: 'Paused' },
-    { id: 'r4', name: 'Executive Thread Tracking', description: 'Never snooze threads from whitelisted executive domains.', priority: 4, type: 'Security', status: 'Active' },
-];
+const globalRules: Array<{ id: string; name: string; description: string; priority: number; type: string; status: string }> = [];
 
 export default function GlobalRulesPage() {
     return (
@@ -41,7 +36,7 @@ export default function GlobalRulesPage() {
                         <p className="text-ink-light text-sm">Configuring platform-wide email processing bottlenecks, AI categorization logic, and priority overrides.</p>
                     </div>
                 </div>
-                <Button className="h-10 font-bold uppercase tracking-wider text-xs shadow-md bg-accent">
+                <Button className="h-10 font-bold uppercase tracking-wider text-xs shadow-md bg-accent" disabled title="Rule creation is not wired yet">
                     <Plus size={14} className="mr-2" /> Create Global Rule
                 </Button>
             </div>
@@ -57,7 +52,7 @@ export default function GlobalRulesPage() {
                         </CardHeader>
                         <CardContent className="p-0">
                             <div className="divide-y divide-border-light">
-                                {mockGlobalRules.map((rule) => (
+                                {globalRules.map((rule) => (
                                     <div key={rule.id} className="p-5 flex items-start gap-4 hover:bg-paper-mid/30 transition-colors group">
                                         <div className="mt-1 cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground group-hover:opacity-100 opacity-0 transition-opacity">
                                             <GripVertical size={16} />
@@ -76,11 +71,14 @@ export default function GlobalRulesPage() {
                                                 <span>Priority: {rule.priority}</span>
                                             </div>
                                         </div>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button variant="ghost" size="icon" disabled title="Rule actions are not wired yet" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                                             <MoreHorizontal size={14} />
                                         </Button>
                                     </div>
                                 ))}
+                                {globalRules.length === 0 && (
+                                    <div className="p-8 text-center text-sm text-ink-light">No global rules available.</div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

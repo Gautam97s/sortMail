@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Search,
     Filter,
@@ -164,7 +164,7 @@ export default function UserListPage() {
                                         </div>
                                     </td>
                                 </tr>
-                                ) : (
+                                )) : (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-2 text-muted-foreground">

@@ -205,8 +205,8 @@ export default function LoginPage() {
                     {/* Footer */}
                     <p className="auth-item text-center text-xs text-muted mt-6">
                         By continuing, you agree to our{" "}
-                        <Link href="#" className="underline hover:text-ink-light">Terms</Link> and{" "}
-                        <Link href="#" className="underline hover:text-ink-light">Privacy Policy</Link>.
+                        <Link href="/terms" className="underline hover:text-ink-light">Terms</Link> and{" "}
+                        <Link href="/privacy" className="underline hover:text-ink-light">Privacy Policy</Link>.
                     </p>
                 </div>
             </div>

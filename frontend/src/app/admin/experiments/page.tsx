@@ -20,11 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-const mockExperiments = [
-    { id: 'e1', title: 'AI Summary Button Color', status: 'Running', variantA: 'Accent Blue', variantB: 'Vibrant Indigo', traffic: '50/50', conversion: '+4.2%', started: '3 days ago' },
-    { id: 'e2', title: 'Onboarding Flow v2', status: 'Paused', variantA: '3-step', variantB: '5-step with demo', traffic: '10/90', conversion: '-1.5%', started: '1 week ago' },
-    { id: 'e3', title: 'Dashboard Widget Layout', status: 'Draft', variantA: 'List-first', variantB: 'Grid-first', traffic: '0/0', conversion: '-', started: '-' },
-];
+const experiments: Array<{ id: string; title: string; status: string; variantA: string; variantB: string; traffic: string; conversion: string; started: string }> = [];
 
 export default function ExperimentsPage() {
     return (
@@ -40,17 +36,17 @@ export default function ExperimentsPage() {
                         <p className="text-ink-light text-sm">Managing feature flags, traffic splitting, and conversion optimization experiments.</p>
                     </div>
                 </div>
-                <Button className="h-10 font-bold uppercase tracking-wider text-xs shadow-md bg-accent">
+                <Button className="h-10 font-bold uppercase tracking-wider text-xs shadow-md bg-accent" disabled title="Experiment creation is not wired yet">
                     <Plus size={14} className="mr-2" /> Start Experiment
                 </Button>
             </div>
 
             {/* Experiment Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <ExperimentStat label="Running" value="4" icon={Play} color="text-success" />
-                <ExperimentStat label="Total Experiments" value="24" icon={FlaskConical} color="text-info" />
-                <ExperimentStat label="Avg. Conversion Lift" value="+6.4%" icon={TrendingUp} color="text-accent" />
-                <ExperimentStat label="Traffic Monitored" value="12.4k" icon={Users} color="text-ai" />
+                <ExperimentStat label="Running" value="0" icon={Play} color="text-success" />
+                <ExperimentStat label="Total Experiments" value={String(experiments.length)} icon={FlaskConical} color="text-info" />
+                <ExperimentStat label="Avg. Conversion Lift" value="--" icon={TrendingUp} color="text-accent" />
+                <ExperimentStat label="Traffic Monitored" value="0" icon={Users} color="text-ai" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -63,7 +59,7 @@ export default function ExperimentsPage() {
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="divide-y divide-border-light">
-                            {mockExperiments.map((exp) => (
+                            {experiments.map((exp) => (
                                 <div key={exp.id} className="p-6 hover:bg-paper-mid/30 transition-colors group">
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="space-y-1">
@@ -78,11 +74,11 @@ export default function ExperimentsPage() {
                                         </div>
                                         <div className="flex gap-2">
                                             {exp.status === 'Running' ? (
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-paper-mid group">
+                                                <Button size="icon" variant="ghost" disabled title="Experiment control is not wired yet" className="h-8 w-8 text-muted-foreground hover:bg-paper-mid group">
                                                     <Square size={14} />
                                                 </Button>
                                             ) : (
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-paper-mid group">
+                                                <Button size="icon" variant="ghost" disabled title="Experiment control is not wired yet" className="h-8 w-8 text-muted-foreground hover:bg-paper-mid group">
                                                     <Play size={14} />
                                                 </Button>
                                             )}
@@ -95,14 +91,15 @@ export default function ExperimentsPage() {
                                     </div>
 
                                     <div className="mt-4 flex justify-end">
-                                        <Link href={`/admin/experiments/${exp.id}`}>
-                                            <Button variant="link" className="text-[10px] font-bold uppercase tracking-widest text-accent p-0 h-auto">
-                                                Detailed Analytics <ArrowRight size={12} className="ml-1" />
-                                            </Button>
-                                        </Link>
+                                        <Button variant="link" disabled title="Detailed analytics are not wired yet" className="text-[10px] font-bold uppercase tracking-widest text-accent p-0 h-auto">
+                                            Detailed Analytics <ArrowRight size={12} className="ml-1" />
+                                        </Button>
                                     </div>
                                 </div>
                             ))}
+                            {experiments.length === 0 && (
+                                <div className="p-8 text-center text-sm text-ink-light">No experiments available.</div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -134,7 +131,7 @@ export default function ExperimentsPage() {
                             <p className="text-[11px] text-white/80 leading-relaxed font-medium">
                                 Current primary KPI: **Daily Active Retention (D7)**. All experiments should focus on engagement loops within the first week of signup.
                             </p>
-                            <Button variant="ghost" className="w-full h-8 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-white/10 mt-2 border border-white/20">
+                            <Button variant="ghost" disabled title="Strategy doc link is not wired yet" className="w-full h-8 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-white/10 mt-2 border border-white/20">
                                 View Strategy Doc
                             </Button>
                         </CardContent>

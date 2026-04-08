@@ -20,12 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-const mockTemplates = [
-    { id: 't1', name: 'Welcome Email', category: 'Transactional', status: 'Active', updated: '2 days ago', version: 'v2.4' },
-    { id: 't2', name: 'Password Reset', category: 'Auth', status: 'Active', updated: '1 week ago', version: 'v1.1' },
-    { id: 't3', name: 'Daily Briefing', category: 'Product', status: 'Active', updated: 'Today', version: 'v3.0' },
-    { id: 't4', name: 'Billing Failed', category: 'Financial', status: 'Active', updated: '3 weeks ago', version: 'v1.0' },
-];
+const templates: Array<{ id: string; name: string; category: string; status: string; updated: string; version: string }> = [];
 
 export default function TemplateManagementPage() {
     const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
@@ -43,7 +38,7 @@ export default function TemplateManagementPage() {
                         <p className="text-ink-light text-sm">Managing transactional email layouts, system notifications, and UI components.</p>
                     </div>
                 </div>
-                <Button className="h-10 font-bold uppercase tracking-wider text-xs shadow-md bg-accent">
+                <Button className="h-10 font-bold uppercase tracking-wider text-xs shadow-md bg-accent" disabled title="Template creation is not wired yet">
                     <Plus size={14} className="mr-2" /> New Template
                 </Button>
             </div>
@@ -62,7 +57,7 @@ export default function TemplateManagementPage() {
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="divide-y divide-border-light">
-                            {mockTemplates.map((tmp) => (
+                            {templates.map((tmp) => (
                                 <div key={tmp.id} className="p-4 flex items-center gap-4 hover:bg-paper-mid/30 transition-colors group cursor-pointer border-l-2 border-transparent hover:border-accent">
                                     <div className="w-8 h-8 rounded-lg bg-paper-mid flex items-center justify-center shrink-0 border border-border-light">
                                         <Mail size={14} className="text-ink-light" />
@@ -78,6 +73,9 @@ export default function TemplateManagementPage() {
                                     <ChevronRight size={14} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </div>
                             ))}
+                            {templates.length === 0 && (
+                                <div className="p-8 text-center text-sm text-ink-light">No templates available.</div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -130,10 +128,10 @@ export default function TemplateManagementPage() {
                             </div>
                         </CardContent>
                         <div className="p-4 border-t border-border-light bg-white flex justify-end gap-3">
-                            <Button variant="outline" className="h-9 gap-2 text-xs font-bold uppercase tracking-wider border-border-light">
+                            <Button variant="outline" className="h-9 gap-2 text-xs font-bold uppercase tracking-wider border-border-light" disabled title="Template editor is not wired yet">
                                 <Edit3 size={14} /> Edit Template
                             </Button>
-                            <Button className="h-9 gap-2 text-xs font-bold uppercase tracking-wider bg-accent shadow-sm">
+                            <Button className="h-9 gap-2 text-xs font-bold uppercase tracking-wider bg-accent shadow-sm" disabled title="Template variables are not wired yet">
                                 <Settings size={14} /> Variables
                             </Button>
                         </div>

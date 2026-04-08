@@ -20,12 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-const mockInvites = [
-    { id: 'i1', email: 'guest@philosophy.com', status: 'PENDING', sentAt: '2024-02-28', expiresAt: '2024-03-05', invitedBy: 'Marcus A.' },
-    { id: 'i2', email: 'neo@neb.io', status: 'ACCEPTED', sentAt: '2024-02-20', expiresAt: '-', invitedBy: 'Isabella R.' },
-    { id: 'i3', email: 'trinity@matrix.net', status: 'EXPIRED', sentAt: '2024-01-15', expiresAt: '2024-01-22', invitedBy: 'Marcus A.' },
-    { id: 'i4', email: 'morpheus@zion.gov', status: 'PENDING', sentAt: '2024-02-26', expiresAt: '2024-03-03', invitedBy: 'Sarah C.' },
-];
+const invites: Array<{ id: string; email: string; status: string; sentAt: string; expiresAt: string; invitedBy: string }> = [];
 
 export default function InvitesManagementPage() {
     return (
@@ -42,7 +37,7 @@ export default function InvitesManagementPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button className="h-10 font-bold uppercase tracking-wider text-xs shadow-md bg-accent">
+                    <Button className="h-10 font-bold uppercase tracking-wider text-xs shadow-md bg-accent" disabled title="Invite creation is not wired yet">
                         <UserPlus size={14} className="mr-2" /> Create New Invite
                     </Button>
                 </div>
@@ -50,9 +45,9 @@ export default function InvitesManagementPage() {
 
             {/* Invite Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <InviteStat label="Total Sent" value="1,420" sub="All time" icon={Mail} color="text-info" />
-                <InviteStat label="Pending" value="42" sub="Requires follow-up" icon={Clock} color="text-warning" />
-                <InviteStat label="Acceptance Rate" value="88%" sub="High conversion" icon={UserCheck} color="text-success" />
+                <InviteStat label="Total Sent" value={String(invites.length)} sub="All time" icon={Mail} color="text-info" />
+                <InviteStat label="Pending" value={String(invites.filter((i) => i.status === 'PENDING').length)} sub="Requires follow-up" icon={Clock} color="text-warning" />
+                <InviteStat label="Acceptance Rate" value="--" sub="Awaiting live data" icon={UserCheck} color="text-success" />
             </div>
 
             {/* List & Controls */}
@@ -67,7 +62,7 @@ export default function InvitesManagementPage() {
                                 className="pl-9 h-9 text-xs border-border-light bg-white"
                             />
                         </div>
-                        <Button variant="outline" size="sm" className="h-9 gap-2 border-border-light text-ink text-[10px] font-bold uppercase tracking-widest">
+                        <Button variant="outline" size="sm" disabled title="Filtering is not wired yet" className="h-9 gap-2 border-border-light text-ink text-[10px] font-bold uppercase tracking-widest">
                             <Filter size={12} /> Filter Status
                         </Button>
                     </div>
@@ -83,7 +78,7 @@ export default function InvitesManagementPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border-light text-sm">
-                                {mockInvites.map((invite) => (
+                                {invites.map((invite) => (
                                     <tr key={invite.id} className="hover:bg-paper-mid/30 transition-colors group">
                                         <td className="px-6 py-4 font-medium text-ink">{invite.email}</td>
                                         <td className="px-6 py-4">
@@ -92,12 +87,17 @@ export default function InvitesManagementPage() {
                                         <td className="px-6 py-4 text-xs font-mono text-ink-mid">{invite.invitedBy}</td>
                                         <td className="px-6 py-4 text-xs text-ink-light font-mono">{invite.sentAt}</td>
                                         <td className="px-6 py-4 text-right">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="ghost" size="icon" disabled title="Row actions are not wired yet" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <MoreHorizontal size={14} />
                                             </Button>
                                         </td>
                                     </tr>
                                 ))}
+                                {invites.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-10 text-center text-sm text-ink-light">No invitation records available.</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -118,17 +118,17 @@ export default function InvitesManagementPage() {
                             <div className="space-y-3">
                                 <div>
                                     <label className="text-[9px] font-mono font-bold text-ink uppercase mb-1 block">Maximum Uses</label>
-                                    <Input type="number" defaultValue={50} className="h-9 text-xs border-border-light" />
+                                    <Input disabled title="Bulk invite generation is not wired yet" type="number" defaultValue={50} className="h-9 text-xs border-border-light" />
                                 </div>
                                 <div>
                                     <label className="text-[9px] font-mono font-bold text-ink uppercase mb-1 block">Access Group</label>
-                                    <select className="w-full h-9 rounded-md border border-border-light bg-white text-xs px-2 focus:ring-1 focus:ring-accent outline-none">
+                                    <select disabled title="Bulk invite generation is not wired yet" className="w-full h-9 rounded-md border border-border-light bg-white text-xs px-2 focus:ring-1 focus:ring-accent outline-none">
                                         <option>Early Adopters</option>
                                         <option>Beta Testers</option>
                                         <option>Corporate Partners</option>
                                     </select>
                                 </div>
-                                <Button className="w-full h-9 font-bold uppercase tracking-wider text-[10px] bg-accent/10 text-accent border border-accent/20 hover:bg-accent hover:text-white transition-all shadow-sm">
+                                <Button className="w-full h-9 font-bold uppercase tracking-wider text-[10px] bg-accent/10 text-accent border border-accent/20 hover:bg-accent hover:text-white transition-all shadow-sm" disabled title="Bulk invite generation is not wired yet">
                                     Generate Bulk Link
                                 </Button>
                             </div>

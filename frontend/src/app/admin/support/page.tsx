@@ -20,12 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-const mockTickets = [
-    { id: 'tk1', user: 'Marcus Aurelius', subject: 'Pro Plan Billing Issue', status: 'OPEN', priority: 'HIGH', lastUpdate: '12m ago' },
-    { id: 'tk2', user: 'Sarah Connor', subject: 'AI Summary not generating', status: 'IN_PROGRESS', priority: 'CRITICAL', lastUpdate: '45m ago' },
-    { id: 'tk3', user: 'Thomas Anderson', subject: 'Bulk Invite Help', status: 'RESOLVED', priority: 'MEDIUM', lastUpdate: '2h ago' },
-    { id: 'tk4', user: 'Ellen Ripley', subject: 'Account Deletion Request', status: 'OPEN', priority: 'LOW', lastUpdate: '4h ago' },
-];
+const tickets: Array<{ id: string; user: string; subject: string; status: string; priority: string; lastUpdate: string }> = [];
 
 export default function SupportOversightPage() {
     return (
@@ -42,7 +37,7 @@ export default function SupportOversightPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" className="h-10 border-border-light text-ink text-xs font-bold uppercase tracking-wider shadow-sm">
+                    <Button variant="outline" disabled title="Support analytics is not wired yet" className="h-10 border-border-light text-ink text-xs font-bold uppercase tracking-wider shadow-sm">
                         Support Analytics
                     </Button>
                 </div>
@@ -50,9 +45,9 @@ export default function SupportOversightPage() {
 
             {/* Support Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <SupportStat label="Open Tickets" value="12" sub="4 require urgent action" icon={LifeBuoy} color="text-danger" />
-                <SupportStat label="Avg. Response" value="18m" sub="-2m since last week" icon={Clock} color="text-info" />
-                <SupportStat label="Solved Today" value="34" sub="98% satisfaction rate" icon={CheckCircle2} color="text-success" />
+                <SupportStat label="Open Tickets" value={String(tickets.filter((t) => t.status === 'OPEN').length)} sub="No live queue data" icon={LifeBuoy} color="text-danger" />
+                <SupportStat label="Avg. Response" value="--" sub="No live data" icon={Clock} color="text-info" />
+                <SupportStat label="Solved Today" value="0" sub="No live data" icon={CheckCircle2} color="text-success" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -66,7 +61,7 @@ export default function SupportOversightPage() {
                                 className="pl-9 h-9 text-xs border-border-light bg-white"
                             />
                         </div>
-                        <Button variant="outline" size="sm" className="h-9 gap-2 border-border-light text-ink text-[10px] font-bold uppercase tracking-widest">
+                        <Button variant="outline" size="sm" disabled title="Priority filter is not wired yet" className="h-9 gap-2 border-border-light text-ink text-[10px] font-bold uppercase tracking-widest">
                             <Filter size={12} /> Priority
                         </Button>
                     </div>
@@ -83,7 +78,7 @@ export default function SupportOversightPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border-light text-sm">
-                                {mockTickets.map((ticket) => (
+                                {tickets.map((ticket) => (
                                     <tr key={ticket.id} className="hover:bg-paper-mid/30 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
@@ -105,12 +100,17 @@ export default function SupportOversightPage() {
                                         </td>
                                         <td className="px-6 py-4 text-xs font-mono text-ink-light">{ticket.lastUpdate}</td>
                                         <td className="px-6 py-4 text-right">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="ghost" size="icon" disabled title="Ticket details are not wired yet" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <ChevronRight size={14} />
                                             </Button>
                                         </td>
                                     </tr>
                                 ))}
+                                {tickets.length === 0 && (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-10 text-center text-sm text-ink-light">No support tickets available.</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -138,7 +138,7 @@ export default function SupportOversightPage() {
                                     <p className="text-[11px] text-ink font-medium">tk3 has been resolved. User was using an expired bulk link.</p>
                                 </div>
                             </div>
-                            <Button className="w-full h-10 font-bold uppercase tracking-wider text-[10px] bg-paper-mid text-ink border border-border-light hover:bg-paper-mid/80 transition-all shadow-sm">
+                            <Button className="w-full h-10 font-bold uppercase tracking-wider text-[10px] bg-paper-mid text-ink border border-border-light hover:bg-paper-mid/80 transition-all shadow-sm" disabled title="Slack integration is not wired yet">
                                 View Full Support Slack
                             </Button>
                         </CardContent>

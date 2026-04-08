@@ -3,13 +3,11 @@
 import React, { useState } from "react";
 import Sidebar from "./Sidebar";
 import TopNavigationBar from "./TopNavigationBar";
-import RightSidebar from "./RightSidebar";
 
 interface AppShellProps {
     children: React.ReactNode;
     title?: string;
     subtitle?: string;
-    showRightSidebar?: boolean;
     onSearchChange?: (value: string) => void;
 }
 
@@ -17,7 +15,6 @@ export default function AppShell({
     children, 
     title, 
     subtitle, 
-    showRightSidebar = true,
     onSearchChange
 }: AppShellProps) {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -53,13 +50,6 @@ export default function AppShell({
                     </div>
                 </div>
             </main>
-
-            {/* Right Contextual Sidebar - AI Intelligence Pane */}
-            {showRightSidebar && (
-                <div className="hidden lg:block w-80 shrink-0 h-full border-l border-outline-variant/15 bg-surface-container-low transition-all duration-300">
-                    <RightSidebar />
-                </div>
-            )}
         </div>
     );
 }

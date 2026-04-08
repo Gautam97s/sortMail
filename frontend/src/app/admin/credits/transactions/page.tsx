@@ -20,13 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 
-const mockTransactions = [
-    { id: 'tx_123456', user: 'Marcus Aurelius', type: 'Purchase', amount: '+50,000', method: 'Stripe', status: 'Success', date: '2024-02-28 14:24' },
-    { id: 'tx_123457', user: 'Sarah Connor', type: 'AI Usage', amount: '-1,240', method: 'Automatic', status: 'Success', date: '2024-02-28 14:15' },
-    { id: 'tx_123458', user: 'Thomas Anderson', type: 'Refund', amount: '+500', method: 'Admin Manual', status: 'Success', date: '2024-02-28 13:50' },
-    { id: 'tx_123459', user: 'Ellen Ripley', type: 'AI Usage', amount: '-4,100', method: 'Automatic', status: 'Success', date: '2024-02-28 12:30' },
-    { id: 'tx_123460', user: 'Arthur Dent', type: 'Purchase', amount: '+10,000', method: 'PayPal', status: 'Failed', date: '2024-02-28 11:05' },
-];
+const transactions: Array<{ id: string; user: string; type: string; amount: string; method: string; status: string; date: string }> = [];
 
 export default function CreditTransactionsPage() {
     return (
@@ -42,7 +36,7 @@ export default function CreditTransactionsPage() {
                         <p className="text-ink-light text-sm">Immutable audit log of all credit movements including purchases, AI consumption, and manual adjustments.</p>
                     </div>
                 </div>
-                <Button variant="outline" className="h-10 border-border-light text-xs font-bold uppercase tracking-wider shadow-sm gap-2">
+                <Button variant="outline" disabled title="Export is not wired yet" className="h-10 border-border-light text-xs font-bold uppercase tracking-wider shadow-sm gap-2">
                     <Download size={14} /> Export CSV
                 </Button>
             </div>
@@ -57,10 +51,10 @@ export default function CreditTransactionsPage() {
                         />
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="h-9 gap-2 border-border-light text-ink text-[10px] font-bold uppercase tracking-widest bg-white">
+                        <Button variant="outline" size="sm" disabled title="Filters are not wired yet" className="h-9 gap-2 border-border-light text-ink text-[10px] font-bold uppercase tracking-widest bg-white">
                             <Filter size={12} /> Type
                         </Button>
-                        <Button variant="outline" size="sm" className="h-9 gap-2 border-border-light text-ink text-[10px] font-bold uppercase tracking-widest bg-white">
+                        <Button variant="outline" size="sm" disabled title="Filters are not wired yet" className="h-9 gap-2 border-border-light text-ink text-[10px] font-bold uppercase tracking-widest bg-white">
                             Status
                         </Button>
                     </div>
@@ -80,7 +74,7 @@ export default function CreditTransactionsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border-light text-sm">
-                            {mockTransactions.map((tx) => (
+                            {transactions.map((tx) => (
                                 <tr key={tx.id} className="hover:bg-paper-mid/30 transition-colors group">
                                     <td className="px-6 py-4 font-mono text-[10px] text-ink-mid">{tx.id}</td>
                                     <td className="px-6 py-4">
@@ -103,20 +97,25 @@ export default function CreditTransactionsPage() {
                                     </td>
                                     <td className="px-6 py-4 text-[10px] font-mono text-ink-light">{tx.date}</td>
                                     <td className="px-6 py-4 text-right">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button variant="ghost" size="icon" disabled title="Row actions are not wired yet" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                                             <MoreHorizontal size={14} />
                                         </Button>
                                     </td>
                                 </tr>
                             ))}
+                            {transactions.length === 0 && (
+                                <tr>
+                                    <td colSpan={8} className="px-6 py-10 text-center text-sm text-ink-light">No transaction ledger entries available.</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
                 <div className="p-4 bg-paper-mid/10 border-t border-border-light flex justify-between items-center text-[10px] font-mono text-ink-light">
-                    <span>Showing 1-5 of 12,482 transactions</span>
+                    <span>Showing 0 of 0 transactions</span>
                     <div className="flex gap-1">
                         <Button disabled size="sm" variant="outline" className="h-7 text-[9px] font-bold uppercase border-border-light bg-white">Previous</Button>
-                        <Button size="sm" variant="outline" className="h-7 text-[9px] font-bold uppercase border-border-light bg-white">Next</Button>
+                        <Button disabled size="sm" variant="outline" className="h-7 text-[9px] font-bold uppercase border-border-light bg-white">Next</Button>
                     </div>
                 </div>
             </Card>
