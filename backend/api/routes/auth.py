@@ -31,7 +31,7 @@ class AuthURLResponse(BaseModel):
     auth_url: str
 
 
-@router.get("/google", response_model=AuthURLResponse)
+@router.get("/google")
 async def google_auth(request: Request):
     """Initiate Google OAuth flow with PKCE and State protection."""
     # 1. Generate PKCE and State
@@ -60,7 +60,12 @@ async def google_auth(request: Request):
     
     # 3. Generate URL
     auth_url = oauth_google.get_google_auth_url(state, code_challenge)
-    return {"auth_url": auth_url}
+
+    # Browser-first behavior: navigating to /api/auth/google should continue OAuth flow.
+    # Keep optional JSON mode for programmatic callers.
+    if request.query_params.get("format") == "json":
+        return AuthURLResponse(auth_url=auth_url)
+    return RedirectResponse(url=auth_url, status_code=307)
 
 
 @router.get("/google/callback")
@@ -225,10 +230,13 @@ async def google_callback(
     return response
 
 
-@router.get("/outlook", response_model=AuthURLResponse)
-async def outlook_auth():
+@router.get("/outlook")
+async def outlook_auth(request: Request):
     """Initiate Microsoft OAuth flow."""
-    return {"auth_url": "https://login.microsoftonline.com/..."}
+    auth_url = "https://login.microsoftonline.com/..."
+    if request.query_params.get("format") == "json":
+        return AuthURLResponse(auth_url=auth_url)
+    return RedirectResponse(url=auth_url, status_code=307)
 
 
 @router.get("/outlook/callback")

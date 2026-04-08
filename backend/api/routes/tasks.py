@@ -2,19 +2,102 @@
 from fastapi import APIRouter, HTTPException, Query, Depends
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, or_
+from pydantic import BaseModel
 
 from core.storage.database import get_db
 from api.dependencies import get_current_user
 from models.user import User
-from models.task import Task, TaskStatus as DBTaskStatus
+from models.task import Task, TaskStatus as DBTaskStatus, TaskType as DBTaskType
 from contracts import TaskDTOv1, PriorityLevel, TaskStatus
 
 router = APIRouter()
 
+
+class TaskCreateRequest(BaseModel):
+    title: str
+    description: Optional[str] = None
+    thread_id: Optional[str] = None
+    task_type: Optional[str] = None
+    priority: Optional[str] = None
+    status: Optional[str] = None
+    deadline: Optional[datetime] = None
+
+
+class TaskUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    task_type: Optional[str] = None
+    priority: Optional[str] = None
+    status: Optional[str] = None
+    deadline: Optional[datetime] = None
+
+
+def _to_enum_value(value) -> str:
+    if value is None:
+        return ""
+    return value.value if hasattr(value, "value") else str(value)
+
+
+def _map_priority_to_contract(level: Optional[str]) -> str:
+    normalized = (level or "").strip().upper()
+    if normalized in {"DO_NOW", "URGENT", "CRITICAL"}:
+        return PriorityLevel.DO_NOW.value
+    if normalized in {"DO_TODAY", "HIGH"}:
+        return PriorityLevel.DO_TODAY.value
+    return PriorityLevel.CAN_WAIT.value
+
+
+def _map_priority_to_db(level: Optional[str]) -> str:
+    normalized = (level or "").strip().upper()
+    if normalized in {"DO_NOW", "URGENT", "CRITICAL"}:
+        return "DO_NOW"
+    if normalized in {"DO_TODAY", "HIGH"}:
+        return "DO_TODAY"
+    return "CAN_WAIT"
+
+
+def _map_status(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    normalized = value.strip().upper()
+    allowed = {s.value for s in DBTaskStatus}
+    return normalized if normalized in allowed else None
+
+
+def _map_task_type(value: Optional[str]) -> str:
+    normalized = (value or "REPLY").strip().upper()
+    allowed = {t.value for t in DBTaskType}
+    return normalized if normalized in allowed else DBTaskType.REPLY.value
+
+
+def _to_task_dto(t: Task) -> TaskDTOv1:
+    task_type_value = _to_enum_value(t.task_type).upper() or DBTaskType.REPLY.value
+    status_value = _to_enum_value(t.status).upper() or DBTaskStatus.PENDING.value
+    return TaskDTOv1(
+        task_id=t.id,
+        thread_id=t.source_thread_id,
+        user_id=t.user_id,
+        title=t.title,
+        description=t.description,
+        task_type=task_type_value,
+        priority=_map_priority_to_contract(t.priority_level),
+        priority_score=t.priority_score or 0,
+        priority_explanation=None,
+        effort=None,
+        deadline=t.due_time,
+        deadline_source=None,
+        status=status_value,
+        created_at=t.created_at,
+        updated_at=t.updated_at,
+    )
+
 @router.get("/", response_model=List[TaskDTOv1])
 async def list_tasks(
     status: Optional[str] = None,
+    priority: Optional[str] = None,
+    q: Optional[str] = None,
+    thread_id: Optional[str] = None,
     limit: int = Query(default=50, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -22,31 +105,62 @@ async def list_tasks(
     """List tasks for current user, sorted by priority_score descending."""
     stmt = select(Task).where(Task.user_id == current_user.id)
 
-    if status:
-        stmt = stmt.where(Task.status == status)
+    mapped_status = _map_status(status)
+    if status and not mapped_status:
+        raise HTTPException(status_code=400, detail="Invalid status filter")
+    if mapped_status:
+        stmt = stmt.where(Task.status == mapped_status)
+
+    if priority:
+        stmt = stmt.where(Task.priority_level == _map_priority_to_db(priority))
+
+    if thread_id:
+        stmt = stmt.where(Task.source_thread_id == thread_id)
+
+    if q:
+        term = f"%{q.strip()}%"
+        stmt = stmt.where(
+            or_(
+                Task.title.ilike(term),
+                Task.description.ilike(term),
+            )
+        )
 
     stmt = stmt.order_by(desc(Task.priority_score)).limit(limit)
 
     result = await db.execute(stmt)
     tasks = result.scalars().all()
+    return [_to_task_dto(t) for t in tasks]
 
-    return [
-        TaskDTOv1(
-            task_id=t.id,
-            thread_id=t.source_thread_id,   # model: source_thread_id
-            user_id=t.user_id,
-            title=t.title,
-            description=t.description,
-            task_type=t.task_type,
-            priority=t.priority_level,       # model: priority_level
-            priority_score=t.priority_score,
-            status=t.status,
-            deadline=t.due_date,             # model: due_date
-            created_at=t.created_at,
-            updated_at=t.updated_at
-        )
-        for t in tasks
-    ]
+
+@router.post("/", response_model=TaskDTOv1)
+async def create_task(
+    payload: TaskCreateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Create a user task that can be managed from Kanban/workflow."""
+    title = payload.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Title is required")
+
+    task = Task(
+        user_id=current_user.id,
+        source_thread_id=payload.thread_id,
+        title=title,
+        description=(payload.description or None),
+        task_type=_map_task_type(payload.task_type),
+        status=_map_status(payload.status) or DBTaskStatus.PENDING.value,
+        priority_level=_map_priority_to_db(payload.priority),
+        due_time=payload.deadline,
+        source_type="USER_CREATED",
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+    return _to_task_dto(task)
 
 
 # â”€â”€â”€ Calendar Suggestions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -148,30 +262,17 @@ async def get_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    return TaskDTOv1(
-        task_id=task.id,
-        thread_id=task.source_thread_id,
-        user_id=task.user_id,
-        title=task.title,
-        description=task.description,
-        task_type=task.task_type,
-        priority=task.priority_level,
-        priority_score=task.priority_score,
-        status=task.status,
-        deadline=task.due_date,
-        created_at=task.created_at,
-        updated_at=task.updated_at
-    )
+    return _to_task_dto(task)
 
 
 @router.patch("/{task_id}")
 async def update_task(
     task_id: str,
-    status: Optional[str] = None,
+    payload: TaskUpdateRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Update task status."""
+    """Update editable task fields used by Kanban and workflow automation."""
     stmt = select(Task).where(Task.id == task_id, Task.user_id == current_user.id)
     result = await db.execute(stmt)
     task = result.scalars().first()
@@ -179,12 +280,36 @@ async def update_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    if status:
-        task.status = status
-        task.updated_at = datetime.now(timezone.utc)
-        await db.commit()
+    if payload.title is not None:
+        title = payload.title.strip()
+        if not title:
+            raise HTTPException(status_code=400, detail="Title cannot be empty")
+        task.title = title
 
-    return {"task_id": task_id, "status": task.status, "updated": True}
+    if payload.description is not None:
+        task.description = payload.description
+
+    if payload.status is not None:
+        mapped_status = _map_status(payload.status)
+        if not mapped_status:
+            raise HTTPException(status_code=400, detail="Invalid status")
+        task.status = mapped_status
+        if mapped_status == DBTaskStatus.COMPLETED.value:
+            task.completed_at = datetime.now(timezone.utc)
+
+    if payload.priority is not None:
+        task.priority_level = _map_priority_to_db(payload.priority)
+
+    if payload.task_type is not None:
+        task.task_type = _map_task_type(payload.task_type)
+
+    if payload.deadline is not None:
+        task.due_time = payload.deadline
+
+    task.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(task)
+    return _to_task_dto(task)
 
 
 @router.delete("/{task_id}")

@@ -25,6 +25,7 @@ class TaskType(str, enum.Enum):
     REVIEW = "REVIEW"
     SCHEDULE = "SCHEDULE"
     FOLLOWUP = "FOLLOWUP"
+    OTHER = "OTHER"
 
 
 class PriorityLevel(str, enum.Enum):

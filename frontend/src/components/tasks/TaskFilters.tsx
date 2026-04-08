@@ -19,6 +19,8 @@ interface TaskFiltersProps {
     statusFilter: string;
     onStatusChange: (status: string) => void;
     onClearFilters: () => void;
+    onCreateTask: () => void;
+    isSaving?: boolean;
 }
 
 export const TaskFilters: React.FC<TaskFiltersProps> = ({
@@ -29,6 +31,8 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
     statusFilter,
     onStatusChange,
     onClearFilters,
+    onCreateTask,
+    isSaving = false,
 }) => {
     const hasActiveFilters = searchQuery !== '' || priorityFilter !== 'all' || statusFilter !== 'all';
 
@@ -42,7 +46,7 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
                     type="text"
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    placeholder="Scan task manifest..."
+                    placeholder="Search tasks by title or description..."
                     className="w-full h-14 pl-16 pr-6 bg-white rounded-2xl text-base font-medium text-on-surface focus:outline-none border-2 border-transparent focus:border-primary-fixed/30 shadow-sm transition-all placeholder:text-outline-variant/50 italic"
                 />
             </div>
@@ -56,9 +60,9 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
                         className="bg-transparent text-[10px] font-black uppercase tracking-widest text-on-surface focus:outline-none cursor-pointer"
                     >
                         <option value="all">All Priorities</option>
-                        <option value="do_now">Do Now</option>
-                        <option value="do_soon">Soon</option>
-                        <option value="later">Later</option>
+                        <option value="DO_NOW">Do Now</option>
+                        <option value="DO_TODAY">Do Today</option>
+                        <option value="CAN_WAIT">Can Wait</option>
                     </select>
                 </div>
 
@@ -70,9 +74,10 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
                         className="bg-transparent text-[10px] font-black uppercase tracking-widest text-on-surface focus:outline-none cursor-pointer"
                     >
                         <option value="all">Any Status</option>
-                        <option value="todo">Pending</option>
-                        <option value="in_progress">Active</option>
-                        <option value="done">Resolved</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="DISMISSED">Dismissed</option>
                     </select>
                 </div>
 
@@ -85,6 +90,15 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
                         <MaterialSymbol icon="filter_alt_off" className="text-lg" />
                     </button>
                 )}
+
+                <button
+                    onClick={onCreateTask}
+                    disabled={isSaving}
+                    className="h-10 px-4 flex items-center justify-center bg-primary text-on-primary rounded-xl hover:opacity-90 disabled:opacity-60 transition-all text-[10px] font-black uppercase tracking-widest"
+                >
+                    <MaterialSymbol icon="add" className="text-base mr-1" />
+                    {isSaving ? 'Saving...' : 'New Task'}
+                </button>
             </div>
         </div>
     );

@@ -15,16 +15,17 @@ const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string
 interface TaskListProps {
     tasks: TaskDTOv1[];
     onTaskClick: (taskId: string) => void;
+    onStatusChange: (taskId: string, status: TaskDTOv1['status']) => void;
 }
 
 const PRIORITY_MAPPING: Record<string, { label: string; icon: string; colorClass: string; bgClass: string }> = {
-    do_now: { label: "Immediate", icon: "emergency_home", colorClass: "text-error", bgClass: "bg-error-container" },
-    do_soon: { label: "Scheduled", icon: "schedule", colorClass: "text-tertiary", bgClass: "bg-tertiary-fixed/20" },
-    later: { label: "Deferred", icon: "event_repeat", colorClass: "text-primary", bgClass: "bg-primary-fixed/20" },
+    DO_NOW: { label: "Do Now", icon: "emergency_home", colorClass: "text-error", bgClass: "bg-error-container" },
+    DO_TODAY: { label: "Do Today", icon: "schedule", colorClass: "text-tertiary", bgClass: "bg-tertiary-fixed/20" },
+    CAN_WAIT: { label: "Can Wait", icon: "event_repeat", colorClass: "text-primary", bgClass: "bg-primary-fixed/20" },
     all: { label: "Neutral", icon: "radio_button_unchecked", colorClass: "text-outline", bgClass: "bg-surface-container" },
 };
 
-export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskClick }) => {
+export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskClick, onStatusChange }) => {
     return (
         <div className="space-y-3">
             {tasks.length === 0 ? (
@@ -56,7 +57,7 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskClick }) => {
                                         </div>
                                         <div className="flex items-center gap-1.5 uppercase">
                                             <MaterialSymbol icon="schedule" className="text-[10px]" />
-                                            Active Manifest
+                                                    {task.status.replace('_', ' ')}
                                         </div>
                                         {task.description && <div className="truncate max-w-sm italic opacity-80">{task.description}</div>}
                                     </div>
@@ -68,10 +69,20 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskClick }) => {
                                     <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${priority.colorClass}`}>
                                         {priority.label}
                                     </div>
-                                    <div className="px-2 py-0.5 bg-surface-container-high text-on-surface-variant font-black text-[9px] rounded uppercase flex items-center gap-2">
-                                        <MaterialSymbol icon="query_stats" className="text-[10px]" />
-                                        Score: 84%
-                                    </div>
+                                    <select
+                                        className="px-2 py-0.5 bg-surface-container-high text-on-surface-variant font-black text-[9px] rounded uppercase"
+                                        value={task.status}
+                                        onChange={(e) => {
+                                            e.stopPropagation();
+                                            onStatusChange(task.task_id, e.target.value as TaskDTOv1['status']);
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <option value="PENDING">Pending</option>
+                                        <option value="IN_PROGRESS">In Progress</option>
+                                        <option value="COMPLETED">Completed</option>
+                                        <option value="DISMISSED">Dismissed</option>
+                                    </select>
                                 </div>
                                 <div className="h-10 w-10 bg-surface-container rounded-xl flex items-center justify-center text-outline group-hover:text-on-surface group-hover:bg-primary-fixed/20 group-hover:text-primary transition-all">
                                     <MaterialSymbol icon="arrow_forward" />
