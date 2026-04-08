@@ -8,6 +8,7 @@ import { useCreateTask, useDeleteTask, useTasks, useUpdateTask } from '@/hooks/u
 import { TaskDTOv1 } from '@/types/dashboard';
 import Link from 'next/link';
 import { api, endpoints } from '@/lib/api';
+import AppShell from '@/components/layout/AppShell';
 
 const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
     <span 
@@ -145,47 +146,52 @@ export default function TasksPage() {
 
     if (isLoading) {
         return (
-            <div className="p-10 space-y-8 animate-pulse">
-                <div className="h-10 w-48 bg-surface-container rounded-xl" />
-                <div className="flex gap-6 h-[600px]">
-                    {[1, 2, 3].map(i => <div key={i} className="flex-1 bg-surface-container rounded-[32px]" />)}
+            <AppShell title="Tasks" subtitle="Focus workspace">
+                <div className="p-6 space-y-6 animate-pulse max-w-[1280px] mx-auto">
+                    <div className="h-8 w-40 bg-surface-container rounded-lg" />
+                    <div className="flex gap-4 h-[520px]">
+                        {[1, 2, 3].map(i => <div key={i} className="flex-1 bg-surface-container rounded-2xl" />)}
+                    </div>
                 </div>
-            </div>
+            </AppShell>
         );
     }
 
     if (error) {
         return (
-            <div className="h-full flex items-center justify-center p-20">
-                <div className="text-center space-y-4">
-                    <MaterialSymbol icon="error" className="text-4xl text-error" />
-                    <p className="text-sm font-bold text-on-surface uppercase tracking-widest">Neural Link Distorted</p>
-                    <button onClick={() => window.location.reload()} className="text-xs font-black text-primary hover:underline uppercase tracking-widest">Re-Initialize</button>
+            <AppShell title="Tasks" subtitle="Focus workspace">
+                <div className="h-full flex items-center justify-center p-12">
+                    <div className="text-center space-y-4">
+                        <MaterialSymbol icon="error" className="text-4xl text-error" />
+                        <p className="text-sm font-bold text-on-surface uppercase tracking-widest">Neural Link Distorted</p>
+                        <button onClick={() => window.location.reload()} className="text-xs font-black text-primary hover:underline uppercase tracking-widest">Re-Initialize</button>
+                    </div>
                 </div>
-            </div>
+            </AppShell>
         );
     }
 
     return (
-        <div className="h-full flex flex-col bg-surface-container-lowest overflow-hidden">
-            {/* Editorial Header */}
-            <div className="px-10 pt-10 pb-6 space-y-8 shrink-0">
-                <div className="flex items-end justify-between">
-                    <div className="space-y-1">
-                        <h1 className="text-4xl font-headline font-bold text-on-surface tracking-tight">Focus Matrix</h1>
-                        <p className="text-sm font-medium text-on-surface-variant opacity-80 italic">{panelLabel}</p>
-                    </div>
-                    <div className="flex items-center gap-4 bg-white/50 p-1.5 rounded-2xl border border-outline-variant/10 shadow-sm">
+        <AppShell title="Tasks" subtitle={panelLabel}>
+            <div className="h-full flex flex-col bg-surface-container-lowest overflow-hidden max-w-[1280px] mx-auto w-full">
+                {/* Editorial Header */}
+                <div className="px-4 md:px-6 pt-4 pb-4 space-y-5 shrink-0">
+                    <div className="flex items-end justify-between gap-3">
+                        <div className="space-y-1">
+                            <h1 className="text-2xl md:text-3xl font-headline font-bold text-on-surface tracking-tight">Focus Matrix</h1>
+                            <p className="text-xs font-medium text-on-surface-variant opacity-80 italic">{panelLabel}</p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white/50 p-1 rounded-xl border border-outline-variant/10 shadow-sm">
                         <button
                             onClick={() => setView('board')}
-                            className={`h-11 px-6 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${view === 'board' ? 'bg-on-surface text-surface shadow-xl' : 'text-outline-variant hover:bg-surface-container-high'}`}
+                            className={`h-9 px-4 rounded-lg flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${view === 'board' ? 'bg-on-surface text-surface shadow-sm' : 'text-outline-variant hover:bg-surface-container-high'}`}
                         >
                             <MaterialSymbol icon="view_kanban" className="text-lg" />
                             Canvas
                         </button>
                         <button
                             onClick={() => setView('list')}
-                            className={`h-11 px-6 rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${view === 'list' ? 'bg-on-surface text-surface shadow-xl' : 'text-outline-variant hover:bg-surface-container-high'}`}
+                            className={`h-9 px-4 rounded-lg flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${view === 'list' ? 'bg-on-surface text-surface shadow-sm' : 'text-outline-variant hover:bg-surface-container-high'}`}
                         >
                             <MaterialSymbol icon="view_list" className="text-lg" />
                             Stream
@@ -210,7 +216,7 @@ export default function TasksPage() {
             </div>
 
             {/* Matrix Viewport */}
-            <div className="flex-1 overflow-hidden px-10 pb-10">
+                <div className="flex-1 overflow-hidden px-4 md:px-6 pb-6">
                 {view === 'board' ? (
                     <TaskKanban
                         tasks={filteredTasks}
@@ -218,7 +224,7 @@ export default function TasksPage() {
                         onStatusChange={handleStatusChange}
                     />
                 ) : (
-                    <div className="h-full overflow-y-auto scrollbar-none pr-4">
+                    <div className="h-full overflow-y-auto scrollbar-none pr-2">
                         <TaskList
                             tasks={filteredTasks}
                             onTaskClick={handleTaskClick}
@@ -228,9 +234,9 @@ export default function TasksPage() {
                 )}
             </div>
 
-            {isCreateOpen && (
+                {isCreateOpen && (
                 <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-                    <div className="w-full max-w-xl bg-white rounded-3xl border border-outline-variant/20 shadow-2xl p-6 space-y-4">
+                    <div className="w-full max-w-xl bg-white rounded-2xl border border-outline-variant/20 shadow-xl p-5 space-y-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-bold text-on-surface">Create Task</h2>
                             <button onClick={() => setIsCreateOpen(false)} className="h-8 w-8 rounded-lg bg-surface-container text-outline">
@@ -271,9 +277,9 @@ export default function TasksPage() {
                 </div>
             )}
 
-            {selectedTask && (
+                {selectedTask && (
                 <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-                    <div className="w-full max-w-2xl bg-white rounded-3xl border border-outline-variant/20 shadow-2xl p-6 space-y-4">
+                    <div className="w-full max-w-2xl bg-white rounded-2xl border border-outline-variant/20 shadow-xl p-5 space-y-4">
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-bold text-on-surface">Edit Task</h2>
                             <button onClick={closeDetails} className="h-8 w-8 rounded-lg bg-surface-container text-outline">
@@ -383,7 +389,8 @@ export default function TasksPage() {
                         </div>
                     </div>
                 </div>
-            )}
-        </div>
+                )}
+            </div>
+        </AppShell>
     );
 }

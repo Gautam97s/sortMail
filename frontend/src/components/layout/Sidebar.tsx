@@ -49,20 +49,20 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
                 flex flex-col bg-surface-container-low border-r border-outline-variant/15 shrink-0 overflow-hidden z-50 transition-all duration-300
                 ${isOpen ? 'drawer open' : 'drawer'} md:relative md:translate-x-0
             `}
-            style={{ width: collapsed ? '80px' : 'var(--sb-w)' }}
+            style={{ width: collapsed ? '72px' : 'var(--sb-w)' }}
         >
             {/* Logo Section */}
-            <div className="px-4 pt-5 shrink-0">
-                <Link href="/dashboard" className={`flex items-center gap-3 rounded-[28px] ${collapsed ? 'justify-center px-3 py-2' : 'px-4 py-3'} bg-white/70 border border-outline-variant/20 shadow-sm hover:shadow-md transition-all`}>
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary to-tertiary-container flex items-center justify-center text-on-primary shadow-[0_14px_28px_-12px_rgba(0,91,191,0.55)]">
+            <div className="px-3 pt-3 shrink-0">
+                <Link href="/dashboard" className={`flex items-center gap-3 rounded-2xl ${collapsed ? 'justify-center px-2.5 py-2' : 'px-3 py-2.5'} bg-white/70 border border-outline-variant/20 shadow-sm hover:shadow-md transition-all`}>
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-tertiary-container flex items-center justify-center text-on-primary shadow-[0_10px_20px_-12px_rgba(0,91,191,0.55)]">
                         <MaterialSymbol icon="mail" filled className="text-xl" />
                     </div>
                     {!collapsed && (
                         <div className="flex flex-col min-w-0">
-                            <span className="font-headline font-bold text-lg leading-tight tracking-tight text-on-surface truncate">
+                            <span className="font-headline font-bold text-base leading-tight tracking-tight text-on-surface truncate">
                                 SortMail AI
                             </span>
-                            <span className="text-[10px] uppercase tracking-[0.28em] text-outline font-bold truncate">
+                            <span className="text-[9px] uppercase tracking-[0.22em] text-outline font-bold truncate">
                                 Intelligent Canvas
                             </span>
                         </div>
@@ -71,11 +71,11 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
             </div>
 
             {/* Compose Button */}
-            <div className="px-4 mb-5 mt-5">
+            <div className="px-3 mb-4 mt-4">
                 <Link
                     href="/drafts"
                     className={`
-                        w-full py-3.5 rounded-[18px] bg-gradient-to-br from-primary to-primary-container text-white font-headline font-bold text-sm flex items-center justify-center gap-2 tonal-shadow hover:opacity-95 transition-all
+                        w-full py-2.5 rounded-xl bg-gradient-to-br from-primary to-primary-container text-white font-headline font-bold text-[13px] flex items-center justify-center gap-1.5 tonal-shadow hover:opacity-95 transition-all
                         ${collapsed ? 'px-0' : 'px-4'}
                     `}
                     title="Compose Email"
@@ -86,7 +86,7 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
             </div>
 
             {/* Main Navigation */}
-            <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto scrollbar-hide font-medium">
+            <nav className="flex-1 px-2.5 py-1.5 space-y-1 overflow-y-auto scrollbar-hide font-medium">
                 {navItems.map((item) => {
                     const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
                     const itemClassName = isActive
@@ -103,24 +103,24 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
                                 }
                             }}
                             className={`
-                                flex items-center gap-4 py-3 rounded-r-full transition-all duration-200 group
+                                flex items-center gap-3 py-2.5 rounded-r-full transition-all duration-200 group
                                 ${itemClassName}
-                                ${collapsed ? "justify-center px-0 rounded-r-[999px]" : "pl-5 pr-4"}
+                                ${collapsed ? "justify-center px-0 rounded-r-[999px]" : "pl-4 pr-3"}
                             `}
                             title={collapsed ? item.label : undefined}
                         >
                             <MaterialSymbol 
                                 icon={item.icon} 
                                 filled={isActive} 
-                                className={`text-[22px] transition-colors ${isActive ? 'text-primary' : 'group-hover:text-primary'}`} 
+                                className={`text-[20px] transition-colors ${isActive ? 'text-primary' : 'group-hover:text-primary'}`} 
                             />
                             {!collapsed && (
                                 <>
-                                    <span className={`flex-1 text-[13px] ${isActive ? 'font-bold' : 'font-semibold'}`}>
+                                    <span className={`flex-1 text-[12px] ${isActive ? 'font-bold' : 'font-semibold'}`}>
                                         {item.label}
                                     </span>
                                     {item.badge && item.badge > 0 && (
-                                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isActive ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
                                             {item.badge}
                                         </span>
                                     )}
@@ -132,8 +132,8 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
 
                 {/* Utility Section */}
                 {!collapsed && (
-                    <div className="mt-8 pt-4 border-t border-outline-variant/15 px-4">
-                        <div className="text-[10px] font-bold text-outline uppercase tracking-[0.28em] mb-4">
+                    <div className="mt-5 pt-3 border-t border-outline-variant/15 px-3">
+                        <div className="text-[9px] font-bold text-outline uppercase tracking-[0.22em] mb-3">
                             Utilities
                         </div>
                         <div className="space-y-1">
@@ -141,10 +141,10 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
                                 <Link
                                     key={item.label}
                                     href={item.href}
-                                    className="flex items-center gap-4 py-2.5 px-4 rounded-2xl text-on-surface-variant hover:text-primary hover:bg-white/60 transition-colors group"
+                                    className="flex items-center gap-3 py-2 px-3 rounded-xl text-on-surface-variant hover:text-primary hover:bg-white/60 transition-colors group"
                                 >
                                     <MaterialSymbol icon={item.icon} className="text-[20px] group-hover:text-primary" />
-                                    <span className="text-sm font-semibold">{item.label}</span>
+                                    <span className="text-[13px] font-semibold">{item.label}</span>
                                 </Link>
                             ))}
                         </div>
@@ -153,14 +153,14 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
             </nav>
 
             {/* Bottom Section */}
-            <div className="p-4 mt-auto border-t border-outline-variant/15 flex flex-col gap-2">
+            <div className="p-3 mt-auto border-t border-outline-variant/15 flex flex-col gap-1.5">
                 {!collapsed && (
                     <>
-                        <div className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold text-primary tracking-[0.24em] uppercase bg-primary-fixed/30 rounded-full w-fit">
+                        <div className="flex items-center gap-2 px-2.5 py-1 text-[9px] font-bold text-primary tracking-[0.2em] uppercase bg-primary-fixed/30 rounded-full w-fit">
                             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
                             AI Synchronized
                         </div>
-                        <div className="text-[10px] font-mono text-outline uppercase tracking-wider px-1">
+                        <div className="text-[9px] font-mono text-outline uppercase tracking-wider px-1">
                             v{RELEASE.version} · {RELEASE.channel}
                         </div>
                     </>
@@ -169,11 +169,11 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
                 {onToggle && (
                     <button
                         onClick={onToggle}
-                        className={`w-full flex items-center gap-3 py-2.5 rounded-2xl text-on-surface-variant hover:text-on-surface hover:bg-white/60 transition-colors cursor-pointer ${collapsed ? 'justify-center px-0' : 'px-3'}`}
+                        className={`w-full flex items-center gap-2 py-2 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-white/60 transition-colors cursor-pointer ${collapsed ? 'justify-center px-0' : 'px-3'}`}
                         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
                     >
-                        <MaterialSymbol icon={collapsed ? "chevron_right" : "chevron_left"} className="text-xl" />
-                        {!collapsed && <span className="text-sm font-semibold">Minimize</span>}
+                        <MaterialSymbol icon={collapsed ? "chevron_right" : "chevron_left"} className="text-lg" />
+                        {!collapsed && <span className="text-[13px] font-semibold">Minimize</span>}
                     </button>
                 )}
             </div>

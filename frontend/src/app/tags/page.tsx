@@ -32,9 +32,9 @@ export default function TagsPage() {
     if (isLoading) {
         return (
             <AppShell title="Organizational Intelligence">
-                <div className="max-w-4xl mx-auto p-10 grid gap-6 sm:grid-cols-2">
+                <div className="max-w-[1280px] mx-auto p-4 md:p-6 grid gap-4 sm:grid-cols-2">
                     {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="h-24 rounded-[32px] bg-surface-container-low animate-pulse border border-outline-variant/10" />
+                        <div key={i} className="h-20 rounded-2xl bg-surface-container-low animate-pulse border border-outline-variant/10" />
                     ))}
                 </div>
             </AppShell>
@@ -43,10 +43,10 @@ export default function TagsPage() {
 
     return (
         <AppShell title="Organizational Intelligence" subtitle="Autonomous Categorization Matrix">
-            <div className="max-w-6xl mx-auto p-6 md:p-10 space-y-12">
+            <div className="max-w-[1280px] mx-auto p-4 md:p-6 space-y-8">
                 
                 {/* Intelligence Callout */}
-                <div className="p-6 bg-primary-fixed/10 border border-primary-fixed/20 rounded-[32px] flex items-start gap-5 shadow-sm">
+                <div className="p-5 bg-primary-fixed/10 border border-primary-fixed/20 rounded-2xl flex items-start gap-4 shadow-sm">
                     <div className="h-10 w-10 rounded-xl bg-primary-fixed text-primary flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
                         <MaterialSymbol icon="auto_fix" />
                     </div>
@@ -59,8 +59,8 @@ export default function TagsPage() {
                 </div>
 
                 {tags.length === 0 ? (
-                    <div className="py-24 text-center bg-white rounded-[40px] border border-outline-variant/10 shadow-sm space-y-6 flex flex-col items-center">
-                        <div className="h-20 w-20 bg-surface-container rounded-3xl flex items-center justify-center text-outline-variant">
+                    <div className="py-16 text-center bg-white rounded-2xl border border-outline-variant/10 shadow-sm space-y-5 flex flex-col items-center">
+                        <div className="h-16 w-16 bg-surface-container rounded-2xl flex items-center justify-center text-outline-variant">
                             <MaterialSymbol icon="label_off" className="text-4xl" />
                         </div>
                         <div className="space-y-1">
@@ -69,15 +69,15 @@ export default function TagsPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {tags.map(tag => (
                             <div
                                 key={tag.id}
-                                className="group bg-white rounded-[32px] border border-outline-variant/10 p-6 flex items-center gap-5 hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all relative overflow-hidden"
+                                className="group bg-white rounded-2xl border border-outline-variant/10 p-5 flex items-center gap-4 hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all relative overflow-hidden"
                             >
                                 {/* Tag Visual Indicator */}
                                 <div
-                                    className="h-12 w-12 rounded-2xl shrink-0 flex items-center justify-center shadow-lg border border-white/20 transition-transform group-hover:scale-110"
+                                    className="h-11 w-11 rounded-xl shrink-0 flex items-center justify-center shadow-lg border border-white/20 transition-transform group-hover:scale-110"
                                     style={{ backgroundColor: tag.color_hex ?? "#6366f1" }}
                                 >
                                     <MaterialSymbol icon="label" className="text-2xl text-white" />

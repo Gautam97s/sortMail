@@ -158,12 +158,6 @@ export default function ThreadDetailPage() {
                     </CardContent>
                 </Card>
 
-                <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/70 px-4 py-3 text-sm text-slate-500">
-                    <span>Separate thread page is now used for detail view.</span>
-                    <Button variant="ghost" size="sm" className="gap-2 text-slate-600" onClick={() => window.history.back()}>
-                        Close thread
-                    </Button>
-                </div>
             </div>
         </ThreadPageShell>
     );

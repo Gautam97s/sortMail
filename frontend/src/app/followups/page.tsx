@@ -25,23 +25,23 @@ function FollowUpGroup({ title, items, status }: { title: string; items: Waiting
     }[status];
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center gap-4 px-2">
-                <div className={`h-8 w-8 rounded-xl ${config.bg} ${config.color} flex items-center justify-center border border-current/10 shadow-sm`}>
-                    <MaterialSymbol icon={config.icon} className="text-xl" />
+        <div className="space-y-4">
+            <div className="flex items-center gap-3 px-2">
+                <div className={`h-7 w-7 rounded-lg ${config.bg} ${config.color} flex items-center justify-center border border-current/10 shadow-sm`}>
+                    <MaterialSymbol icon={config.icon} className="text-base" />
                 </div>
-                <div className="flex items-baseline gap-3">
-                    <h3 className="font-headline text-lg font-bold text-on-surface">{title}</h3>
-                    <span className="text-[10px] font-black text-outline-variant uppercase tracking-widest">{items.length} Intelligence Nodes</span>
+                <div className="flex items-baseline gap-2.5">
+                    <h3 className="font-headline text-base font-bold text-on-surface">{title}</h3>
+                    <span className="text-[9px] font-black text-outline-variant uppercase tracking-widest">{items.length} nodes</span>
                 </div>
                 <div className="h-px flex-1 bg-outline-variant/10 ml-4 hidden md:block" />
             </div>
 
-            <div className="grid gap-3">
+            <div className="grid gap-2.5">
                 {items.length === 0 ? (
-                    <div className="p-8 rounded-[32px] border border-dashed border-outline-variant/20 bg-surface-container-lowest/50 text-center space-y-3">
-                        <div className="h-12 w-12 bg-surface-container rounded-2xl flex items-center justify-center mx-auto text-outline-variant opacity-50">
-                            <MaterialSymbol icon="ghost" className="text-2xl" />
+                    <div className="p-6 rounded-2xl border border-dashed border-outline-variant/20 bg-surface-container-lowest/50 text-center space-y-2">
+                        <div className="h-10 w-10 bg-surface-container rounded-xl flex items-center justify-center mx-auto text-outline-variant opacity-50">
+                            <MaterialSymbol icon="ghost" className="text-xl" />
                         </div>
                         <p className="text-xs font-bold text-outline-variant uppercase tracking-tighter">No suspended persistence tracking</p>
                     </div>
@@ -49,10 +49,10 @@ function FollowUpGroup({ title, items, status }: { title: string; items: Waiting
                     items.map((item) => (
                         <div 
                             key={item.waiting_id} 
-                            className="group bg-white rounded-3xl border border-outline-variant/10 p-5 flex flex-col md:flex-row md:items-center gap-6 hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all relative overflow-hidden"
+                            className="group bg-white rounded-2xl border border-outline-variant/10 p-4 flex flex-col md:flex-row md:items-center gap-4 hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all relative overflow-hidden"
                         >
-                            <div className="flex items-center gap-5 flex-1 min-w-0">
-                                <div className="h-12 w-12 rounded-2xl bg-primary-fixed/20 text-primary font-black flex items-center justify-center text-sm border border-primary/5 group-hover:scale-105 transition-transform">
+                            <div className="flex items-center gap-4 flex-1 min-w-0">
+                                <div className="h-11 w-11 rounded-xl bg-primary-fixed/20 text-primary font-black flex items-center justify-center text-xs border border-primary/5 group-hover:scale-105 transition-transform">
                                     {item.recipient.split('@')[0].substring(0, 2).toUpperCase()}
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -67,9 +67,9 @@ function FollowUpGroup({ title, items, status }: { title: string; items: Waiting
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between md:justify-end gap-6 border-t md:border-none pt-4 md:pt-0 mt-2 md:mt-0">
-                                <div className="flex items-center gap-1.5 text-[10px] font-black text-outline uppercase tracking-tighter tabular-nums">
-                                    <MaterialSymbol icon="outgoing_mail" className="text-base" />
+                            <div className="flex items-center justify-between md:justify-end gap-4 border-t md:border-none pt-3 md:pt-0 mt-1 md:mt-0">
+                                <div className="flex items-center gap-1.5 text-[9px] font-black text-outline uppercase tracking-tighter tabular-nums">
+                                    <MaterialSymbol icon="outgoing_mail" className="text-sm" />
                                     {formatDistanceToNow(new Date(item.last_sent_at))} ago
                                 </div>
                                 
@@ -100,10 +100,10 @@ export default function FollowupsPage() {
     if (isLoading) {
         return (
             <AppShell title="Persistence Tracking">
-                <div className="max-w-5xl mx-auto p-10 space-y-12">
-                    <div className="space-y-4">
+                <div className="max-w-[1280px] mx-auto p-4 md:p-6 space-y-8">
+                    <div className="space-y-3">
                         {[1, 2, 3].map(i => (
-                            <div key={i} className="h-32 bg-surface-container-low animate-pulse rounded-[32px] border border-outline-variant/10" />
+                            <div key={i} className="h-28 bg-surface-container-low animate-pulse rounded-2xl border border-outline-variant/10" />
                         ))}
                     </div>
                 </div>
@@ -114,8 +114,8 @@ export default function FollowupsPage() {
     if (error || !waitingItems) {
         return (
             <AppShell title="Persistence Tracking">
-                <div className="max-w-5xl mx-auto p-10">
-                    <div className="bg-error-container/10 border border-error/20 p-8 rounded-[32px] text-center">
+                <div className="max-w-[1280px] mx-auto p-4 md:p-6">
+                    <div className="bg-error-container/10 border border-error/20 p-6 rounded-2xl text-center">
                         <MaterialSymbol icon="report" className="text-4xl text-error mb-4" />
                         <h3 className="text-xl font-headline font-bold text-error">Intelligence Link Failure</h3>
                         <p className="text-sm font-medium text-error/80 mt-2">Failed to synchronize persistence tracking data.</p>
@@ -131,21 +131,21 @@ export default function FollowupsPage() {
 
     return (
         <AppShell title="Relationship Persistence" subtitle="AI-powered Response Monitoring">
-            <div className="max-w-6xl mx-auto p-6 md:p-10 space-y-12">
-                <section className="relative overflow-hidden rounded-[32px] bg-white border border-outline-variant/10 p-6 md:p-8 tonal-shadow">
-                    <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-tertiary-fixed/25 blur-3xl -mr-12 -mt-12" />
-                    <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-                        <div className="space-y-3 max-w-2xl">
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-tertiary-fixed/25 text-tertiary text-[10px] font-bold uppercase tracking-[0.24em] w-fit">
-                                <MaterialSymbol icon="schedule" className="text-sm" />
+            <div className="max-w-[1280px] mx-auto p-4 md:p-6 space-y-8">
+                <section className="relative overflow-hidden rounded-2xl bg-white border border-outline-variant/10 p-5 md:p-6 tonal-shadow">
+                    <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-tertiary-fixed/25 blur-2xl -mr-8 -mt-8" />
+                    <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+                        <div className="space-y-2.5 max-w-2xl">
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-fixed/25 text-tertiary text-[9px] font-bold uppercase tracking-[0.24em] w-fit">
+                                <MaterialSymbol icon="schedule" className="text-xs" />
                                 Follow-ups
                             </div>
-                            <h1 className="font-headline text-3xl md:text-4xl font-bold text-on-surface tracking-tight">Keep the conversation moving</h1>
+                            <h1 className="font-headline text-2xl md:text-3xl font-bold text-on-surface tracking-tight">Keep conversations moving</h1>
                             <p className="text-on-surface-variant max-w-2xl">
                                 Surface stalled threads, focus on the ones with the longest delay, and resolve the rest quickly.
                             </p>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto lg:min-w-[28rem]">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto lg:min-w-[24rem]">
                             <StatCard icon="error" label="Critical Alerts" value={overdue.length} color="text-error" bg="bg-error-container" />
                             <StatCard icon="schedule" label="Active Tracking" value={pending.length} color="text-tertiary" bg="bg-tertiary-container" />
                             <StatCard icon="done_all" label="Engagement Efficiency" value="94%" color="text-primary" bg="bg-primary-container" />
@@ -153,7 +153,7 @@ export default function FollowupsPage() {
                     </div>
                 </section>
 
-                <div className="space-y-14">
+                <div className="space-y-10">
                     <FollowUpGroup title="Critical Nudges" items={overdue} status="OVERDUE" />
                     <FollowUpGroup title="Active Monitoring" items={pending} status="PENDING" />
                     <FollowUpGroup title="Suspended Persistent" items={snoozed} status="SNOOZED" />
@@ -165,13 +165,13 @@ export default function FollowupsPage() {
 
 function StatCard({ icon, label, value, color, bg }: { icon: string, label: string, value: string | number, color: string, bg: string }) {
     return (
-        <div className="bg-surface-container-low p-4 rounded-[28px] border border-outline-variant/10 shadow-sm flex items-center gap-4 group hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all">
-            <div className={`h-14 w-14 rounded-2xl ${bg} ${color} flex items-center justify-center border border-current/10 shadow-inner group-hover:scale-110 transition-transform`}>
-                <MaterialSymbol icon={icon} className="text-2xl" />
+        <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/10 shadow-sm flex items-center gap-3 group hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all">
+            <div className={`h-12 w-12 rounded-xl ${bg} ${color} flex items-center justify-center border border-current/10 shadow-inner group-hover:scale-110 transition-transform`}>
+                <MaterialSymbol icon={icon} className="text-xl" />
             </div>
             <div>
-                <div className="text-[10px] font-black text-outline-variant uppercase tracking-widest">{label}</div>
-                <div className="text-3xl font-headline font-bold text-on-surface mt-0.5">{value}</div>
+                <div className="text-[8px] font-black text-outline-variant uppercase tracking-widest">{label}</div>
+                <div className="text-2xl font-headline font-bold text-on-surface mt-0.5">{value}</div>
             </div>
         </div>
     );

@@ -17,52 +17,55 @@ const config: Config = {
 		},
 		extend: {
 			colors: {
-				// Core palette from Stitch (Cognitive Flow)
+				// Core palette (backed by CSS variables in src/styles/globals.css)
 				primary: {
-					DEFAULT: '#005bbf',
-					fixed: '#d8e2ff',
-					dim: '#adc7ff',
-					container: '#1a73e8',
+					DEFAULT: 'var(--primary)',
+					fixed: 'var(--primary-fixed)',
+					dim: 'color-mix(in srgb, var(--primary) 65%, white 35%)',
+					container: 'var(--primary-container)',
 					foreground: 'var(--primary-foreground)'
 				},
+				'on-primary': 'var(--on-primary)',
 				secondary: {
-					DEFAULT: '#5b5f64',
-					fixed: '#dfe3e8',
-					'fixed-dim': '#c3c7cc',
-					container: '#dde0e6',
+					DEFAULT: 'var(--secondary)',
+					fixed: 'var(--secondary-fixed)',
+					'fixed-dim': 'color-mix(in srgb, var(--secondary) 55%, white 45%)',
+					container: 'var(--secondary-container)',
 					foreground: 'var(--secondary-foreground)'
 				},
+				'on-secondary': 'var(--on-secondary)',
 				tertiary: {
-					DEFAULT: '#6833ea',
-					fixed: '#e8deff',
-					'fixed-dim': '#cdbdff',
-					container: '#8155ff',
+					DEFAULT: 'var(--tertiary)',
+					fixed: 'var(--tertiary-fixed)',
+					'fixed-dim': 'color-mix(in srgb, var(--tertiary) 60%, white 40%)',
+					container: 'var(--tertiary-container)',
 				},
+				'on-tertiary': 'var(--on-tertiary)',
 				surface: {
-					DEFAULT: '#f8fafb',
-					bright: '#f8fafb',
-					dim: '#d8dadb',
-					variant: '#e1e3e4',
+					DEFAULT: 'var(--surface)',
+					bright: 'var(--surface-bright)',
+					dim: 'var(--surface-dim)',
+					variant: 'var(--surface-variant)',
 					container: {
-						DEFAULT: '#eceeef',
-						low: '#f2f4f5',
-						lowest: '#ffffff',
-						high: '#e6e8e9',
-						highest: '#e1e3e4',
+						DEFAULT: 'var(--surface-container)',
+						low: 'var(--surface-container-low)',
+						lowest: 'var(--surface-container-lowest)',
+						high: 'var(--surface-container-high)',
+						highest: 'var(--surface-container-highest)',
 					},
-					tint: '#005bc0',
+					tint: 'var(--primary)',
 				},
 				'on-surface': {
-					DEFAULT: '#191c1d',
-					variant: '#414754',
+					DEFAULT: 'var(--on-surface)',
+					variant: 'var(--on-surface-variant)',
 				},
 				outline: {
-					DEFAULT: '#727785',
-					variant: '#c1c6d6',
+					DEFAULT: 'var(--outline)',
+					variant: 'var(--outline-variant)',
 				},
 				error: {
-					DEFAULT: '#ba1a1a',
-					container: '#ffdad6',
+					DEFAULT: 'var(--error)',
+					container: 'var(--error-container)',
 				},
 
 				// Shadcn/Legacy mappings

@@ -58,7 +58,7 @@ function InboxContent() {
     return (
         <div className="flex flex-col h-full bg-surface-container-lowest">
             {/* Toolbar / Action Bar */}
-            <div className="h-14 border-b border-outline-variant/10 flex items-center justify-between px-6 bg-white/50 backdrop-blur-sm sticky top-0 z-20">
+            <div className="h-10 border-b border-outline-variant/10 flex items-center justify-between px-4 bg-white/50 backdrop-blur-sm sticky top-0 z-20">
                 <div className="flex items-center gap-6">
                     <div className="flex items-center gap-3">
                         <input type="checkbox" className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer transition-all" />
@@ -134,8 +134,8 @@ function InboxContent() {
                         <button onClick={() => window.location.reload()} className="text-primary font-bold hover:underline">Retry</button>
                     </div>
                 ) : filtered.length === 0 ? (
-                    <div className="p-20 text-center flex flex-col items-center gap-6">
-                        <div className="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center text-outline">
+                    <div className="p-12 text-center flex flex-col items-center gap-5">
+                        <div className="w-16 h-16 rounded-full bg-surface-container flex items-center justify-center text-outline">
                             <MaterialSymbol icon="inbox" className="text-4xl" />
                         </div>
                         <div className="space-y-1">

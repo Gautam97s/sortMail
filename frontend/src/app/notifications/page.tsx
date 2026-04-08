@@ -63,7 +63,7 @@ export default function NotificationsPage() {
     if (isLoading) {
         return (
             <AppShell title="Notifications">
-                <div className="max-w-3xl mx-auto space-y-3 p-6">
+                <div className="max-w-[960px] mx-auto space-y-3 p-4 md:p-6">
                     {[1, 2, 3].map(i => (
                         <div key={i} className="h-20 rounded-xl bg-paper-mid animate-pulse" />
                     ))}
@@ -74,16 +74,16 @@ export default function NotificationsPage() {
 
     return (
         <AppShell title="Notifications" subtitle={unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}>
-            <div className="max-w-3xl mx-auto space-y-6 p-6 md:p-10">
-                <section className="relative overflow-hidden rounded-[32px] bg-white border border-outline-variant/10 p-6 md:p-8 tonal-shadow">
-                    <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-tertiary-fixed/25 blur-3xl -mr-10 -mt-10" />
+            <div className="max-w-[960px] mx-auto space-y-5 p-4 md:p-6">
+                <section className="relative overflow-hidden rounded-2xl bg-white border border-outline-variant/10 p-5 md:p-6 tonal-shadow">
+                    <div className="absolute right-0 top-0 h-28 w-28 rounded-full bg-tertiary-fixed/25 blur-2xl -mr-8 -mt-8" />
                     <div className="relative flex flex-col md:flex-row md:items-end md:justify-between gap-5">
                         <div className="space-y-2 max-w-2xl">
                             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-tertiary-fixed/25 text-tertiary text-[10px] font-bold uppercase tracking-[0.24em] w-fit">
                                 <Bell className="h-3.5 w-3.5" />
                                 Notifications
                             </div>
-                            <h1 className="font-headline text-3xl font-bold text-on-surface tracking-tight">What needs your attention</h1>
+                            <h1 className="font-headline text-2xl md:text-3xl font-bold text-on-surface tracking-tight">What needs your attention</h1>
                             <p className="text-sm text-on-surface-variant max-w-xl">
                                 Read the highest-signal updates first, then clear the rest in one pass.
                             </p>
@@ -94,7 +94,7 @@ export default function NotificationsPage() {
                                 size="sm"
                                 onClick={() => markAllRead.mutate()}
                                 disabled={markAllRead.isPending}
-                                className="rounded-2xl border-outline-variant/20 bg-surface-container-lowest hover:bg-surface-container"
+                                className="rounded-xl border-outline-variant/20 bg-surface-container-lowest hover:bg-surface-container h-9 px-3 text-[12px]"
                             >
                                 <CheckCheck className="h-4 w-4 mr-2" />
                                 Mark all read
@@ -102,45 +102,45 @@ export default function NotificationsPage() {
                         )}
                     </div>
 
-                    <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="rounded-2xl bg-surface-container-low px-4 py-3">
+                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="rounded-xl bg-surface-container-low px-3 py-2.5">
                             <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-outline">Unread</div>
-                            <div className="text-2xl font-headline font-bold text-on-surface mt-1">{unreadCount}</div>
+                            <div className="text-xl font-headline font-bold text-on-surface mt-1">{unreadCount}</div>
                         </div>
-                        <div className="rounded-2xl bg-surface-container-low px-4 py-3">
+                        <div className="rounded-xl bg-surface-container-low px-3 py-2.5">
                             <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-outline">Delivered today</div>
-                            <div className="text-2xl font-headline font-bold text-on-surface mt-1">{notifications.length}</div>
+                            <div className="text-xl font-headline font-bold text-on-surface mt-1">{notifications.length}</div>
                         </div>
-                        <div className="rounded-2xl bg-surface-container-low px-4 py-3">
+                        <div className="rounded-xl bg-surface-container-low px-3 py-2.5">
                             <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-outline">Priority</div>
-                            <div className="text-2xl font-headline font-bold text-on-surface mt-1">{notifications.filter((n) => n.priority === 'high').length}</div>
+                            <div className="text-xl font-headline font-bold text-on-surface mt-1">{notifications.filter((n) => n.priority === 'high').length}</div>
                         </div>
                     </div>
                 </section>
 
                 {notifications.length === 0 ? (
-                    <Card className="p-12 text-center text-muted-foreground rounded-[32px] border-outline-variant/10">
+                    <Card className="p-8 text-center text-muted-foreground rounded-2xl border-outline-variant/10">
                         <Bell className="h-12 w-12 mx-auto mb-4 opacity-30" />
                         <p className="text-lg font-medium">No notifications</p>
                         <p className="text-sm">You&apos;re all caught up!</p>
                     </Card>
                 ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                         {notifications.map((n) => (
                             <Card
                                 key={n.id}
-                                className={`p-5 flex items-start gap-4 transition-all group rounded-[28px] border-outline-variant/10 ${!n.is_read ? "border-primary/30 bg-primary/5 shadow-sm" : "bg-white"}`}
+                                className={`p-4 flex items-start gap-3 transition-all group rounded-2xl border-outline-variant/10 ${!n.is_read ? "border-primary/30 bg-primary/5 shadow-sm" : "bg-white"}`}
                             >
-                                <div className="mt-0.5 p-2.5 rounded-2xl bg-surface-container">
+                                <div className="mt-0.5 p-2 rounded-xl bg-surface-container">
                                     {getIcon(n.type)}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-2">
-                                        <p className={`text-sm font-medium truncate ${!n.is_read ? "text-ink" : "text-ink-light"}`}>
+                                        <p className={`text-[13px] font-medium truncate ${!n.is_read ? "text-ink" : "text-ink-light"}`}>
                                             {n.title}
                                         </p>
                                         {!n.is_read && (
-                                            <Badge variant="secondary" className="text-xs shrink-0 bg-primary/10 text-primary">New</Badge>
+                                            <Badge variant="secondary" className="text-[10px] shrink-0 bg-primary/10 text-primary">New</Badge>
                                         )}
                                     </div>
                                     {n.body && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>}
