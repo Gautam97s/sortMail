@@ -14,6 +14,8 @@ const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string
 interface TaskFiltersProps {
     searchQuery: string;
     onSearchChange: (query: string) => void;
+    sourceFilter: string;
+    onSourceChange: (value: string) => void;
     priorityFilter: string;
     onPriorityChange: (priority: string) => void;
     statusFilter: string;
@@ -26,6 +28,8 @@ interface TaskFiltersProps {
 export const TaskFilters: React.FC<TaskFiltersProps> = ({
     searchQuery,
     onSearchChange,
+    sourceFilter,
+    onSourceChange,
     priorityFilter,
     onPriorityChange,
     statusFilter,
@@ -34,7 +38,7 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
     onCreateTask,
     isSaving = false,
 }) => {
-    const hasActiveFilters = searchQuery !== '' || priorityFilter !== 'all' || statusFilter !== 'all';
+    const hasActiveFilters = searchQuery !== '' || sourceFilter !== '' || priorityFilter !== 'all' || statusFilter !== 'all';
 
     return (
         <div className="flex flex-col md:flex-row items-center gap-4 bg-surface-container-low p-2 rounded-[28px] border border-outline-variant/10 shadow-inner">
@@ -52,6 +56,16 @@ export const TaskFilters: React.FC<TaskFiltersProps> = ({
             </div>
 
             <div className="flex items-center gap-2 p-1.5 shrink-0 bg-white/40 rounded-2xl border border-outline-variant/5">
+                <div className="flex items-center gap-2 px-3 py-2 bg-surface-container rounded-xl">
+                    <MaterialSymbol icon="link" className="text-sm text-outline-variant" />
+                    <input
+                        value={sourceFilter}
+                        onChange={(e) => onSourceChange(e.target.value)}
+                        placeholder="Thread ID"
+                        className="w-28 bg-transparent text-[10px] font-black uppercase tracking-widest text-on-surface focus:outline-none"
+                    />
+                </div>
+
                 <div className="flex items-center gap-2 px-3 py-2 bg-surface-container rounded-xl">
                     <MaterialSymbol icon="priority_high" className="text-sm text-outline-variant" />
                     <select

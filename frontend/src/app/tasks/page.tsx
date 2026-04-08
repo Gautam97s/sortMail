@@ -21,6 +21,7 @@ export default function TasksPage() {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<TaskDTOv1 | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [sourceFilter, setSourceFilter] = useState('');
     const [priorityFilter, setPriorityFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
     const [newTitle, setNewTitle] = useState('');
@@ -30,9 +31,10 @@ export default function TasksPage() {
 
     const taskFilters = useMemo(() => ({
         q: searchQuery || undefined,
+        thread_id: sourceFilter || undefined,
         priority: priorityFilter === 'all' ? undefined : priorityFilter,
         status: statusFilter === 'all' ? undefined : statusFilter,
-    }), [searchQuery, priorityFilter, statusFilter]);
+    }), [searchQuery, sourceFilter, priorityFilter, statusFilter]);
 
     const { data: tasks, isLoading, error } = useTasks(taskFilters);
     const createTask = useCreateTask();
@@ -45,6 +47,7 @@ export default function TasksPage() {
 
     const handleClearFilters = () => {
         setSearchQuery('');
+        setSourceFilter('');
         setPriorityFilter('all');
         setStatusFilter('all');
     };
@@ -156,6 +159,8 @@ export default function TasksPage() {
                 <TaskFilters
                     searchQuery={searchQuery}
                     onSearchChange={setSearchQuery}
+                    sourceFilter={sourceFilter}
+                    onSourceChange={setSourceFilter}
                     priorityFilter={priorityFilter}
                     onPriorityChange={setPriorityFilter}
                     statusFilter={statusFilter}

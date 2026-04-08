@@ -365,7 +365,7 @@ async def _create_task(
             pass
 
     raw_type = (item.get("task_type") or "REPLY").upper()
-    ALLOWED_TASK_TYPES = {"REPLY", "REVIEW", "SCHEDULE", "FOLLOWUP"}
+    ALLOWED_TASK_TYPES = {"REPLY", "REVIEW", "SCHEDULE", "FOLLOWUP", "OTHER"}
     
     if raw_type not in ALLOWED_TASK_TYPES:
         logger.warning(f"Invalid task type '{raw_type}', defaulting to '{TaskType.REPLY.value}'")
