@@ -204,103 +204,97 @@ export default function ContactDetailPage() {
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
-                <div className="max-w-[1280px] space-y-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-6 lg:space-y-0">
+                <div className="max-w-[1280px] mx-auto grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
                     <div className="space-y-6 min-w-0">
-                        {/* Stats row */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card className="p-4 rounded-2xl shadow-sm">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                                    <Mail className="w-5 h-5 text-accent" />
+                            <Card className="p-4 rounded-2xl shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                                        <Mail className="w-5 h-5 text-accent" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted mb-0.5">Total Interactions</p>
+                                        <p className="text-2xl font-bold text-ink">{contact.interaction_count}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-xs text-muted mb-0.5">Total Interactions</p>
-                                    <p className="text-2xl font-bold text-ink">{contact.interaction_count}</p>
+                            </Card>
+                            <Card className="p-4 rounded-2xl shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                                        <ArrowDownLeft className="w-5 h-5 text-emerald-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted mb-0.5">Received from</p>
+                                        <p className="text-2xl font-bold text-ink">{isLoadingFrom ? "…" : fromThreads.length}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        </Card>
-                        <Card className="p-4 rounded-2xl shadow-sm">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                                    <ArrowDownLeft className="w-5 h-5 text-emerald-500" />
+                            </Card>
+                            <Card className="p-4 rounded-2xl shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                                        <ArrowUpRight className="w-5 h-5 text-blue-500" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted mb-0.5">Sent to</p>
+                                        <p className="text-2xl font-bold text-ink">{isLoadingTo ? "…" : toThreads.length}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-xs text-muted mb-0.5">Received from</p>
-                                    <p className="text-2xl font-bold text-ink">
-                                        {isLoadingFrom ? "…" : fromThreads.length}
-                                    </p>
-                                </div>
-                            </div>
-                        </Card>
-                        <Card className="p-4 rounded-2xl shadow-sm">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                                    <ArrowUpRight className="w-5 h-5 text-blue-500" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-muted mb-0.5">Sent to</p>
-                                    <p className="text-2xl font-bold text-ink">
-                                        {isLoadingTo ? "…" : toThreads.length}
-                                    </p>
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-
+                            </Card>
                         </div>
 
-                        {/* Tags */}
                         <div>
-                        <div className="flex items-center justify-between mb-3">
-                            <h2 className="font-display text-lg text-ink">Tags & Categories</h2>
-                            {!showTagInput ? (
-                                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-primary"
-                                    onClick={() => setShowTagInput(true)}>
-                                    <Plus className="w-3 h-3" /> Add Tag
-                                </Button>
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <Input
-                                        size={1}
-                                        value={newTagName}
-                                        onChange={(e) => setNewTagName(e.target.value)}
-                                        placeholder="Tag name..."
-                                        className="h-7 text-xs w-32 bg-paper"
-                                        autoFocus
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" && newTagName) {
-                                                addTag({ contactId: contact.id, name: newTagName });
-                                                setNewTagName(""); setShowTagInput(false);
-                                            }
-                                            if (e.key === "Escape") setShowTagInput(false);
-                                        }}
-                                    />
-                                    <Button variant="ghost" size="icon" className="h-7 w-7"
-                                        onClick={() => setShowTagInput(false)}>
-                                        <X className="w-3 h-3" />
+                            <div className="flex items-center justify-between mb-3 gap-3">
+                                <h2 className="font-display text-lg text-ink">Tags & Categories</h2>
+                                {!showTagInput ? (
+                                    <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-primary" onClick={() => setShowTagInput(true)}>
+                                        <Plus className="w-3 h-3" /> Add Tag
                                     </Button>
-                                </div>
-                            )}
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            size={1}
+                                            value={newTagName}
+                                            onChange={(e) => setNewTagName(e.target.value)}
+                                            placeholder="Tag name..."
+                                            className="h-7 text-xs w-32 bg-paper"
+                                            autoFocus
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" && newTagName) {
+                                                    addTag({ contactId: contact.id, name: newTagName });
+                                                    setNewTagName("");
+                                                    setShowTagInput(false);
+                                                }
+                                                if (e.key === "Escape") setShowTagInput(false);
+                                            }}
+                                        />
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowTagInput(false)}>
+                                            <X className="w-3 h-3" />
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {contact.tags?.map((tag: any) => (
+                                    <Badge
+                                        key={tag.id}
+                                        style={{ backgroundColor: tag.color_hex || "#E2E8F0", color: "#1E293B" }}
+                                        className="flex items-center gap-1.5 px-2 py-1 border-none"
+                                    >
+                                        {tag.name}
+                                        <button
+                                            onClick={() => removeTag({ contactId: contact.id, tagId: tag.id })}
+                                            className="hover:bg-black/10 rounded-full p-0.5 transition-colors"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </Badge>
+                                ))}
+                                {contact.tags?.length === 0 && !showTagInput && (
+                                    <p className="text-sm text-muted italic">No tags assigned yet.</p>
+                                )}
+                            </div>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                            {contact.tags?.map((tag: any) => (
-                                <Badge key={tag.id}
-                                    style={{ backgroundColor: tag.color_hex || "#E2E8F0", color: "#1E293B" }}
-                                    className="flex items-center gap-1.5 px-2 py-1 border-none">
-                                    {tag.name}
-                                    <button onClick={() => removeTag({ contactId: contact.id, tagId: tag.id })}
-                                        className="hover:bg-black/10 rounded-full p-0.5 transition-colors">
-                                        <X className="w-3 h-3" />
-                                    </button>
-                                </Badge>
-                            ))}
-                            {contact.tags?.length === 0 && !showTagInput && (
-                                <p className="text-sm text-muted italic">No tags assigned yet.</p>
-                            )}
-                        </div>
-                    </div>
 
-                        {/* From this contact */}
                         <ThreadSection
                             title="From this contact"
                             icon={<ArrowDownLeft className="w-4 h-4 text-emerald-500" />}
@@ -309,7 +303,6 @@ export default function ContactDetailPage() {
                             emptyText="No emails received from this contact."
                         />
 
-                        {/* To this contact */}
                         <ThreadSection
                             title="To this contact"
                             icon={<ArrowUpRight className="w-4 h-4 text-blue-500" />}
