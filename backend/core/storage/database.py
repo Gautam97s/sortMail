@@ -6,6 +6,7 @@ SQLAlchemy async database setup.
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
+from sqlalchemy import text
 
 from app.config import settings
 
@@ -120,3 +121,9 @@ async def init_db():
     """Initialize database tables."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+        # Compatibility self-heal:
+        # Some deployed environments may lag Alembic and miss newer columns.
+        # Add critical columns idempotently so API queries don't crash on startup.
+        await conn.execute(text("ALTER TABLE threads ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT FALSE"))
+        await conn.execute(text("ALTER TABLE threads ADD COLUMN IF NOT EXISTS is_trash BOOLEAN DEFAULT FALSE"))
