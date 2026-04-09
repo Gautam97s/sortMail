@@ -1,22 +1,17 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import AppShell from "@/components/layout/AppShell";
-import { formatDistanceToNow } from "date-fns";
-import { useAiDrafts, useApproveDraft, useScheduleDraft, useGenerateDraft } from "@/hooks/useDrafts";
-import { DraftControls } from "@/components/drafts/DraftControls";
-import { DraftEditor } from "@/components/drafts/DraftEditor";
-import { AiDraft } from "@/types/dashboard";
-import { useThreads } from "@/hooks/useThreads";
+import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
+import AppShell from '@/components/layout/AppShell';
+import { formatDistanceToNow } from 'date-fns';
+import { useAiDrafts, useApproveDraft, useScheduleDraft } from '@/hooks/useDrafts';
+import { AiDraft } from '@/types/dashboard';
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
-const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
+const MaterialSymbol = ({ icon, filled = false, className = '' }: { icon: string; filled?: boolean; className?: string }) => (
     <span 
         className={`material-symbols-outlined ${className}`}
         style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
@@ -25,46 +20,48 @@ const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string
     </span>
 );
 
-export default function DraftsPage() {
-    // ── Generator state ──────────────────────────────────────────────
-    const [selectedThreadId, setSelectedThreadId] = useState("");
-    const [tone, setTone] = useState("NORMAL");
-    const [instructions, setInstructions] = useState("");
-    const [draftContent, setDraftContent] = useState("");
-    const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+type SortOption = 'recent' | 'oldest' | 'status';
 
-    // ── Pending drafts state ─────────────────────────────────────────
-    const [pendingOpen, setPendingOpen] = useState(true);
-    const [scheduleTarget, setScheduleTarget] = useState<AiDraft | null>(null);
-    const [scheduledDate, setScheduledDate] = useState("");
+export default function DraftsListPage() {
+    const [search, setSearch] = useState('');
+    const [sort, setSort] = useState<SortOption>('recent');
     const [previewDraft, setPreviewDraft] = useState<AiDraft | null>(null);
+    const [scheduleTarget, setScheduleTarget] = useState<AiDraft | null>(null);
+    const [scheduledDate, setScheduledDate] = useState('');
 
-    // ── Hooks ────────────────────────────────────────────────────────
-    const { data: drafts = [] } = useAiDrafts();
-    const { data: threads = [] } = useThreads();
-    const { mutate: generateDraft, isPending: isGenerating } = useGenerateDraft();
+    const { data: drafts = [], isLoading } = useAiDrafts();
     const { mutate: approveDraft, isPending: approving } = useApproveDraft();
     const { mutate: scheduleDraft, isPending: scheduling } = useScheduleDraft();
 
-    const selectedThread = threads.find((t: any) => t.thread_id === selectedThreadId) ?? null;
+    const filtered = useMemo(() => {
+        let items = drafts;
+        
+        if (search) {
+            const q = search.toLowerCase();
+            items = items.filter(d =>
+                (d.subject ?? '').toLowerCase().includes(q) ||
+                (d.body ?? '').toLowerCase().includes(q)
+            );
+        }
 
-    const handleGenerate = () => {
-        if (!selectedThreadId) return;
-        generateDraft(
-            { threadId: selectedThreadId, tone, additionalContext: instructions },
-            {
-                onSuccess: (data: any) => {
-                    setDraftContent(data.body ?? "");
-                    setCurrentDraftId(data.id ?? null);
-                },
-            }
-        );
-    };
+        if (sort === 'recent') {
+            items = [...items].sort((a, b) => 
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+        } else if (sort === 'oldest') {
+            items = [...items].sort((a, b) => 
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+        } else if (sort === 'status') {
+            items = [...items].sort((a, b) => {
+                const statusOrder = { draft: 1, scheduled: 2, sent: 3 };
+                return (statusOrder[a.status as keyof typeof statusOrder] || 0) - 
+                       (statusOrder[b.status as keyof typeof statusOrder] || 0);
+            });
+        }
 
-    const handleRegenerate = () => {
-        if (!selectedThreadId) return;
-        handleGenerate();
-    };
+        return items;
+    }, [drafts, search, sort]);
 
     const handleScheduleSubmit = () => {
         if (!scheduleTarget || !scheduledDate) return;
@@ -74,139 +71,188 @@ export default function DraftsPage() {
         );
     };
 
-    return (
-        <AppShell title="Copilot Workspace" subtitle="Intelligent Reply Synthesis">
-            {/* ── Main two-panel generator ───────────────────────────── */}
-            <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-surface-container-lowest">
-                {/* Left panel: controls */}
-                <DraftControls
-                    selectedThreadId={selectedThreadId}
-                    onThreadChange={setSelectedThreadId}
-                    tone={tone}
-                    onToneChange={setTone}
-                    instructions={instructions}
-                    onInstructionsChange={setInstructions}
-                    isGenerating={isGenerating}
-                    onGenerate={handleGenerate}
-                />
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'sent': return 'bg-green-100 text-green-700';
+            case 'scheduled': return 'bg-blue-100 text-blue-700';
+            case 'draft': return 'bg-amber-100 text-amber-700';
+            default: return 'bg-gray-100 text-gray-700';
+        }
+    };
 
-                {/* Right panel: editor + pending drafts */}
-                <div className="flex-1 flex flex-col overflow-hidden">
-                    {/* Draft editor takes most of the space */}
-                    <div className="flex-1 overflow-hidden">
-                        <DraftEditor
-                            content={draftContent}
-                            onUpdateContent={setDraftContent}
-                            originalThread={selectedThread as any}
-                            isGenerating={isGenerating}
-                            onRegenerate={handleRegenerate}
-                        />
+    return (
+        <AppShell title="Drafts" subtitle="Intelligent Management">
+            <div className="flex flex-col h-[calc(100vh-64px)] bg-surface-container-lowest">
+                {/* Toolbar */}
+                <div className="h-14 border-b border-outline-variant/10 flex items-center justify-between px-6 bg-white/50 backdrop-blur-sm sticky top-0 z-20">
+                    <div className="flex items-center gap-4 flex-1">
+                        <div className="h-9 px-3 bg-surface-container rounded-full flex items-center gap-2 flex-1 max-w-sm">
+                            <MaterialSymbol icon="search" className="text-outline-variant text-lg" />
+                            <input 
+                                type="text" 
+                                placeholder="Search drafts..." 
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="bg-transparent border-none focus:ring-0 text-sm font-medium w-full placeholder:text-outline-variant"
+                            />
+                        </div>
+                        <select 
+                            value={sort}
+                            onChange={(e) => setSort(e.target.value as SortOption)}
+                            className="h-9 px-3 bg-surface-container rounded-xl border border-outline-variant/10 text-sm font-medium focus:ring-2 focus:ring-primary-fixed"
+                        >
+                            <option value="recent">Most Recent</option>
+                            <option value="oldest">Oldest</option>
+                            <option value="status">By Status</option>
+                        </select>
                     </div>
 
-                    {/* Collapsible pending drafts section at the bottom */}
-                    {drafts.length > 0 && (
-                        <div className="border-t border-outline-variant/10 bg-white/80 backdrop-blur-xl shrink-0 shadow-[0_-4px_30px_-10px_rgba(0,0,0,0.05)]">
-                            <button
-                                className="w-full h-10 flex items-center justify-between px-4 hover:bg-surface-container transition-all group"
-                                onClick={() => setPendingOpen(p => !p)}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="h-4 w-4 bg-primary-fixed rounded-full animate-pulse shadow-sm shadow-primary/20" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-on-surface flex items-center gap-3">
-                                        Active Intelligence Queue
-                                        <span className="h-5 px-2 bg-on-surface text-surface rounded-full flex items-center justify-center font-black">
-                                            {drafts.length}
-                                        </span>
-                                    </span>
-                                </div>
-                                <div className={`p-2 rounded-xl group-hover:bg-primary-fixed/20 group-hover:text-primary transition-all ${pendingOpen ? 'rotate-180' : ''}`}>
-                                    <MaterialSymbol icon="expand_less" className="text-xl" />
-                                </div>
-                            </button>
+                    <Link 
+                        href="/drafts/workspace" 
+                        className="h-9 px-4 bg-primary text-on-primary rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2 shadow-lg shadow-primary/20"
+                    >
+                        <MaterialSymbol icon="add" />
+                        New Draft
+                    </Link>
+                </div>
 
-                            {pendingOpen && (
-                                <div className="max-h-64 overflow-y-auto px-4 pb-4 space-y-2.5">
-                                    {drafts.map(draft => (
-                                        <div
-                                            key={draft.id}
-                                            className="group bg-surface-container-low border border-outline-variant/5 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center gap-4 hover:bg-white hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all"
-                                        >
-                                            <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-outline group-hover:text-primary transition-colors border border-outline-variant/5">
-                                                <MaterialSymbol icon="auto_fix" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-0.5">
-                                                    <p className="text-sm font-bold text-on-surface truncate tracking-tight">{draft.subject}</p>
-                                                    <div className="px-1.5 py-0.5 bg-primary-fixed/20 text-primary font-black text-[8px] rounded uppercase tracking-wider">{draft.tone}</div>
+                {/* Drafts List */}
+                <div className="flex-1 overflow-y-auto">
+                    {isLoading ? (
+                        <div className="p-8 space-y-4">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <div key={i} className="p-4 bg-white rounded-2xl border border-outline-variant/10 animate-pulse">
+                                    <div className="flex items-start gap-4">
+                                        <div className="h-12 w-12 bg-surface-container rounded-xl" />
+                                        <div className="flex-1 space-y-2">
+                                            <div className="h-4 bg-surface-container rounded w-3/4" />
+                                            <div className="h-3 bg-surface-container rounded w-full" />
+                                            <div className="h-3 bg-surface-container rounded w-1/2" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : filtered.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center gap-5 p-8">
+                            <div className="h-20 w-20 rounded-full bg-surface-container flex items-center justify-center text-outline">
+                                <MaterialSymbol icon="mail" className="text-5xl" />
+                            </div>
+                            <div className="space-y-2 text-center">
+                                <p className="text-lg font-headline font-bold text-on-surface">No Drafts Yet</p>
+                                <p className="text-sm text-on-surface-variant max-w-xs">
+                                    {search ? 'No drafts match your search.' : 'Start creating intelligent responses to your emails.'}
+                                </p>
+                            </div>
+                            <Link 
+                                href="/drafts/workspace"
+                                className="px-6 py-3 bg-primary text-on-primary rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                            >
+                                <MaterialSymbol icon="auto_fix" />
+                                Create First Draft
+                            </Link>
+                        </div>
+                    ) : (
+                        <div className="space-y-3 p-6">
+                            {filtered.map((draft) => (
+                                <div 
+                                    key={draft.id}
+                                    className="group bg-white border border-outline-variant/10 rounded-2xl p-5 hover:shadow-lg hover:border-primary-fixed/30 transition-all cursor-pointer"
+                                >
+                                    <div className="flex items-start gap-4">
+                                        {/* Icon */}
+                                        <div className="h-12 w-12 bg-primary-fixed/20 text-primary rounded-xl flex items-center justify-center shrink-0 group-hover:bg-primary-fixed/40 transition-all border border-primary-fixed/10">
+                                            <MaterialSymbol icon="auto_fix" className="text-xl" />
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <h3 className="text-base font-bold text-on-surface truncate">
+                                                    {draft.subject || '(No Subject)'}
+                                                </h3>
+                                                <div className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shrink-0 ${getStatusColor(draft.status)}`}>
+                                                    {draft.status}
                                                 </div>
-                                                <p
-                                                    className="text-xs font-medium text-outline-variant truncate cursor-pointer hover:text-on-surface transition-colors italic"
-                                                    onClick={() => setPreviewDraft(draft)}
-                                                >
-                                                    &ldquo;{draft.body.slice(0, 120)}...&rdquo;
-                                                </p>
-                                                <div className="flex items-center gap-1.5 text-[9px] font-black text-outline uppercase tracking-tighter mt-1">
+                                            </div>
+                                            <p className="text-sm text-on-surface-variant truncate mb-2 italic">
+                                                &ldquo;{draft.body.slice(0, 100)}...&rdquo;
+                                            </p>
+                                            <div className="flex items-center gap-4 text-[10px] font-black text-outline-variant uppercase tracking-tighter">
+                                                <div className="flex items-center gap-1">
                                                     <MaterialSymbol icon="schedule" className="text-xs" />
-                                                    Manifested {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
+                                                    {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
                                                 </div>
-                                            </div>
-                                            <div className="w-full lg:w-52 shrink-0 rounded-xl border border-primary-fixed/10 bg-primary-fixed/5 p-3 space-y-2">
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">AI Intelligence</span>
-                                                    <span className="px-2 py-0.5 rounded-full bg-white border border-primary-fixed/20 text-[9px] font-black uppercase tracking-widest text-primary">
-                                                        {draft.status}
-                                                    </span>
+                                                <div className="flex items-center gap-1">
+                                                    <MaterialSymbol icon="architecture" className="text-xs" />
+                                                    {draft.tone}
                                                 </div>
-                                                <p className="text-[10px] font-medium text-on-surface-variant">
-                                                    {draft.tone} · Generated {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
-                                                </p>
-                                                <p className="text-[10px] font-medium text-outline-variant truncate">
-                                                    Draft body length {draft.body.length} characters
-                                                </p>
-                                            </div>
-                                            <div className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
-                                                <button
-                                                    className="h-10 px-4 bg-primary text-on-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
-                                                    onClick={() => approveDraft(draft.id)}
-                                                    disabled={approving}
-                                                >
-                                                    <MaterialSymbol icon="send" className="text-lg" />
-                                                    Deploy
-                                                </button>
-                                                <button
-                                                    className="h-10 px-4 bg-surface-container text-on-surface-variant rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:shadow-md transition-all flex items-center gap-2 border border-outline-variant/10"
-                                                    onClick={() => { setScheduleTarget(draft); setScheduledDate(""); }}
-                                                    disabled={scheduling}
-                                                >
-                                                    <MaterialSymbol icon="event" className="text-lg" />
-                                                    Defer
-                                                </button>
+                                                <div className="flex items-center gap-1">
+                                                    <MaterialSymbol icon="text_fields" className="text-xs" />
+                                                    {draft.body.length} chars
+                                                </div>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
 
-                    {/* No drafts yet — show subtle info at bottom */}
-                    {drafts.length === 0 && (
-                        <div className="h-14 border-t border-outline-variant/10 px-6 flex items-center gap-3 text-[10px] font-black text-outline uppercase tracking-widest bg-white/80">
-                            <MaterialSymbol icon="cloud_done" className="text-lg text-primary" />
-                            Intelligence Queue Exhausted · Ready for next synthesis
+                                        {/* Actions */}
+                                        <div className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                                            <Link
+                                                href="/drafts/workspace"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="h-9 px-3 bg-primary text-on-primary rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center gap-1"
+                                            >
+                                                <MaterialSymbol icon="edit" className="text-sm" />
+                                                Edit
+                                            </Link>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setPreviewDraft(draft);
+                                                }}
+                                                className="h-9 px-3 bg-surface-container text-on-surface-variant rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-surface-container-high transition-all flex items-center gap-1 border border-outline-variant/10"
+                                            >
+                                                <MaterialSymbol icon="visibility" className="text-sm" />
+                                                View
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setScheduleTarget(draft);
+                                                    setScheduledDate('');
+                                                }}
+                                                className="h-9 px-3 bg-surface-container text-on-surface-variant rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-surface-container-high transition-all flex items-center gap-1 border border-outline-variant/10"
+                                            >
+                                                <MaterialSymbol icon="schedule" className="text-sm" />
+                                                Schedule
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    approveDraft(draft.id);
+                                                }}
+                                                disabled={approving}
+                                                className="h-9 px-3 bg-green-100 text-green-700 rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-1 disabled:opacity-50"
+                                            >
+                                                <MaterialSymbol icon="send" className="text-sm" />
+                                                Send
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Preview Modal */}
+            {/* Preview Dialog */}
             {previewDraft && (
                 <Dialog open onOpenChange={() => setPreviewDraft(null)}>
                     <DialogContent className="max-w-2xl rounded-2xl border-none shadow-2xl p-0 overflow-hidden">
                         <div className="bg-white p-6 space-y-5">
                             <div className="flex items-center justify-between pb-5 border-b border-outline-variant/10">
                                 <div className="space-y-1">
-                                    <div className="px-2 py-0.5 bg-primary-fixed/20 text-primary font-black text-[8px] rounded-full uppercase tracking-widest inline-block mb-1">Response Preview</div>
+                                    <div className="px-2 py-0.5 bg-primary-fixed/20 text-primary font-black text-[8px] rounded-full uppercase tracking-widest inline-block mb-1">Draft Preview</div>
                                     <h3 className="text-lg font-headline font-bold text-on-surface tracking-tight">{previewDraft.subject}</h3>
                                 </div>
                                 <button onClick={() => setPreviewDraft(null)} className="h-9 w-9 flex items-center justify-center bg-surface-container rounded-xl text-outline hover:text-error transition-all">
@@ -228,7 +274,7 @@ export default function DraftsPage() {
                                         disabled={approving}
                                     >
                                         <MaterialSymbol icon="send_and_archive" className="text-xl" />
-                                        Authorize & Deploy
+                                        Deploy
                                     </button>
                                 </div>
                             </div>
@@ -237,7 +283,7 @@ export default function DraftsPage() {
                 </Dialog>
             )}
 
-            {/* Schedule Modal */}
+            {/* Schedule Dialog */}
             {scheduleTarget && (
                 <Dialog open onOpenChange={() => setScheduleTarget(null)}>
                     <DialogContent className="max-w-md rounded-2xl border-none shadow-2xl p-6 space-y-6">
@@ -248,7 +294,7 @@ export default function DraftsPage() {
                             <div className="space-y-1">
                                 <h3 className="text-lg font-headline font-bold text-on-surface">Schedule Send</h3>
                                 <p className="text-sm font-medium text-on-surface-variant">
-                                    Finalizing sending parameters for <span className="text-primary font-bold">{scheduleTarget.subject}</span>
+                                    When should <span className="text-primary font-bold">{scheduleTarget.subject}</span> be sent?
                                 </p>
                             </div>
                         </div>
@@ -273,10 +319,10 @@ export default function DraftsPage() {
                             <button
                                 onClick={handleScheduleSubmit}
                                 disabled={!scheduledDate || scheduling}
-                                className="flex-1 px-6 bg-on-surface text-surface h-10 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-on-surface/90 transition-all shadow-lg shadow-black/10 disabled:opacity-30"
+                                className="flex-1 px-6 bg-primary text-on-primary h-10 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-30"
                             >
                                 <MaterialSymbol icon="lock_clock" className="text-lg" />
-                                Secure Schedule
+                                Schedule
                             </button>
                         </div>
                     </DialogContent>

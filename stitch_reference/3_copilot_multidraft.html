@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Cognitive Flow | Workspace</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                "tertiary-container": "#8155ff",
+                "primary-container": "#1a73e8",
+                "error-container": "#ffdad6",
+                "on-tertiary-fixed-variant": "#4f00d0",
+                "on-surface": "#191c1d",
+                "surface-container-highest": "#e1e3e4",
+                "on-error-container": "#93000a",
+                "surface-bright": "#f8fafb",
+                "primary": "#005bbf",
+                "surface-tint": "#005bc0",
+                "surface-container-high": "#e6e8e9",
+                "primary-fixed": "#d8e2ff",
+                "secondary-fixed-dim": "#c3c7cc",
+                "outline": "#727785",
+                "error": "#ba1a1a",
+                "surface-variant": "#e1e3e4",
+                "on-primary-container": "#ffffff",
+                "on-secondary": "#ffffff",
+                "on-surface-variant": "#414754",
+                "surface": "#f8fafb",
+                "on-primary-fixed": "#001a41",
+                "outline-variant": "#c1c6d6",
+                "on-secondary-fixed-variant": "#43474c",
+                "inverse-primary": "#adc7ff",
+                "on-tertiary-fixed": "#20005f",
+                "on-secondary-fixed": "#181c20",
+                "inverse-surface": "#2e3132",
+                "background": "#f8fafb",
+                "inverse-on-surface": "#eff1f2",
+                "surface-container-low": "#f2f4f5",
+                "surface-container": "#eceeef",
+                "on-primary": "#ffffff",
+                "tertiary": "#6833ea",
+                "secondary": "#5b5f64",
+                "surface-dim": "#d8dadb",
+                "on-tertiary-container": "#060021",
+                "on-tertiary": "#ffffff",
+                "tertiary-fixed": "#e8deff",
+                "on-secondary-container": "#5f6368",
+                "secondary-container": "#dde0e6",
+                "on-primary-fixed-variant": "#004493",
+                "secondary-fixed": "#dfe3e8",
+                "on-error": "#ffffff",
+                "on-background": "#191c1d",
+                "surface-container-lowest": "#ffffff",
+                "tertiary-fixed-dim": "#cdbdff",
+                "primary-fixed-dim": "#adc7ff"
+            },
+            "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+            },
+            "fontFamily": {
+                "headline": ["Plus Jakarta Sans"],
+                "body": ["Inter"],
+                "label": ["Inter"]
+            }
+          },
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .tonal-shadow {
+            box-shadow: 0 12px 32px -4px rgba(0, 91, 191, 0.08);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e1e3e4;
+            border-radius: 10px;
+        }
+        .active-draft-dropdown {
+            display: none;
+        }
+        .draft-trigger:focus-within .active-draft-dropdown {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-surface-container font-body text-on-surface overflow-hidden h-screen flex flex-col">
+<!-- TopAppBar Navigation Shell -->
+<header class="w-full top-0 sticky bg-[#f8fafb] dark:bg-slate-900 flex justify-between items-center px-6 py-3 w-full z-50">
+<div class="flex items-center gap-8">
+<div class="text-xl font-bold text-[#191c1d] dark:text-white tracking-tighter flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                Cognitive Flow
+            </div>
+<nav class="hidden md:flex gap-6 font-['Plus_Jakarta_Sans'] font-medium text-sm tracking-tight">
+<a class="text-[#191c1d] dark:text-slate-400 opacity-70 hover:bg-[#eceeef] dark:hover:bg-slate-800 transition-colors duration-200 px-2 py-1" href="#">Dashboard</a>
+<a class="text-[#1A73E8] dark:text-blue-400 font-semibold border-b-2 border-[#1A73E8] px-2 py-1" href="#">Workspace</a>
+<a class="text-[#191c1d] dark:text-slate-400 opacity-70 hover:bg-[#eceeef] dark:hover:bg-slate-800 transition-colors duration-200 px-2 py-1" href="#">Intelligence</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-outline text-sm">search</span>
+<input class="bg-surface-container text-sm rounded-full pl-10 pr-4 py-1.5 w-64 border-none focus:ring-1 focus:ring-primary-container outline-none transition-all" placeholder="Search precision..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="material-symbols-outlined text-outline p-2 hover:bg-[#eceeef] rounded-full transition-all">help</button>
+<button class="material-symbols-outlined text-outline p-2 hover:bg-[#eceeef] rounded-full transition-all">settings</button>
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden ml-2 border border-outline-variant/20">
+<img alt="professional headshot" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGcodiaqkOWeFJhwknYaGHpH9YycYQnqp0_Q0unKhAlJo7fJUkIP_pQ-7YhwpRmx6UwM1F1v_AnuanodkvR0gzG9TJG4aVlPZ2nMnMYdkDsrTxGpJPNdHlyFXu82YvvsRYgYqyBRH238Yth1HS4hTxj3PIafLUdaf6-zY_g3H0hUeQ4G0kdfHeDbyDx8coQ1Av9ntOXg9OgNV8-VDpFXxRbGzRB0aqz8NiebtvvZAMNlQLlgkIpUtOHDJlvSbUSiZ9MTOGpXHTctzA"/>
+</div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- SideNavBar Shell -->
+<aside class="h-full w-64 bg-[#f2f4f5] dark:bg-slate-950 flex flex-col py-6 px-4 shrink-0 transition-all duration-200 ease-in-out border-r border-outline-variant/10">
+<div class="mb-8">
+<h2 class="font-['Plus_Jakarta_Sans'] font-extrabold text-[#191c1d] px-4 text-xs uppercase tracking-widest opacity-50">Workspace</h2>
+<p class="px-4 text-xs font-medium text-primary mt-1">Priority Focus</p>
+</div>
+<button class="flex items-center gap-3 bg-gradient-to-r from-primary to-primary-container text-white px-6 py-3 rounded-xl mb-8 font-semibold shadow-lg hover:scale-[0.98] transition-transform active:opacity-90 mx-2">
+<span class="material-symbols-outlined">edit</span>
+                Compose
+            </button>
+<nav class="flex flex-col gap-1 flex-1">
+<a class="flex items-center gap-3 text-[#191c1d] dark:text-slate-400 py-2.5 px-4 hover:bg-[#eceeef] dark:hover:bg-slate-800 rounded-sm font-['Inter'] text-sm transition-all" href="#">
+<span class="material-symbols-outlined">inbox</span>
+<span>Inbox</span>
+<span class="ml-auto text-[10px] font-bold bg-error-container text-on-error-container px-1.5 rounded-full">12</span>
+</a>
+<a class="flex items-center gap-3 bg-[#d8e2ff] dark:bg-blue-900/30 text-[#005bbf] dark:text-blue-200 rounded-sm font-semibold py-2.5 px-4 font-['Inter'] text-sm transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">edit_note</span>
+<span>Drafts</span>
+</a>
+<a class="flex items-center gap-3 text-[#191c1d] dark:text-slate-400 py-2.5 px-4 hover:bg-[#eceeef] dark:hover:bg-slate-800 rounded-sm font-['Inter'] text-sm transition-all" href="#">
+<span class="material-symbols-outlined">send</span>
+<span>Sent</span>
+</a>
+<a class="flex items-center gap-3 text-[#191c1d] dark:text-slate-400 py-2.5 px-4 hover:bg-[#eceeef] dark:hover:bg-slate-800 rounded-sm font-['Inter'] text-sm transition-all" href="#">
+<span class="material-symbols-outlined text-tertiary">auto_awesome</span>
+<span>Intelligence</span>
+</a>
+<a class="flex items-center gap-3 text-[#191c1d] dark:text-slate-400 py-2.5 px-4 hover:bg-[#eceeef] dark:hover:bg-slate-800 rounded-sm font-['Inter'] text-sm transition-all" href="#">
+<span class="material-symbols-outlined">archive</span>
+<span>Archive</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-outline-variant/15 pt-4">
+<a class="flex items-center gap-3 text-[#191c1d] dark:text-slate-400 py-2.5 px-4 hover:bg-[#eceeef] dark:hover:bg-slate-800 rounded-sm font-['Inter'] text-sm transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+</div>
+</aside>
+<!-- Main Workspace Canvas -->
+<main class="flex-1 flex flex-col bg-surface overflow-hidden relative">
+<!-- Content Header -->
+<div class="px-8 py-6 flex items-center justify-between border-b border-surface-container">
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined p-2 hover:bg-surface-container rounded-full text-secondary transition-all">arrow_back</button>
+<div class="flex items-center gap-3">
+<div class="relative draft-trigger">
+<button class="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-surface-container transition-all">
+<h1 class="font-headline text-headline-sm font-bold text-on-surface tracking-tight">Re: Get Your FREE Session Now</h1>
+<span class="material-symbols-outlined text-outline text-[18px]">keyboard_arrow_down</span>
+</button>
+<!-- Switch Draft Dropdown -->
+<div class="active-draft-dropdown absolute top-full left-0 mt-2 w-72 bg-surface-container-lowest border border-outline-variant/30 rounded-xl tonal-shadow z-[60] py-2">
+<div class="px-4 py-2 border-b border-outline-variant/10">
+<span class="text-[10px] font-bold text-outline uppercase tracking-widest">Active Drafts</span>
+</div>
+<div class="max-h-64 overflow-y-auto">
+<a class="flex flex-col gap-0.5 px-4 py-3 hover:bg-surface-container transition-all border-l-4 border-primary bg-primary-container/5" href="#">
+<span class="text-xs font-bold text-on-surface">Re: Get Your FREE Session Now</span>
+<span class="text-[10px] text-outline truncate">To: mark.dawson@nexus.ai • 2m ago</span>
+</a>
+<a class="flex flex-col gap-0.5 px-4 py-3 hover:bg-surface-container transition-all border-l-4 border-transparent" href="#">
+<span class="text-xs font-bold text-on-surface">Q3 Strategy Update</span>
+<span class="text-[10px] text-outline truncate">To: leadership-team@sortmail.ai • 45m ago</span>
+</a>
+<a class="flex flex-col gap-0.5 px-4 py-3 hover:bg-surface-container transition-all border-l-4 border-transparent" href="#">
+<span class="text-xs font-bold text-on-surface">Partnership Proposal: Anthropic</span>
+<span class="text-[10px] text-outline truncate">To: partnerships@anthropic.com • 2h ago</span>
+</a>
+</div>
+<div class="px-2 pt-2 border-t border-outline-variant/10 mt-1">
+<button class="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-primary hover:bg-primary-fixed/30 rounded-lg transition-all">
+<span class="material-symbols-outlined text-[16px]">add</span>
+                                        New Draft
+                                    </button>
+</div>
+</div>
+</div>
+<button class="material-symbols-outlined text-outline p-1.5 hover:bg-surface-container rounded-lg transition-all" title="New Draft">add_box</button>
+<div class="hidden sm:block">
+<div class="flex items-center gap-2">
+<span class="text-xs text-outline font-medium">To: mark.dawson@nexus.ai</span>
+<span class="w-1 h-1 bg-outline-variant rounded-full"></span>
+<span class="text-xs text-outline">Priority High</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-secondary hover:bg-surface-container transition-all">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                        Save Draft
+                    </button>
+<button class="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold bg-primary text-on-primary tonal-shadow hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-[18px]">send</span>
+                        Send Now
+                    </button>
+</div>
+</div>
+<!-- Editor & Intelligence Pane Layout -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Rich Text Editor Canvas -->
+<div class="flex-1 bg-surface-container-lowest overflow-y-auto px-12 py-10 relative">
+<div class="max-w-3xl mx-auto">
+<div class="editor-content font-body text-body-md text-on-surface leading-relaxed">
+<p class="mb-4">Dear Mark,</p>
+<p class="mb-4">I hope this message finds you well. I'm writing to follow up on our previous discussion regarding the expansion of your AI capabilities within the Nexus framework.</p>
+<p class="mb-4">As we discussed, the integration of <strong>Cognitive Flow</strong> could significantly reduce your team's latency in processing unstructured intelligence. To help you evaluate this first-hand, I'd like to offer you a <strong>complimentary strategic session</strong> with our lead systems architect.</p>
+<p class="mb-4">During this 60-minute session, we will:</p>
+<ul class="list-disc pl-6 mb-4 space-y-2">
+<li>Audit your current intelligence pipeline</li>
+<li>Identify high-impact automation nodes</li>
+<li>Map a transition path for your legacy data</li>
+</ul>
+<p class="mb-4">You can claim your session by clicking the link below or by simply replying to this email with a time that works for you next week.</p>
+<p class="mb-10">Looking forward to hearing from you.</p>
+<p>Best regards,<br/><span class="font-bold text-primary">Alex Sterling</span><br/><span class="text-sm text-outline">Account Strategy, SortMail AI</span></p>
+</div>
+</div>
+<!-- Floating Contextual Editor Toolbar -->
+<div class="fixed bottom-16 left-1/2 -translate-x-1/2 bg-surface-container-lowest border border-outline-variant/30 rounded-full py-2 px-4 flex items-center gap-3 tonal-shadow z-20 backdrop-blur-md bg-opacity-95">
+<div class="flex items-center gap-1 border-r border-outline-variant/20 pr-3">
+<button class="material-symbols-outlined p-1.5 hover:bg-surface-container rounded transition-all text-secondary">format_bold</button>
+<button class="material-symbols-outlined p-1.5 hover:bg-surface-container rounded transition-all text-secondary">format_italic</button>
+<button class="material-symbols-outlined p-1.5 hover:bg-surface-container rounded transition-all text-secondary">format_list_bulleted</button>
+</div>
+<div class="flex items-center gap-1 border-r border-outline-variant/20 pr-3">
+<button class="material-symbols-outlined p-1.5 hover:bg-surface-container rounded transition-all text-secondary">link</button>
+<button class="material-symbols-outlined p-1.5 hover:bg-surface-container rounded transition-all text-secondary">attach_file</button>
+</div>
+<button class="flex items-center gap-2 px-3 py-1.5 bg-tertiary-fixed text-on-tertiary-fixed-variant rounded-full text-xs font-bold hover:opacity-80 transition-all">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">auto_fix_high</span>
+                            Polish Text
+                        </button>
+</div>
+</div>
+<!-- AI Copilot Sidebar -->
+<aside class="w-80 bg-surface-container-low border-l border-outline-variant/10 overflow-y-auto flex flex-col">
+<div class="p-6 border-b border-outline-variant/10 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<h3 class="font-headline font-bold text-sm tracking-tight">AI Copilot</h3>
+</div>
+<span class="text-[10px] font-bold text-tertiary bg-tertiary-fixed px-2 py-0.5 rounded-full uppercase tracking-tighter">Engine v2.4</span>
+</div>
+<div class="p-6 space-y-8">
+<!-- Linguistic Profile Section -->
+<section>
+<div class="flex items-center justify-between mb-4">
+<h4 class="text-xs font-bold text-outline uppercase tracking-widest">Linguistic Profile</h4>
+<span class="material-symbols-outlined text-sm text-outline cursor-pointer">info</span>
+</div>
+<div class="grid grid-cols-1 gap-2">
+<button class="flex items-center gap-3 p-3 bg-surface-container-lowest border border-outline-variant/20 rounded-xl hover:border-primary/40 transition-all group">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">content_cut</span>
+</div>
+<div class="text-left">
+<div class="text-xs font-bold text-on-surface">Incise</div>
+<div class="text-[10px] text-outline">Short, sharp, direct</div>
+</div>
+</button>
+<button class="flex items-center gap-3 p-3 bg-primary-fixed border border-primary/20 rounded-xl transition-all shadow-sm">
+<div class="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">balance</span>
+</div>
+<div class="text-left">
+<div class="text-xs font-bold text-on-primary-fixed">Balanced</div>
+<div class="text-[10px] text-on-primary-fixed-variant opacity-80">Professional &amp; Warm</div>
+</div>
+<span class="material-symbols-outlined ml-auto text-primary text-[18px]">check_circle</span>
+</button>
+<button class="flex items-center gap-3 p-3 bg-surface-container-lowest border border-outline-variant/20 rounded-xl hover:border-primary/40 transition-all group">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[18px]">upgrade</span>
+</div>
+<div class="text-left">
+<div class="text-xs font-bold text-on-surface">Elevated</div>
+<div class="text-[10px] text-outline">Sophisticated, high-end</div>
+</div>
+</button>
+</div>
+</section>
+<!-- Progressive Disclosure Groups -->
+<section class="space-y-3">
+<div class="group cursor-pointer">
+<div class="flex items-center justify-between p-3 bg-surface-container-lowest rounded-lg border border-transparent hover:border-outline-variant transition-all">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">tune</span>
+<span class="text-xs font-bold">Tone Adjustments</span>
+</div>
+<span class="material-symbols-outlined text-sm text-outline">keyboard_arrow_down</span>
+</div>
+</div>
+<div class="group cursor-pointer">
+<div class="flex items-center justify-between p-3 bg-surface-container-lowest rounded-lg border border-transparent hover:border-outline-variant transition-all">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">text_format</span>
+<span class="text-xs font-bold">Formatting Rules</span>
+</div>
+<span class="material-symbols-outlined text-sm text-outline">keyboard_arrow_down</span>
+</div>
+</div>
+<div class="group cursor-pointer">
+<div class="flex items-center justify-between p-3 bg-surface-container-lowest rounded-lg border border-transparent hover:border-outline-variant transition-all">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">psychology</span>
+<span class="text-xs font-bold">Smart Synthesis</span>
+</div>
+<span class="material-symbols-outlined text-sm text-outline">keyboard_arrow_down</span>
+</div>
+</div>
+</section>
+<!-- Intelligence Insight Card -->
+<section>
+<div class="bg-tertiary-fixed/30 rounded-2xl p-4 border-l-4 border-tertiary relative overflow-hidden">
+<div class="relative z-10">
+<h5 class="text-[10px] font-bold text-on-tertiary-fixed-variant uppercase tracking-widest mb-2">Recipient Insight</h5>
+<p class="text-xs text-on-tertiary-fixed leading-relaxed mb-3">
+                                        Mark prefers technical data over marketing fluff. Suggest adding a "Projected ROI" bullet point to increase engagement by 22%.
+                                    </p>
+<button class="text-xs font-bold text-tertiary hover:underline flex items-center gap-1">
+                                        Apply Suggestion
+                                        <span class="material-symbols-outlined text-[14px]">arrow_right_alt</span>
+</button>
+</div>
+<div class="absolute -right-4 -bottom-4 text-tertiary opacity-10">
+<span class="material-symbols-outlined text-[80px]">lightbulb</span>
+</div>
+</div>
+</section>
+</div>
+</aside>
+</div>
+<!-- Active Intelligence Queue (Subtle Status Bar) -->
+<footer class="bg-surface-container-high border-t border-outline-variant/10 px-6 py-2 flex items-center justify-between z-30">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2">
+<div class="relative w-4 h-4">
+<div class="absolute inset-0 rounded-full border-2 border-primary-container/20"></div>
+<div class="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" style="animation-duration: 2s;"></div>
+</div>
+<span class="text-[10px] font-bold text-outline uppercase tracking-wider">Queue: 4 items</span>
+</div>
+<div class="flex items-center gap-3 border-l border-outline-variant/20 pl-6 overflow-hidden">
+<div class="flex items-center gap-2 bg-surface-container-lowest px-3 py-1 rounded-full text-[10px] border border-outline-variant/20 max-w-[150px] truncate">
+<span class="material-symbols-outlined text-[12px] text-tertiary">data_object</span>
+                            Nexus Data Map...
+                        </div>
+<div class="flex items-center gap-2 bg-surface-container-lowest px-3 py-1 rounded-full text-[10px] border border-outline-variant/20 max-w-[150px] truncate opacity-60">
+<span class="material-symbols-outlined text-[12px] text-secondary">inventory_2</span>
+                            Legacy Audit...
+                        </div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="text-[10px] text-outline font-medium">Syncing with <span class="text-primary font-bold">SortMail Precision™</span></div>
+<div class="flex items-center gap-1">
+<div class="w-1.5 h-1.5 bg-primary rounded-full"></div>
+<span class="text-[10px] font-bold text-primary uppercase">Online</span>
+</div>
+</div>
+</footer>
+</main>
+</div>
+<!-- Mobile Navigation Shell (Suppressed on Web per Anchor) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-[#f8fafb] flex justify-around items-center py-3 px-4 z-50 border-t border-outline-variant/10">
+<button class="flex flex-col items-center gap-1 text-[#191c1d] opacity-70">
+<span class="material-symbols-outlined">inbox</span>
+<span class="text-[10px] font-medium">Inbox</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-[#1A73E8] font-semibold">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">edit_note</span>
+<span class="text-[10px]">Workspace</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-[#191c1d] opacity-70">
+<span class="material-symbols-outlined">auto_awesome</span>
+<span class="text-[10px]">AI</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-[#191c1d] opacity-70">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px]">Settings</span>
+</button>
+</nav>
+</body></html>
