@@ -25,6 +25,12 @@ import uuid
 from datetime import datetime, timezone
 from core.intelligence.pipeline import _load_thread, _load_messages
 from core.intelligence.llama_engine import _call_llama
+from core.intelligence.prompts import (
+    DRAFT_REPLY_SYSTEM_PROMPT,
+    DRAFT_REPLY_USER_PROMPT_TEMPLATE,
+    FREEFORM_DRAFT_SYSTEM_PROMPT,
+    FREEFORM_DRAFT_USER_PROMPT_TEMPLATE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +122,16 @@ def _validate_recipient_list(values: List[str]) -> List[str]:
     return normalized
 
 
+def _build_thread_context(messages: list[dict], max_messages: int = 3, max_chars: int = 450) -> str:
+    selected = messages[-max_messages:]
+    context_parts: list[str] = []
+    for message in selected:
+        sender = message.get("from", "Unknown")
+        body = (message.get("body", "") or "")[:max_chars]
+        context_parts.append(f"{sender}: {body}")
+    return "\n\n".join(context_parts)
+
+
 async def _resolve_reply_target(db: AsyncSession, draft: Draft, current_user: User) -> str:
     """Find a recipient email for the draft send action."""
     latest_stmt = (
@@ -160,16 +176,15 @@ async def generate_freeform_draft(
     """Generate draft body for a new email without requiring an existing thread."""
     tone_val = payload.tone.value if hasattr(payload.tone, 'value') else payload.tone
     target = ", ".join(_normalize_email_list(payload.to)) if payload.to else "a recipient"
-    prompt = f"""Write a professional outbound email.
-Tone: {tone_val}
-Subject context: {payload.subject or 'General outreach'}
-Recipient context: {target}
-User instruction: {payload.instruction or 'No additional instruction'}
+    prompt = FREEFORM_DRAFT_USER_PROMPT_TEMPLATE.format(
+        recipient_context=target,
+        subject=payload.subject or "General outreach",
+        tone=tone_val,
+        instruction=payload.instruction or "No additional instruction",
+    )
 
-Provide ONLY the raw email body text. No markdown. Keep it concise and actionable."""
-
-    chat_messages = [{"role": "user", "content": prompt}]
-    generated_text = (await _call_llama(chat_messages, max_tokens=1000)).strip()
+    chat_messages = [{"role": "system", "content": FREEFORM_DRAFT_SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
+    generated_text = (await _call_llama(chat_messages, max_tokens=900, operation="draft_freeform")).strip()
     return {
         "subject": payload.subject or "",
         "body": generated_text,
@@ -258,17 +273,14 @@ async def generate_draft(
             messages_text += f"From: {sender}\n{body}\n\n"
             
         tone_val = request.tone.value if hasattr(request.tone, 'value') else request.tone
-        prompt = f"""Write a professional email reply for the following thread.
-Tone: {tone_val}
-Additional Instructions: {request.additional_context or 'None'}
+        prompt = DRAFT_REPLY_USER_PROMPT_TEMPLATE.format(
+            tone=tone_val,
+            instruction=request.additional_context or "No additional instruction",
+            thread_context=_build_thread_context(messages, max_messages=3, max_chars=450),
+        )
 
-Thread Context:
-{messages_text}
-
-Provide ONLY the raw email body text. Do not include subject lines or enclosed Markdown formatting. Keep it concise."""
-
-        chat_messages = [{"role": "user", "content": prompt}]
-        generated_text = (await _call_llama(chat_messages, max_tokens=1000)).strip()
+        chat_messages = [{"role": "system", "content": DRAFT_REPLY_SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
+        generated_text = (await _call_llama(chat_messages, max_tokens=900, operation="draft_reply")).strip()
         
         draft = Draft(
             id=str(uuid.uuid4()),
@@ -367,27 +379,21 @@ async def regenerate_draft(
         if not thread:
             raise HTTPException(status_code=404, detail="Source thread not found")
         messages = await _load_messages(draft.thread_id, db)
-        
+
         # 3. Formulate Prompt
-        messages_text = ""
-        for m in messages:
-            sender = m.get("from", "Unknown")
-            body = m.get("body", "").strip()[:500]
-            messages_text += f"From: {sender}\n{body}\n\n"
-            
+        messages_text = _build_thread_context(messages)
+
         target_tone = tone or draft.tone
         tone_val = target_tone.value if hasattr(target_tone, 'value') else target_tone
-        prompt = f"""Rewrite a professional email reply for the following thread.
-Tone: {tone_val}
-
-Thread Context:
-{messages_text}
-
-Provide ONLY the raw email body text. Do not include subject lines or enclosed Markdown formatting. Keep it concise."""
+        prompt = DRAFT_REPLY_USER_PROMPT_TEMPLATE.format(
+            tone=tone_val,
+            instruction="Rewrite the existing draft with the same intent and clearer wording.",
+            thread_context=messages_text,
+        )
 
         # 4. Generate
-        chat_messages = [{"role": "user", "content": prompt}]
-        generated_text = (await _call_llama(chat_messages, max_tokens=1000)).strip()
+        chat_messages = [{"role": "system", "content": DRAFT_REPLY_SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
+        generated_text = (await _call_llama(chat_messages, max_tokens=900, operation="draft_regenerate")).strip()
         
         # 5. Update draft
         draft.content = generated_text

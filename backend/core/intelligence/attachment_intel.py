@@ -15,6 +15,10 @@ from models.attachment import Attachment, AttachmentStatus
 import re
 import asyncio
 from core.intelligence.llama_engine import _call_llama
+from core.intelligence.prompts import (
+    ATTACHMENT_ANALYSIS_SYSTEM_PROMPT,
+    ATTACHMENT_ANALYSIS_USER_PROMPT_TEMPLATE,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -45,39 +49,23 @@ async def analyze_attachment(attachment_id: str, db: AsyncSession) -> Optional[D
         await db.commit()
         return None
         
-    # Chunk text broadly if it's massive to avoid absolutely destroying tokens
-    # Gemini Flash supports 1m tokens, but good to cap at ~50k characters for speed
-    safe_text = text[:50000]
+    # Keep the strongest signal: head + tail, capped to a compact window.
+    if len(text) > 25000:
+        safe_text = text[:20000] + "\n\n[...truncated...]\n\n" + text[-5000:]
+    else:
+        safe_text = text
 
     # 2. Build Deep Analysis Prompt
-    prompt = f"""
-You are an expert document analyst. Analyze this business document and return pure JSON with no markdown formatting.
-Ensure the keys match exactly:
-- `document_type`: one of [contract, invoice, proposal, report, resume, meeting_notes, other]
-- `summary`: 2-3 sentence overview
-- `key_points`: list of 3-5 important facts
-- `action_items`: list of specific things the user must do
-- `financial_amounts`: any monetary values mentioned, e.g., ["$1,500 total due", "€50k budget"]
-- `dates_and_deadlines`: important dates mentioned
-- `risk_flags`: anything unusual or requiring attention (empty list if none)
-- `parties_involved`: list of companies or people named
+    prompt = ATTACHMENT_ANALYSIS_USER_PROMPT_TEMPLATE.format(document_text=safe_text)
 
-DOCUMENT TEXT TO ANALYZE:
----
-{safe_text}
----
-
-Return ONLY valid JSON.
-"""
-    
     messages = [
-        {"role": "system", "content": "You are a senior data extraction AI. Output strictly valid JSON and nothing else. No markdown formatting, no comments."},
+        {"role": "system", "content": ATTACHMENT_ANALYSIS_SYSTEM_PROMPT},
         {"role": "user", "content": prompt}
     ]
     
     for attempt in range(4):
         try:
-            raw_json = await _call_llama(messages, max_tokens=2048, temperature=0.1)
+            raw_json = await _call_llama(messages, max_tokens=1600, temperature=0.1, operation="attachment_intel")
             
             # Clean up any potential markdown fences
             raw_json = re.sub(r'^```(?:json)?\s*|\s*```$', '', raw_json.strip(), flags=re.DOTALL).strip()

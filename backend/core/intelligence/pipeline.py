@@ -62,6 +62,12 @@ LOW_VALUE_MARKERS = (
     "product update",
     "webinar",
     "announcement",
+    "event invite",
+    "register now",
+    "learn more",
+    "view our website",
+    "visit our site",
+    "watch now",
 )
 ACTION_MARKERS = (
     "please review",
@@ -87,6 +93,13 @@ SOCIAL_NOTIFICATION_MARKERS = (
     "commented on your post",
     "liked your post",
     "mentioned you",
+    "webinar",
+    "event invite",
+    "join us",
+    "watch now",
+    "learn more",
+    "visit our site",
+    "view our website",
 )
 STALE_WORKFLOW_DAYS = 14
 
@@ -235,9 +248,8 @@ async def process_thread_intelligence(
         # â”€â”€ 6b. Process Tags (Gemini tags + Contact tags) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         await _process_tags(user_id, thread, tags_list, db)
 
-        # â”€â”€ 6c. Process Suggested Draft â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        if should_create_reply and suggested_draft:
-            await _create_draft(user_id, thread_id, suggested_draft, db)
+        # Background intelligence must not auto-create reply drafts.
+        # Drafts are generated only when the user explicitly requests them.
 
         await db.commit()
         logger.info(f"Intel saved: thread={thread_id} intent={intent} score={urgency_score}")
@@ -267,6 +279,9 @@ async def process_thread_intelligence(
         # â”€â”€ 7. Auto-create Tasks from action items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if not is_unsubscribed and should_create_tasks:
             for item in action_items:
+                confidence = item.get("confidence")
+                if confidence is not None and isinstance(confidence, (int, float)) and confidence < 0.75:
+                    continue
                 await _create_task(user_id, thread_id, item, db)
 
         # â”€â”€ 8. Publish SSE event â†’ frontend invalidates cache â”€â”€â”€â”€â”€â”€â”€â”€â”€

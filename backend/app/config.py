@@ -55,16 +55,25 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRY_HOURS: int = 24
     
-    # LLM: Gemini for embeddings, Llama 3.3 70B (HF) for intelligence
+    # LLM: Bedrock Nova for intelligence, Gemini/OpenAI for embeddings if needed
     LLM_PROVIDER: str = "gemini"  # "gemini" | "openai" — used for embeddings only
     GEMINI_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
-    HF_TOKEN: str = ""  # Hugging Face token — required for Llama 3.3 70B inference
+    HF_TOKEN: str = ""
+    BEDROCK_REGION_NAME: str = ""
+    BEDROCK_MODEL_ID: str = "us.amazon.nova-2-lite-v1:0"
+    AI_AUTODRAFT_ENABLED: bool = False
+    EMBEDDING_PROVIDER: str = "bedrock"  # "bedrock" | "gemini" | "openai"
+    BEDROCK_EMBED_MODEL_ID: str = "amazon.titan-embed-text-v2:0"
+    BEDROCK_EMBED_DIMENSIONS: int = 1024
+    BEDROCK_EMBED_NORMALIZE: bool = True
     
     # Chroma Cloud
+    CHROMA_HOST: str = "api.trychroma.com"
     CHROMA_API_KEY: str = ""
     CHROMA_TENANT: str = ""
     CHROMA_DATABASE: str = ""
+    CHROMA_COLLECTION_NAME: str = "my_collection"
     
     # S3 Storage (Tier 3 Cold Storage)
     AWS_ACCESS_KEY_ID: str = ""

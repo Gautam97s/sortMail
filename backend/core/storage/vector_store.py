@@ -20,8 +20,8 @@ class VectorStore:
         
     async def initialize(self):
         """Initialize Chroma client."""
-        if not settings.CHROMA_API_KEY or not settings.CHROMA_TENANT:
-            logger.warning("ChromaDB not configured (missing CHROMA_API_KEY or CHROMA_TENANT). Skipping vector store init.")
+        if not settings.CHROMA_API_KEY or not settings.CHROMA_TENANT or not settings.CHROMA_DATABASE:
+            logger.warning("ChromaDB not configured (missing CHROMA_API_KEY/CHROMA_TENANT/CHROMA_DATABASE). Skipping vector store init.")
             return
             
         try:
@@ -39,7 +39,7 @@ class VectorStore:
                     tenant=settings.CHROMA_TENANT,
                     database=settings.CHROMA_DATABASE
                 )
-                return client, client.get_or_create_collection(name="my_collection")
+                return client, client.get_or_create_collection(name=settings.CHROMA_COLLECTION_NAME)
                 
             self._client, self._collection = await asyncio.to_thread(_init_chroma)
             logger.info("ChromaDB Cloud Client initialized successfully.")
@@ -191,6 +191,6 @@ def get_chroma_collection(client: ClientAPI = Depends(get_chroma_client)) -> Col
     global _fastapi_collection
     if _fastapi_collection is None:
         _fastapi_collection = client.get_or_create_collection(
-            name="my_collection",
+            name=settings.CHROMA_COLLECTION_NAME,
         )
     return _fastapi_collection
