@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
-import { useAiDrafts, useApproveDraft, useDraftById, useGenerateDraft, useScheduleDraft, useUpdateDraft } from '@/hooks/useDrafts';
+import { useAiDrafts, useApproveDraft, useDraftById, useGenerateDraft, useGenerateFreeformDraft, useSaveDirectDraft, useScheduleDraft, useSendDirectDraft, useUpdateDraft } from '@/hooks/useDrafts';
 import { useThreads } from '@/hooks/useThreads';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
@@ -65,6 +65,7 @@ export default function DraftWorkspacePage() {
     const [bccField, setBccField] = useState('');
     const [showCcBcc, setShowCcBcc] = useState(false);
     const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+    const [actionMessage, setActionMessage] = useState('');
 
     const [scheduleOpen, setScheduleOpen] = useState(false);
     const [scheduledDate, setScheduledDate] = useState('');
@@ -73,8 +74,11 @@ export default function DraftWorkspacePage() {
     const { data: threads = [] } = useThreads(undefined, contextSearch || undefined, 0, 100);
     const { data: selectedDraft, isLoading: loadingDraft } = useDraftById(draftIdParam);
     const { mutate: generateDraft, isPending: generating } = useGenerateDraft();
+    const { mutate: generateFreeformDraft, isPending: generatingFreeform } = useGenerateFreeformDraft();
     const { mutate: updateDraft, isPending: saving } = useUpdateDraft();
     const { mutate: approveDraft, isPending: sending } = useApproveDraft();
+    const { mutate: sendDirectDraft, isPending: sendingDirect } = useSendDirectDraft();
+    const { mutate: saveDirectDraft, isPending: savingDirect } = useSaveDirectDraft();
     const { mutate: scheduleDraft, isPending: scheduling } = useScheduleDraft();
 
     const selectedThread = useMemo(
@@ -189,7 +193,24 @@ export default function DraftWorkspacePage() {
     }, [selectedThread, toField]);
 
     const createOrRegenerateDraft = () => {
-        if (!selectedThreadId) return;
+        if (!selectedThreadId) {
+            generateFreeformDraft(
+                {
+                    tone,
+                    subject,
+                    instruction: instructions || undefined,
+                    to: parseEmails(toField),
+                },
+                {
+                    onSuccess: (data: any) => {
+                        if (data?.subject) setSubject((prev) => prev || data.subject);
+                        setBody(data?.body || '');
+                        setActionMessage('AI generated a new outbound draft.');
+                    },
+                }
+            );
+            return;
+        }
         generateDraft(
             { threadId: selectedThreadId, tone, additionalContext: instructions || undefined },
             {
@@ -197,13 +218,37 @@ export default function DraftWorkspacePage() {
                     setCurrentDraftId(data.id ?? null);
                     setSubject((prev) => prev || data.subject || '');
                     setBody(data.body || '');
+                    setActionMessage('Draft generated from selected thread context.');
                 },
             }
         );
     };
 
     const persistCurrentDraft = (onSuccess?: () => void) => {
-        if (!currentDraftId) return;
+        if (!currentDraftId) {
+            const to = parseEmails(toField);
+            if (!to.length) {
+                setActionMessage('Add at least one recipient in To before saving.');
+                return;
+            }
+            saveDirectDraft(
+                {
+                    subject,
+                    body,
+                    to,
+                    cc: parseEmails(ccField),
+                    bcc: parseEmails(bccField),
+                    attachments,
+                },
+                {
+                    onSuccess: () => {
+                        setActionMessage('Saved directly to Gmail drafts.');
+                        onSuccess?.();
+                    },
+                }
+            );
+            return;
+        }
         updateDraft(
             {
                 draftId: currentDraftId,
@@ -216,14 +261,45 @@ export default function DraftWorkspacePage() {
                 attachments,
             },
             {
-                onSuccess: () => onSuccess?.(),
+                onSuccess: () => {
+                    setActionMessage('Draft saved.');
+                    onSuccess?.();
+                },
             }
         );
     };
 
     const handleSendNow = () => {
-        if (!currentDraftId) return;
-        persistCurrentDraft(() => approveDraft(currentDraftId));
+        if (!currentDraftId) {
+            const to = parseEmails(toField);
+            if (!to.length) {
+                setActionMessage('Add at least one recipient in To before sending.');
+                return;
+            }
+            if (!subject.trim() || !body.trim()) {
+                setActionMessage('Subject and body are required to send.');
+                return;
+            }
+            sendDirectDraft(
+                {
+                    subject,
+                    body,
+                    to,
+                    cc: parseEmails(ccField),
+                    bcc: parseEmails(bccField),
+                    attachments,
+                },
+                {
+                    onSuccess: () => setActionMessage('Email sent successfully from Gmail.'),
+                }
+            );
+            return;
+        }
+        persistCurrentDraft(() => {
+            approveDraft(currentDraftId, {
+                onSuccess: () => setActionMessage('Email sent successfully.'),
+            });
+        });
     };
 
     const handleSchedule = () => {
@@ -250,7 +326,7 @@ export default function DraftWorkspacePage() {
         setAttachments((prev) => [...prev, ...encoded]);
     };
 
-    const disableActions = !currentDraftId || saving || sending || scheduling;
+    const disableActions = saving || savingDirect || sending || sendingDirect || scheduling;
 
     return (
         <AppShell title="Copilot Workspace" subtitle="Draft Composer">
@@ -286,6 +362,12 @@ export default function DraftWorkspacePage() {
                             </button>
                         </div>
                     </div>
+
+                    {actionMessage && (
+                        <div className="text-xs px-3 py-2 rounded-lg bg-primary-fixed/20 text-primary border border-primary-fixed/30">
+                            {actionMessage}
+                        </div>
+                    )}
 
                     <div className="rounded-2xl border border-outline-variant/15 bg-white overflow-hidden">
                         <div className="px-4 md:px-5 py-3 border-b border-outline-variant/10 bg-surface-container-lowest flex flex-wrap items-center gap-3">
@@ -345,10 +427,10 @@ export default function DraftWorkspacePage() {
 
                             <button
                                 onClick={createOrRegenerateDraft}
-                                disabled={!selectedThreadId || generating}
+                                disabled={generating || generatingFreeform}
                                 className="h-9 px-4 rounded-xl bg-surface-container text-on-surface text-xs font-bold uppercase tracking-wider disabled:opacity-40"
                             >
-                                {generating ? 'Generating...' : currentDraftId ? 'Regenerate' : 'Generate'}
+                                {(generating || generatingFreeform) ? 'Generating...' : currentDraftId ? 'Regenerate' : 'Generate'}
                             </button>
 
                             <input

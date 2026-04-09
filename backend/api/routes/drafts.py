@@ -66,6 +66,22 @@ class UpdateDraftRequest(BaseModel):
     attachments: Optional[List[dict]] = None
 
 
+class FreeformDraftRequest(BaseModel):
+    tone: ToneType = ToneType.NORMAL
+    subject: Optional[str] = None
+    instruction: Optional[str] = None
+    to: Optional[List[str]] = None
+
+
+class DirectComposeRequest(BaseModel):
+    subject: str
+    body: str
+    to: List[str]
+    cc: Optional[List[str]] = None
+    bcc: Optional[List[str]] = None
+    attachments: Optional[List[dict]] = None
+
+
 def _extract_email(value: Optional[str]) -> Optional[str]:
     if not value:
         return None
@@ -91,6 +107,13 @@ def _normalize_email_list(values: Optional[List[str]]) -> List[str]:
         seen.add(email)
         result.append(email)
     return result
+
+
+def _validate_recipient_list(values: List[str]) -> List[str]:
+    normalized = _normalize_email_list(values)
+    if not normalized:
+        raise HTTPException(status_code=400, detail="At least one valid recipient is required")
+    return normalized
 
 
 async def _resolve_reply_target(db: AsyncSession, draft: Draft, current_user: User) -> str:
@@ -127,6 +150,78 @@ async def _resolve_reply_target(db: AsyncSession, draft: Draft, current_user: Us
                 return participant_email
 
     raise HTTPException(status_code=400, detail="Unable to resolve recipient for this draft")
+
+
+@router.post("/generate-freeform")
+async def generate_freeform_draft(
+    payload: FreeformDraftRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Generate draft body for a new email without requiring an existing thread."""
+    tone_val = payload.tone.value if hasattr(payload.tone, 'value') else payload.tone
+    target = ", ".join(_normalize_email_list(payload.to)) if payload.to else "a recipient"
+    prompt = f"""Write a professional outbound email.
+Tone: {tone_val}
+Subject context: {payload.subject or 'General outreach'}
+Recipient context: {target}
+User instruction: {payload.instruction or 'No additional instruction'}
+
+Provide ONLY the raw email body text. No markdown. Keep it concise and actionable."""
+
+    chat_messages = [{"role": "user", "content": prompt}]
+    generated_text = (await _call_llama(chat_messages, max_tokens=1000)).strip()
+    return {
+        "subject": payload.subject or "",
+        "body": generated_text,
+        "tone": tone_val,
+        "generated_for": current_user.id,
+    }
+
+
+@router.post("/send-direct")
+async def send_direct_email(
+    payload: DirectComposeRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Send an email directly from compose UI without an existing thread draft record."""
+    to_list = _validate_recipient_list(payload.to)
+    cc_list = _normalize_email_list(payload.cc)
+    bcc_list = _normalize_email_list(payload.bcc)
+
+    access_token = await get_valid_google_token(current_user.id)
+    gmail = GmailClient(access_token, current_user.id)
+    provider_message_id = await gmail.send_message(
+        to=",".join(to_list),
+        subject=payload.subject,
+        body=payload.body,
+        cc=",".join(cc_list) if cc_list else None,
+        bcc=",".join(bcc_list) if bcc_list else None,
+        attachments=payload.attachments or [],
+    )
+    return {"status": "success", "message": "Email sent", "provider_message_id": provider_message_id}
+
+
+@router.post("/save-direct")
+async def save_direct_email_draft(
+    payload: DirectComposeRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Save an email directly to Gmail drafts without creating a thread-bound draft record."""
+    to_list = _validate_recipient_list(payload.to)
+    cc_list = _normalize_email_list(payload.cc)
+    bcc_list = _normalize_email_list(payload.bcc)
+
+    access_token = await get_valid_google_token(current_user.id)
+    gmail = GmailClient(access_token, current_user.id)
+    provider_draft_id = await gmail.create_draft(
+        to=",".join(to_list),
+        subject=payload.subject,
+        body=payload.body,
+        cc=",".join(cc_list) if cc_list else None,
+        bcc=",".join(bcc_list) if bcc_list else None,
+        attachments=payload.attachments or [],
+    )
+    return {"status": "success", "message": "Saved to Gmail drafts", "provider_draft_id": provider_draft_id}
 
 
 @router.post("/", response_model=DraftResponse)

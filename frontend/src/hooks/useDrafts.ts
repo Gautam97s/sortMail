@@ -121,3 +121,52 @@ export function useRegenerateDraft() {
         },
     });
 }
+
+/** Generate outbound email body without requiring a thread context */
+export function useGenerateFreeformDraft() {
+    return useMutation({
+        mutationFn: async ({ tone, subject, instruction, to }: { tone: string; subject?: string; instruction?: string; to?: string[] }) => {
+            const { data } = await api.post(`${endpoints.drafts}/generate-freeform`, {
+                tone,
+                subject,
+                instruction,
+                to,
+            });
+            return data;
+        },
+    });
+}
+
+/** Send directly from compose without a persisted thread draft */
+export function useSendDirectDraft() {
+    return useMutation({
+        mutationFn: async ({ subject, body, to, cc, bcc, attachments }: { subject: string; body: string; to: string[]; cc?: string[]; bcc?: string[]; attachments?: Array<{ filename: string; mime_type: string; content_base64?: string; size_bytes?: number; }> }) => {
+            const { data } = await api.post(`${endpoints.drafts}/send-direct`, {
+                subject,
+                body,
+                to,
+                cc,
+                bcc,
+                attachments,
+            });
+            return data;
+        },
+    });
+}
+
+/** Save directly to Gmail drafts without a persisted thread draft */
+export function useSaveDirectDraft() {
+    return useMutation({
+        mutationFn: async ({ subject, body, to, cc, bcc, attachments }: { subject: string; body: string; to: string[]; cc?: string[]; bcc?: string[]; attachments?: Array<{ filename: string; mime_type: string; content_base64?: string; size_bytes?: number; }> }) => {
+            const { data } = await api.post(`${endpoints.drafts}/save-direct`, {
+                subject,
+                body,
+                to,
+                cc,
+                bcc,
+                attachments,
+            });
+            return data;
+        },
+    });
+}
