@@ -3,13 +3,15 @@ import { api, endpoints } from '@/lib/api';
 import { ThreadListItem } from '@/types/dashboard';
 
 
-export function useThreads(intent?: string, q?: string) {
+export function useThreads(intent?: string, q?: string, offset?: number, limit?: number) {
     return useQuery({
-        queryKey: ['threads', intent, q],
+        queryKey: ['threads', intent, q, offset, limit],
         queryFn: async (): Promise<ThreadListItem[]> => {
-            const params: Record<string, string> = {};
+            const params: Record<string, any> = {};
             if (intent && intent !== 'all') params.intent = intent;
             if (q) params.q = q;
+            if (offset !== undefined) params.offset = offset;
+            if (limit !== undefined) params.limit = limit;
             const { data } = await api.get(endpoints.threads, { params });
             return data;
         },

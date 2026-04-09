@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import AppShell from '@/components/layout/AppShell';
@@ -19,10 +19,19 @@ const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string
     </span>
 );
 
+const INITIAL_LIMIT = 15;
+const PAGE_SIZE = 5;
+
 function InboxContent() {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [busyThreadId, setBusyThreadId] = useState<string | null>(null);
+    const [allThreads, setAllThreads] = useState<ThreadListItem[]>([]);
+    const [currentOffset, setCurrentOffset] = useState(0);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [prevSearch, setPrevSearch] = useState('');
+    const sentinelRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
     
     useEffect(() => {
@@ -30,12 +39,57 @@ function InboxContent() {
         return () => clearTimeout(t);
     }, [search]);
 
-    const { data: threads, isLoading, error } = useThreads(undefined, debouncedSearch || undefined);
+    // Calculate current limit for the query (grows with each load)
+    const currentLimit = INITIAL_LIMIT + currentOffset;
+    const { data: threads, isLoading, error } = useThreads(undefined, debouncedSearch || undefined, 0, currentLimit);
+    
     const { syncState, triggerSync } = useSmartSync();
     useRealtimeEvents();
 
     const isSyncing = syncState === 'syncing' || syncState === 'checking';
-    const filtered = threads ?? [];
+
+    // Reset pagination when search changes
+    useEffect(() => {
+        if (debouncedSearch !== prevSearch) {
+            setCurrentOffset(0);
+            setAllThreads([]);
+            setHasMore(true);
+            setPrevSearch(debouncedSearch);
+        }
+    }, [debouncedSearch, prevSearch]);
+
+    // Update allThreads when initial data loads or updates
+    useEffect(() => {
+        if (threads && threads.length > 0) {
+            setAllThreads(threads);
+            // Check if we got fewer than requested, meaning no more data
+            if (threads.length < currentLimit) {
+                setHasMore(false);
+            } else {
+                setHasMore(true);
+            }
+        }
+    }, [threads, currentLimit]);
+
+    // Intersection Observer for infinite scroll
+    useEffect(() => {
+        if (!sentinelRef.current) return;
+
+        const observer = new IntersectionObserver(
+            entries => {
+                if (entries[0].isIntersecting && hasMore && !isLoading && !isLoadingMore) {
+                    // Load next batch
+                    setCurrentOffset(prev => prev + PAGE_SIZE);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        observer.observe(sentinelRef.current);
+        return () => observer.disconnect();
+    }, [hasMore, isLoading, isLoadingMore]);
+
+    const filtered = allThreads;
 
     const mutateThread = async (threadId: string, action: 'archive' | 'trash') => {
         setBusyThreadId(threadId);
@@ -93,7 +147,7 @@ function InboxContent() {
 
                 <div className="flex items-center gap-4">
                     <div className="text-[10px] font-bold text-outline uppercase tracking-[0.15em]">
-                        1-50 of {filtered.length}
+                        {filtered.length > 0 ? `1-${filtered.length}` : '0'} of {hasMore ? '...' : filtered.length}
                     </div>
                     <div className="flex gap-1">
                         <button className="p-2 hover:bg-surface-container rounded-lg text-outline disabled:opacity-20" disabled>
@@ -117,7 +171,7 @@ function InboxContent() {
 
             {/* Thread List */}
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {isLoading ? (
+                {isLoading && filtered.length === 0 ? (
                     <div className="divide-y divide-outline-variant/5">
                         {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                             <div key={i} className="p-4 flex items-center gap-4 animate-pulse">
@@ -164,6 +218,20 @@ function InboxContent() {
                                 busy={busyThreadId === thread.thread_id}
                             />
                         ))}
+                        
+                        {/* Sentinel element for infinite scroll */}
+                        <div ref={sentinelRef} className="h-20 flex items-center justify-center">
+                            {isLoadingMore || (isLoading && filtered.length > 0) ? (
+                                <div className="flex items-center gap-2 text-outline-variant">
+                                    <MaterialSymbol icon="sync" className="animate-spin" />
+                                    <span className="text-sm">Loading more...</span>
+                                </div>
+                            ) : hasMore ? (
+                                <span className="text-xs text-outline-variant">Scroll for more</span>
+                            ) : filtered.length > 0 ? (
+                                <span className="text-xs text-outline-variant">No more messages</span>
+                            ) : null}
+                        </div>
                     </div>
                 )}
             </div>
