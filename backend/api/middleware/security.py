@@ -7,17 +7,16 @@ Implements critical security controls:
 3. Request ID (Traceability)
 """
 
-import time
 import os
 import uuid
+import logging
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
-import redis.asyncio as redis
+from core.redis import InstrumentedRedis
 
-# Initialize Redis (TODO: Move to a shared connector or dependency)
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-redis_client = redis.from_url(redis_url, encoding="utf-8", decode_responses=True)
+redis_client = InstrumentedRedis.from_url(redis_url, encoding="utf-8", decode_responses=True)
+logger = logging.getLogger("security")
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -51,21 +50,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     
     async def dispatch(self, request: Request, call_next):
         # Skip rate limiting for static/health inputs if needed
-        if request.url.path == "/health" or request.method == "OPTIONS":
+        if request.url.path in {"/health", "/health/simple"} or request.method == "OPTIONS":
             return await call_next(request)
             
         client_ip = request.client.host if request.client else "127.0.0.1"
         key = f"rate_limit:{client_ip}"
         
         try:
-            # Increment count
-            async with redis_client.pipeline(transaction=True) as pipe:
-                pipe.incr(key)
-                # We can safely call expire every time, or conditionally
-                pipe.expire(key, self.WINDOW)
-                results = await pipe.execute()
-                
-            count = results[0]
+            # Set TTL only when key is first seen to avoid an extra EXPIRE on every request.
+            count = await redis_client.incr(key)
+            if count == 1:
+                await redis_client.expire(key, self.WINDOW)
             
             if count > self.RATE_LIMIT:
                 return Response(
@@ -76,7 +71,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 
         except Exception as e:
             # Fail Open for Redis connection issues
-            print(f"⚠️ Rate Limit Redis Error: {e}")
+            logger.warning(f"Rate Limit Redis Error: {e}")
             pass
             
         # Call the actual route OUTSIDE the try-except so exceptions bubble up!

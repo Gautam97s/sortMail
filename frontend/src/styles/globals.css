@@ -50,9 +50,9 @@
     --ff-mono: var(--font-jetbrains), monospace;
 
     /* ─ Layout ─────────────────────────────────────────────── */
-    --sb-w: 232px;
+    --sb-w: 216px;
     --tb-h: 56px;
-    --sidebar-mobile-w: 264px;
+    --sidebar-mobile-w: 248px;
 
     /* ─ Shared Radius Tokens ─────────────────────────────── */
     --radius-sm: 0.25rem;

@@ -37,9 +37,9 @@ export default function TopNavigationBar({
     }, [search, onSearchChange]);
 
     return (
-        <header className="h-tb border-b border-outline-variant/10 flex items-center justify-between px-4 md:px-5 shrink-0 bg-surface-container-lowest w-full sticky top-0 z-40">
+        <header className="h-tb border-b border-outline-variant/10 flex items-center justify-between px-3 md:px-4 shrink-0 bg-surface-container-lowest w-full sticky top-0 z-40">
             {/* Mobile Menu Button & Search */}
-            <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="flex items-center gap-2.5 flex-1 min-w-0">
                 <button 
                     onClick={onMobileSidebarOpen}
                     className="md:hidden p-1.5 hover:bg-surface-container rounded-xl transition-colors"
@@ -47,10 +47,10 @@ export default function TopNavigationBar({
                     <MaterialSymbol icon="menu" className="text-on-surface-variant" />
                 </button>
 
-                <div className="hidden xl:flex flex-col min-w-0 mr-2">
+                <div className="hidden xl:flex flex-col min-w-0 mr-1.5">
                     <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-outline">SortMail AI</span>
                     <div className="flex items-center gap-3 min-w-0">
-                        {title && <span className="font-headline text-[13px] font-bold text-on-surface truncate">{title}</span>}
+                        {title && <span className="font-headline text-xs font-bold text-on-surface truncate">{title}</span>}
                         {subtitle && <span className="text-[11px] font-medium text-on-surface-variant truncate">{subtitle}</span>}
                     </div>
                 </div>
@@ -65,7 +65,7 @@ export default function TopNavigationBar({
                         placeholder={searchPlaceholder}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full h-10 pl-9 pr-10 bg-surface-container-low border border-outline-variant/20 focus:bg-white focus:ring-2 focus:ring-primary-fixed rounded-full text-[13px] transition-all outline-none text-on-surface placeholder:text-outline font-medium shadow-sm"
+                        className="w-full h-9 pl-9 pr-10 bg-surface-container-low border border-outline-variant/20 focus:bg-white focus:ring-2 focus:ring-primary-fixed rounded-full text-xs transition-all outline-none text-on-surface placeholder:text-outline font-medium shadow-sm"
                     />
                     <button className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-surface-container rounded-full transition-colors" aria-label="Search options">
                         <MaterialSymbol icon="tune" className="text-outline text-lg" />
@@ -74,27 +74,27 @@ export default function TopNavigationBar({
             </div>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-1.5 ml-3 shrink-0">
+            <div className="flex items-center gap-1 ml-2.5 shrink-0">
                 <Link href="/search" className="hidden lg:flex items-center gap-2 px-2.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors">
                     <MaterialSymbol icon="travel_explore" className="text-lg" />
                     Explore
                 </Link>
 
-                <Link href="/notifications" className="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors relative" aria-label="Notifications">
+                <Link href="/notifications" className="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors relative" aria-label="Notifications">
                     <MaterialSymbol icon="notifications" className="text-xl" />
                     <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full ring-2 ring-surface-container-lowest"></span>
                 </Link>
                 
-                <Link href="/settings" className="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors" aria-label="Settings">
+                <Link href="/settings" className="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors" aria-label="Settings">
                     <MaterialSymbol icon="settings" className="text-xl" />
                 </Link>
 
-                <div className="flex items-center gap-2 ml-1 pl-3 border-l border-outline-variant/20">
+                <div className="flex items-center gap-2 ml-1 pl-2.5 border-l border-outline-variant/20">
                     <div className="hidden md:flex flex-col items-end leading-tight mr-1">
-                        <span className="text-[13px] font-bold text-on-surface">{user?.name || 'Gautam'}</span>
+                        <span className="text-xs font-bold text-on-surface">{user?.name || 'Gautam'}</span>
                         <span className="text-[9px] uppercase tracking-wider text-outline font-bold">{user?.plan || 'Pro'} Plan</span>
                     </div>
-                    <div className="w-9 h-9 rounded-xl overflow-hidden ring-2 ring-outline-variant/15 border border-white cursor-pointer hover:ring-primary/30 transition-all bg-primary-fixed flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-xl overflow-hidden ring-2 ring-outline-variant/15 border border-white cursor-pointer hover:ring-primary/30 transition-all bg-primary-fixed flex items-center justify-center">
                         {user?.avatar ? (
                             <Image 
                                 src={user.avatar} 

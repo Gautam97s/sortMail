@@ -4,6 +4,8 @@ Admin Metrics Routes
 Admin-only observability endpoints.
 """
 
+from time import monotonic
+
 from fastapi import APIRouter, Depends, HTTPException
 from models.user import User
 
@@ -14,6 +16,33 @@ from app.config import settings
 from core.intelligence.processing_queue import get_queue
 
 router = APIRouter()
+
+_QUEUE_SIZE_CACHE_TTL_SECONDS = 20.0
+_queue_size_cache_value: int | None = None
+_queue_size_cache_ts: float = 0.0
+
+
+async def _get_queue_size_cached() -> tuple[bool, int | None]:
+    global _queue_size_cache_value, _queue_size_cache_ts
+
+    queue_enabled = bool(getattr(settings, "REDIS_URL", None))
+    if not queue_enabled:
+        return False, None
+
+    now = monotonic()
+    if (now - _queue_size_cache_ts) < _QUEUE_SIZE_CACHE_TTL_SECONDS:
+        return True, _queue_size_cache_value
+
+    queue_size: int | None = None
+    try:
+        queue = get_queue(settings.REDIS_URL)
+        queue_size = await queue.size()
+    except Exception:
+        queue_size = None
+
+    _queue_size_cache_value = queue_size
+    _queue_size_cache_ts = now
+    return True, queue_size
 
 
 async def require_superuser(current_user: User = Depends(get_current_user)) -> User:
@@ -26,14 +55,7 @@ async def require_superuser(current_user: User = Depends(get_current_user)) -> U
 async def metrics_overview(admin: User = Depends(require_superuser)):
     _ = admin
 
-    queue_size = None
-    queue_enabled = bool(getattr(settings, "REDIS_URL", None))
-    if queue_enabled:
-        try:
-            queue = get_queue(settings.REDIS_URL)
-            queue_size = await queue.size()
-        except Exception:
-            queue_size = None
+    queue_enabled, queue_size = await _get_queue_size_cached()
 
     return {
         "app": get_metrics_snapshot(),
@@ -61,19 +83,12 @@ async def redis_metrics(admin: User = Depends(require_superuser)):
 async def queue_metrics(admin: User = Depends(require_superuser)):
     _ = admin
 
-    queue_enabled = bool(getattr(settings, "REDIS_URL", None))
+    queue_enabled, pending_items = await _get_queue_size_cached()
     if not queue_enabled:
         return {
             "enabled": False,
             "pending_items": None,
         }
-
-    pending_items = None
-    try:
-        queue = get_queue(settings.REDIS_URL)
-        pending_items = await queue.size()
-    except Exception:
-        pending_items = None
 
     return {
         "enabled": True,

@@ -3,6 +3,7 @@ SortMail Backend - FastAPI Application Entry Point
 """
 
 from contextlib import asynccontextmanager
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -39,11 +40,14 @@ async def lifespan(app: FastAPI):
         logger.error(f"ChromaDB initialization error: {e}")
         logger.warning("Proceeding without vector search")
     
-    # Start Background AI Worker
-    if hasattr(settings, "REDIS_URL") and settings.REDIS_URL:
+    # Start Background AI Worker when explicitly enabled for this process.
+    worker_enabled = os.getenv("AI_WORKER_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
+    if worker_enabled and hasattr(settings, "REDIS_URL") and settings.REDIS_URL:
         from core.intelligence.processing_queue import intelligence_worker
         import asyncio
         app.state.ai_worker_task = asyncio.create_task(intelligence_worker(settings.REDIS_URL))
+    elif not worker_enabled:
+        logger.info("AI_WORKER_ENABLED is false. Skipping AI Background Worker startup.")
     else:
         logger.warning("REDIS_URL not configured. AI Background Worker will not start.")
         

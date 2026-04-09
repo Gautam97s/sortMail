@@ -5,7 +5,6 @@ Asynchronous Redis-backed queue to process incoming email threads through Gemini
 without hitting rate limits or blocking the webhook sync process.
 """
 
-import json
 import asyncio
 import logging
 from typing import List
@@ -17,7 +16,6 @@ from core.storage.database import async_session
 from core.app_metrics import record_metric
 from sqlalchemy.future import select
 from models.thread import Thread
-from models.attachment import Attachment
 
 logger = logging.getLogger("ai_worker")
 
@@ -38,15 +36,13 @@ class IntelligenceQueue:
         logger.debug(f"[Queue] Enqueued thread {thread_id} with priority {priority}")
     
     async def dequeue_batch(self, batch_size: int = 10) -> List[str]:
-        """Pop the highest priority threads from the queue"""
-        # Get highest scores first (-inf to +inf, ZREVRANGE)
-        thread_ids = await self.redis.zrevrange(
-            self.queue_key, 0, batch_size - 1
-        )
-        if thread_ids:
-            # Remove from pending so other workers don't grab them
-            await self.redis.zrem(self.queue_key, *thread_ids)
-            record_metric("queue_dequeue_items", len(thread_ids))
+        """Atomically pop the highest priority items from the queue."""
+        items = await self.redis.zpopmax(self.queue_key, batch_size)
+        if not items:
+            return []
+
+        thread_ids = [item[0] for item in items]
+        record_metric("queue_dequeue_items", len(thread_ids))
         return thread_ids
     
     async def size(self) -> int:
@@ -89,14 +85,18 @@ async def intelligence_worker(redis_url: str):
     """Continuous polling loop to process queued items (threads or attachments)."""
     queue = IntelligenceQueue(redis_url)
     logger.info(f"🚀 Started AI Background Worker connected to {redis_url}")
+    idle_sleep_seconds = 5
+    max_idle_sleep_seconds = 30
     
     while True:
         try:
             item_ids = await queue.dequeue_batch(batch_size=5)
             
             if not item_ids:
-                await asyncio.sleep(5)  # Wait for work and backoff gracefully
+                await asyncio.sleep(idle_sleep_seconds)
+                idle_sleep_seconds = min(idle_sleep_seconds * 2, max_idle_sleep_seconds)
                 continue
+            idle_sleep_seconds = 1
             
             # Process batch concurrently
             tasks = []
@@ -113,7 +113,8 @@ async def intelligence_worker(redis_url: str):
         except Exception as e:
             record_metric("queue_worker_loop_error")
             logger.error(f"[Worker] Internal loop error: {e}")
-            await asyncio.sleep(5)
+            await asyncio.sleep(idle_sleep_seconds)
+            idle_sleep_seconds = min(idle_sleep_seconds * 2, max_idle_sleep_seconds)
 
 # Singleton helper
 queue_instance = None
