@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
-import { useApproveDraft, useDraftById, useGenerateDraft, useScheduleDraft, useUpdateDraft } from '@/hooks/useDrafts';
+import { useAiDrafts, useApproveDraft, useDraftById, useGenerateDraft, useScheduleDraft, useUpdateDraft } from '@/hooks/useDrafts';
 import { useThreads } from '@/hooks/useThreads';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 
@@ -48,9 +48,12 @@ const fileToBase64 = (file: File): Promise<string> => {
 
 export default function DraftWorkspacePage() {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const contextPickerRef = useRef<HTMLDivElement | null>(null);
 
     const [draftIdParam, setDraftIdParam] = useState<string | undefined>();
     const [selectedThreadId, setSelectedThreadId] = useState('');
+    const [contextPickerOpen, setContextPickerOpen] = useState(false);
+    const [contextSearch, setContextSearch] = useState('');
     const [tone, setTone] = useState('NORMAL');
     const [instructions, setInstructions] = useState('');
 
@@ -66,7 +69,8 @@ export default function DraftWorkspacePage() {
     const [scheduleOpen, setScheduleOpen] = useState(false);
     const [scheduledDate, setScheduledDate] = useState('');
 
-    const { data: threads = [] } = useThreads();
+    const { data: allDrafts = [] } = useAiDrafts();
+    const { data: threads = [] } = useThreads(undefined, contextSearch || undefined, 0, 100);
     const { data: selectedDraft, isLoading: loadingDraft } = useDraftById(draftIdParam);
     const { mutate: generateDraft, isPending: generating } = useGenerateDraft();
     const { mutate: updateDraft, isPending: saving } = useUpdateDraft();
@@ -78,10 +82,37 @@ export default function DraftWorkspacePage() {
         [threads, selectedThreadId]
     );
 
+    const threadOptions = useMemo(() => {
+        const base = [...threads];
+        if (!selectedThreadId) return base;
+        const exists = base.some((t: any) => t.thread_id === selectedThreadId);
+        if (exists) return base;
+
+        // Keep selected value visible even if it is outside the currently fetched thread list.
+        return [
+            {
+                thread_id: selectedThreadId,
+                subject: selectedDraft?.subject || 'Selected draft thread',
+            },
+            ...base,
+        ];
+    }, [threads, selectedThreadId, selectedDraft?.subject]);
+
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         setDraftIdParam(params.get('draftId') || undefined);
     }, []);
+
+    useEffect(() => {
+        const onClickOutside = (event: MouseEvent) => {
+            if (!contextPickerOpen) return;
+            if (contextPickerRef.current && !contextPickerRef.current.contains(event.target as Node)) {
+                setContextPickerOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onClickOutside);
+        return () => document.removeEventListener('mousedown', onClickOutside);
+    }, [contextPickerOpen]);
 
     useEffect(() => {
         if (!selectedDraft) return;
@@ -101,6 +132,55 @@ export default function DraftWorkspacePage() {
         setShowCcBcc(Boolean(cc || bcc));
         setAttachments(Array.isArray(meta.attachments) ? meta.attachments : []);
     }, [selectedDraft]);
+
+    const applyDraftToComposer = (draft: any) => {
+        setCurrentDraftId(draft.id || null);
+        setSelectedThreadId(draft.thread_id || '');
+        setTone(draft.tone || 'NORMAL');
+        setSubject(draft.subject || '');
+        setBody(draft.body || '');
+        const meta = draft.metadata_json || {};
+        setToField(Array.isArray(meta.to) ? meta.to.join(', ') : '');
+        setCcField(Array.isArray(meta.cc) ? meta.cc.join(', ') : '');
+        setBccField(Array.isArray(meta.bcc) ? meta.bcc.join(', ') : '');
+        setShowCcBcc(Boolean((meta.cc || []).length || (meta.bcc || []).length));
+        setAttachments(Array.isArray(meta.attachments) ? meta.attachments : []);
+    };
+
+    const handleThreadContextSelect = (threadId: string) => {
+        if (!threadId) return;
+        setSelectedThreadId(threadId);
+        setContextPickerOpen(false);
+
+        const matchedDraft = allDrafts
+            .filter((d: any) => d.thread_id === threadId)
+            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+
+        if (matchedDraft) {
+            applyDraftToComposer(matchedDraft);
+            return;
+        }
+
+        const selected = threadOptions.find((t: any) => t.thread_id === threadId);
+        setCurrentDraftId(null);
+        setSubject(selected?.subject ? `Re: ${selected.subject}` : '');
+        setBody('');
+        setCcField('');
+        setBccField('');
+        setAttachments([]);
+
+        // Auto-create a draft when none exists for the selected context.
+        generateDraft(
+            { threadId, tone, additionalContext: instructions || undefined },
+            {
+                onSuccess: (data: any) => {
+                    setCurrentDraftId(data.id ?? null);
+                    setSubject(data.subject || selected?.subject || '');
+                    setBody(data.body || '');
+                },
+            }
+        );
+    };
 
     useEffect(() => {
         if (toField || !selectedThread?.participants?.length) return;
@@ -209,18 +289,49 @@ export default function DraftWorkspacePage() {
 
                     <div className="rounded-2xl border border-outline-variant/15 bg-white overflow-hidden">
                         <div className="px-4 md:px-5 py-3 border-b border-outline-variant/10 bg-surface-container-lowest flex flex-wrap items-center gap-3">
-                            <select
-                                value={selectedThreadId}
-                                onChange={(e) => setSelectedThreadId(e.target.value)}
-                                className="h-9 min-w-[220px] px-3 rounded-xl border border-outline-variant/20 text-sm"
-                            >
-                                <option value="">Select thread context</option>
-                                {threads.map((thread: any) => (
-                                    <option key={thread.thread_id} value={thread.thread_id}>
-                                        {thread.subject || '(No Subject)'}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="relative min-w-[280px] flex-1 max-w-[520px]" ref={contextPickerRef}>
+                                <button
+                                    onClick={() => setContextPickerOpen((v) => !v)}
+                                    className="h-9 w-full px-3 rounded-xl border border-outline-variant/20 text-sm bg-white text-left flex items-center justify-between"
+                                >
+                                    <span className="truncate">
+                                        {threadOptions.find((t: any) => t.thread_id === selectedThreadId)?.subject || 'Select thread context'}
+                                    </span>
+                                    <MaterialSymbol icon={contextPickerOpen ? 'expand_less' : 'expand_more'} className="text-lg text-outline-variant" />
+                                </button>
+
+                                {contextPickerOpen && (
+                                    <div className="absolute top-11 left-0 right-0 z-30 rounded-xl border border-outline-variant/20 bg-white shadow-xl p-2 space-y-2">
+                                        <div className="relative">
+                                            <MaterialSymbol icon="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-outline-variant text-base" />
+                                            <input
+                                                value={contextSearch}
+                                                onChange={(e) => setContextSearch(e.target.value)}
+                                                placeholder="Search email context..."
+                                                className="h-9 w-full pl-8 pr-3 rounded-lg border border-outline-variant/20 text-sm"
+                                            />
+                                        </div>
+                                        <div className="max-h-64 overflow-y-auto">
+                                            {threadOptions.length === 0 ? (
+                                                <div className="px-3 py-2 text-xs text-outline-variant">No threads found</div>
+                                            ) : (
+                                                threadOptions.map((thread: any) => (
+                                                    <button
+                                                        key={thread.thread_id}
+                                                        onClick={() => handleThreadContextSelect(thread.thread_id)}
+                                                        className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-surface-container ${thread.thread_id === selectedThreadId ? 'bg-primary-fixed/20 text-primary' : ''}`}
+                                                    >
+                                                        <div className="truncate">{thread.subject || '(No Subject)'}</div>
+                                                    </button>
+                                                ))
+                                            )}
+                                        </div>
+                                        <div className="px-2 text-[10px] text-outline-variant uppercase tracking-wider">
+                                            Showing up to 100 results. Use search to find older threads.
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
                             <select
                                 value={tone}
