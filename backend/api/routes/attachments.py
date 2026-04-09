@@ -19,6 +19,8 @@ from api.dependencies import get_current_user
 from core.auth.token_manager import get_valid_google_token
 from core.ingestion.gmail_client import GmailClient
 from core.ingestion.attachment_extractor import _store_attachment
+from core.intelligence.attachment_security import precheck_attachment_metadata
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +87,15 @@ async def preview_attachment(
     if not attachment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found")
 
+    allowed, reason = precheck_attachment_metadata(
+        filename=attachment.filename or attachment.filename_sanitized or "",
+        mime_type=attachment.mime_type or "",
+        size_bytes=int(attachment.size_bytes or 0),
+        max_size_mb=settings.MAX_ATTACHMENT_SIZE_MB,
+    )
+    if not allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Attachment blocked: {reason}")
+
     if not attachment.storage_path or not os.path.exists(attachment.storage_path):
         # Attempt fallback
         file_bytes = await _fetch_fallback_attachment(attachment, current_user.id, db)
@@ -121,6 +132,15 @@ async def download_attachment(
 
     if not attachment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attachment not found")
+
+    allowed, reason = precheck_attachment_metadata(
+        filename=attachment.filename or attachment.filename_sanitized or "",
+        mime_type=attachment.mime_type or "",
+        size_bytes=int(attachment.size_bytes or 0),
+        max_size_mb=settings.MAX_ATTACHMENT_SIZE_MB,
+    )
+    if not allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Attachment blocked: {reason}")
 
     if not attachment.storage_path or not os.path.exists(attachment.storage_path):
         # Attempt fallback

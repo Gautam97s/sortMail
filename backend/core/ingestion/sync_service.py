@@ -14,8 +14,10 @@ from models.thread import Thread
 from models.email import Email
 from models.attachment import Attachment
 from models.connected_account import ConnectedAccount, ProviderType
+from core.intelligence.attachment_security import precheck_attachment_metadata
 from core.ingestion.email_fetcher import fetch_threads
 from core.ingestion.attachment_extractor import extract_attachments
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -278,10 +280,17 @@ class IngestionService:
             result = await self.db.execute(att_stmt)
             att = result.scalars().first()
 
+            allowed, precheck_reason = precheck_attachment_metadata(
+                filename=att_contract.filename or att_contract.original_filename or "",
+                mime_type=att_contract.mime_type or "",
+                size_bytes=int(att_contract.size_bytes or 0),
+                max_size_mb=settings.MAX_ATTACHMENT_SIZE_MB,
+            )
+
             storage_path = att_contract.storage_path
             
             # Download if missing and client available
-            if not storage_path and client and att_contract.size_bytes < 25 * 1024 * 1024:
+            if allowed and not storage_path and client and att_contract.size_bytes < settings.MAX_ATTACHMENT_SIZE_MB * 1024 * 1024:
                 try:
                     # remove 'msg-' prefix from message_id if needed, check contract
                     # contracts uses 'msg-ID'. Gmail API expects raw ID.
@@ -315,15 +324,17 @@ class IngestionService:
                     size_bytes=att_contract.size_bytes,
                     storage_provider=StorageProvider.S3,
                     storage_path=storage_path,
-                    status=AttachmentStatus.PENDING
+                    status=AttachmentStatus.PENDING if allowed else AttachmentStatus.QUARANTINED,
+                    skip_reason=None if allowed else precheck_reason,
                 )
                 self.db.add(att)
                 await self.db.flush() # Ensure it gets an ID and is queryable in this transaction
                 
                 # Defer vector indexing until database commit ensures safe retrieval
-                attachments_to_index.append(att.id)
+                if allowed:
+                    attachments_to_index.append(att.id)
 
-            elif storage_path and not att.storage_path:
+            elif storage_path and not att.storage_path and allowed:
                 att.storage_path = storage_path
         
         await self.db.commit()

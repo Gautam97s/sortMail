@@ -26,6 +26,8 @@ from sqlalchemy import select
 
 from models.thread import Thread
 from models.task import Task, TaskStatus, TaskType, PriorityLevel
+from models.email import Email
+from models.attachment import Attachment
 
 # Intelligence engine â€” Llama 3.3 70B via HF Inference API
 from .llama_engine import run_intelligence
@@ -174,6 +176,8 @@ async def process_thread_intelligence(
         summary          = extract_summary(raw_intel)
         key_points       = extract_key_points(raw_intel)
         suggested_action = extract_suggested_action(raw_intel)
+        attachment_context = await _load_attachment_context(thread_id, db)
+        summary, key_points = _merge_attachment_context(summary, key_points, attachment_context)
 
         intent, urgency_score  = extract_intent(raw_intel)
         priority_level         = extract_priority_level(raw_intel)
@@ -231,6 +235,7 @@ async def process_thread_intelligence(
             "entities"         : entities,
             "action_items"     : action_items,
             "tags"             : tags_list,
+            "attachment_intel"  : attachment_context,
             "suggested_draft"  : suggested_draft,
             "processed_at"     : datetime.now(timezone.utc).isoformat(),
         }
@@ -428,6 +433,57 @@ def _stale_workflow_reason(thread: Thread) -> Optional[str]:
     if age_days >= STALE_WORKFLOW_DAYS:
         return f"Thread is {int(age_days)} days old; auto-workflow suppressed."
     return None
+
+
+async def _load_attachment_context(thread_id: str, db: AsyncSession) -> list[dict]:
+    """Load attachment intelligence linked to emails in this thread."""
+    stmt = (
+        select(Attachment)
+        .join(Email, Email.id == Attachment.email_id)
+        .where(Email.thread_id == thread_id)
+        .order_by(Attachment.created_at.desc())
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+
+    payload: list[dict] = []
+    for att in rows:
+        intel = att.intel_json or {}
+        if not intel:
+            continue
+        payload.append(
+            {
+                "attachment_id": att.id,
+                "email_id": att.email_id,
+                "filename": att.filename,
+                "mime_type": att.mime_type,
+                "summary": intel.get("summary"),
+                "key_points": intel.get("key_points") or [],
+                "risk_flags": intel.get("risk_flags") or [],
+                "action_items": intel.get("action_items") or [],
+                "security": intel.get("security") or {},
+            }
+        )
+    return payload
+
+
+def _merge_attachment_context(summary: str, key_points: list[str], attachment_context: list[dict]) -> tuple[str, list[str]]:
+    """Merge attachment intel highlights into thread summary and key points."""
+    if not attachment_context:
+        return summary, key_points
+
+    enriched_summary = summary
+    attachment_summaries = [ctx.get("summary") for ctx in attachment_context[:2] if ctx.get("summary")]
+    if attachment_summaries:
+        enriched_summary = (summary or "").strip()
+        attachment_suffix = " ".join(f"Attachment: {item}" for item in attachment_summaries)
+        enriched_summary = f"{enriched_summary} {attachment_suffix}".strip()[:500]
+
+    merged_points = list(key_points or [])
+    for ctx in attachment_context[:3]:
+        for point in (ctx.get("key_points") or [])[:2]:
+            if point and point not in merged_points:
+                merged_points.append(point)
+    return enriched_summary, merged_points[:8]
 
 
 def _coerce_optional_bool(value) -> Optional[bool]:
