@@ -84,3 +84,7 @@ secrets/
 timeline.md
 sprint.md
 execution_guide.md
+
+scripts/
+frontend/src/scripts/
+backend/scripts/
