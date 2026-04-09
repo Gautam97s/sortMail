@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
 import { formatDistanceToNow } from 'date-fns';
-import { useAiDrafts, useApproveDraft, useScheduleDraft, useGenerateDraft } from '@/hooks/useDrafts';
+import { useAiDrafts, useApproveDraft, useScheduleDraft, useGenerateDraft, useDraftById, useUpdateDraft } from '@/hooks/useDrafts';
 import { DraftControls } from '@/components/drafts/DraftControls';
 import { DraftEditor } from '@/components/drafts/DraftEditor';
 import { AiDraft } from '@/types/dashboard';
@@ -24,6 +24,7 @@ const MaterialSymbol = ({ icon, filled = false, className = '' }: { icon: string
 );
 
 export default function DraftWorkspacePage() {
+    const [draftIdParam, setDraftIdParam] = useState<string | undefined>(undefined);
     const [selectedThreadId, setSelectedThreadId] = useState('');
     const [tone, setTone] = useState('NORMAL');
     const [instructions, setInstructions] = useState('');
@@ -36,11 +37,44 @@ export default function DraftWorkspacePage() {
 
     const { data: drafts = [] } = useAiDrafts();
     const { data: threads = [] } = useThreads();
+    const { data: selectedDraft, isLoading: isLoadingDraft } = useDraftById(draftIdParam);
     const { mutate: generateDraft, isPending: isGenerating } = useGenerateDraft();
     const { mutate: approveDraft, isPending: approving } = useApproveDraft();
     const { mutate: scheduleDraft, isPending: scheduling } = useScheduleDraft();
+    const { mutate: updateDraft, isPending: savingDraft } = useUpdateDraft();
 
     const selectedThread = threads.find((t: any) => t.thread_id === selectedThreadId) ?? null;
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        setDraftIdParam(params.get('draftId') || undefined);
+    }, []);
+
+    useEffect(() => {
+        if (!selectedDraft) return;
+        setCurrentDraftId(selectedDraft.id);
+        setSelectedThreadId(selectedDraft.thread_id);
+        setTone(selectedDraft.tone || 'NORMAL');
+        setDraftContent(selectedDraft.body || '');
+    }, [selectedDraft]);
+
+    const persistCurrentDraft = (onSuccess?: () => void) => {
+        if (!currentDraftId) {
+            onSuccess?.();
+            return;
+        }
+        updateDraft(
+            {
+                draftId: currentDraftId,
+                body: draftContent,
+                tone,
+                subject: selectedDraft?.subject,
+            },
+            {
+                onSuccess: () => onSuccess?.(),
+            }
+        );
+    };
 
     const handleGenerate = () => {
         if (!selectedThreadId) return;
@@ -62,9 +96,21 @@ export default function DraftWorkspacePage() {
 
     const handleScheduleSubmit = () => {
         if (!scheduleTarget || !scheduledDate) return;
-        scheduleDraft(
-            { draftId: scheduleTarget.id, scheduledForDate: new Date(scheduledDate).toISOString() },
-            { onSuccess: () => setScheduleTarget(null) }
+        updateDraft(
+            {
+                draftId: scheduleTarget.id,
+                body: scheduleTarget.body,
+                tone: scheduleTarget.tone,
+                subject: scheduleTarget.subject,
+            },
+            {
+                onSuccess: () => {
+                    scheduleDraft(
+                        { draftId: scheduleTarget.id, scheduledForDate: new Date(scheduledDate).toISOString() },
+                        { onSuccess: () => setScheduleTarget(null) }
+                    );
+                },
+            }
         );
     };
 
@@ -88,6 +134,13 @@ export default function DraftWorkspacePage() {
                             <MaterialSymbol icon="arrow_back" className="text-lg" />
                             <span className="text-sm font-medium">Back to Drafts</span>
                         </Link>
+                        <button
+                            onClick={() => persistCurrentDraft()}
+                            disabled={!currentDraftId || savingDraft}
+                            className="h-9 px-4 bg-primary text-on-primary rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-40 hover:scale-105 active:scale-95 transition-all"
+                        >
+                            {savingDraft ? 'Saving...' : 'Save Draft'}
+                        </button>
                     </div>
 
                     <div className="flex-1 overflow-hidden">
@@ -97,6 +150,7 @@ export default function DraftWorkspacePage() {
                             originalThread={selectedThread as any}
                             isGenerating={isGenerating}
                             onRegenerate={handleRegenerate}
+                            isLoading={isLoadingDraft}
                         />
                     </div>
 
@@ -163,7 +217,19 @@ export default function DraftWorkspacePage() {
                                             <div className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
                                                 <button
                                                     className="h-10 px-4 bg-primary text-on-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
-                                                    onClick={() => approveDraft(draft.id)}
+                                                    onClick={() => {
+                                                        updateDraft(
+                                                            {
+                                                                draftId: draft.id,
+                                                                body: draft.body,
+                                                                tone: draft.tone,
+                                                                subject: draft.subject,
+                                                            },
+                                                            {
+                                                                onSuccess: () => approveDraft(draft.id),
+                                                            }
+                                                        );
+                                                    }}
                                                     disabled={approving}
                                                 >
                                                     <MaterialSymbol icon="send" className="text-lg" />

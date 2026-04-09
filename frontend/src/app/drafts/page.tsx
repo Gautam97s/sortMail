@@ -197,7 +197,7 @@ export default function DraftsListPage() {
                                         {/* Actions */}
                                         <div className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
                                             <Link
-                                                href="/drafts/workspace"
+                                                href={`/drafts/workspace?draftId=${draft.id}`}
                                                 onClick={(e) => e.stopPropagation()}
                                                 className="h-9 px-3 bg-primary text-on-primary rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center gap-1"
                                             >

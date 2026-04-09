@@ -218,3 +218,32 @@ class GmailClient:
         )
         
         return draft['id']
+
+    async def send_message(
+        self,
+        to: str,
+        subject: str,
+        body: str,
+        thread_id: Optional[str] = None,
+    ) -> str:
+        """Send an email message immediately."""
+        from email.mime.text import MIMEText
+        import base64
+
+        message = MIMEText(body)
+        message['to'] = to
+        message['subject'] = subject
+
+        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
+        body_payload = {'raw': raw_message}
+        if thread_id:
+            body_payload['threadId'] = thread_id
+
+        sent = await self._execute(
+            lambda: self._service.users().messages().send(
+                userId='me',
+                body=body_payload,
+            )
+        )
+
+        return sent.get('id', '')

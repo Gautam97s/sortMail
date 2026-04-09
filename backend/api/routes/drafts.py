@@ -4,16 +4,20 @@ API Routes - Drafts
 Draft generation endpoints.
 """
 
+import re
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
+from core.auth.token_manager import get_valid_google_token
+from core.ingestion.gmail_client import GmailClient
 from core.storage.database import get_db
 from models.draft import ToneType
 from api.dependencies import get_current_user
 from models.user import User
 from models.draft import Draft, DraftStatus, DraftTone
+from models.email import Email
 from core.credits.credit_service import CreditService, InsufficientCreditsError, RateLimitExceededError
 from sqlalchemy import select, desc, and_, or_, func, exists
 import logging
@@ -49,6 +53,59 @@ class DraftResponse(BaseModel):
 
 class ScheduleDraftRequest(BaseModel):
     scheduled_for_date: str # ISO format expected
+
+
+class UpdateDraftRequest(BaseModel):
+    subject: Optional[str] = None
+    body: Optional[str] = None
+    tone: Optional[ToneType] = None
+
+
+def _extract_email(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    match = re.search(r'<([^>]+)>', value)
+    if match:
+        return match.group(1).strip().lower()
+    if '@' in value:
+        return value.strip().lower()
+    return None
+
+
+async def _resolve_reply_target(db: AsyncSession, draft: Draft, current_user: User) -> str:
+    """Find a recipient email for the draft send action."""
+    latest_stmt = (
+        select(Email)
+        .where(
+            Email.thread_id == draft.thread_id,
+            Email.user_id == current_user.id,
+        )
+        .order_by(desc(Email.received_at))
+        .limit(1)
+    )
+    latest_email = (await db.execute(latest_stmt)).scalars().first()
+
+    # Prefer replying to the latest sender when it is not the current user.
+    if latest_email:
+        sender_email = _extract_email(latest_email.sender)
+        if sender_email and sender_email != current_user.email.lower():
+            return sender_email
+
+        recipients = latest_email.recipients or []
+        for recipient in recipients:
+            candidate = (recipient or {}).get("email")
+            if candidate and candidate.lower() != current_user.email.lower():
+                return candidate.lower()
+
+    # Fallback: scan thread participants.
+    thread = await _load_thread(draft.thread_id, current_user.id, db)
+    if thread and thread.participants:
+        for participant in thread.participants:
+            participant_email = _extract_email(participant)
+            if participant_email and participant_email != current_user.email.lower():
+                return participant_email
+
+    raise HTTPException(status_code=400, detail="Unable to resolve recipient for this draft")
 
 
 @router.post("/", response_model=DraftResponse)
@@ -254,6 +311,46 @@ async def delete_draft(draft_id: str):
     return {"draft_id": draft_id, "deleted": True}
 
 
+@router.patch("/{draft_id}", response_model=DraftResponse)
+async def update_draft(
+    draft_id: str,
+    payload: UpdateDraftRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Persist user edits to an existing draft."""
+    stmt = select(Draft).where(Draft.id == draft_id, Draft.user_id == current_user.id)
+    draft = (await db.execute(stmt)).scalars().first()
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    if payload.subject is not None:
+        draft.subject = payload.subject
+    if payload.body is not None:
+        draft.body = payload.body
+        draft.content = payload.body
+        draft.user_edited = True
+    if payload.tone is not None:
+        draft.tone = payload.tone
+
+    if draft.status != DraftStatus.SENT.value:
+        draft.status = DraftStatus.EDITED.value
+
+    await db.commit()
+
+    thread = await _load_thread(draft.thread_id, current_user.id, db)
+    return {
+        "id": draft.id,
+        "thread_id": draft.thread_id,
+        "external_id": thread.external_id if thread else "",
+        "subject": draft.subject,
+        "body": draft.body,
+        "tone": draft.tone,
+        "status": draft.status,
+        "created_at": draft.created_at.isoformat() if draft.created_at else ""
+    }
+
+
 @router.get("", response_model=list[DraftResponse])
 async def list_drafts(
     db: AsyncSession = Depends(get_db),
@@ -291,7 +388,11 @@ async def list_drafts(
         .join(Thread, Thread.id == Draft.thread_id)
         .where(
             Draft.user_id == current_user.id,
-            Draft.status == DraftStatus.GENERATED.value,
+            Draft.status.in_([
+                DraftStatus.GENERATED.value,
+                DraftStatus.EDITED.value,
+                DraftStatus.SENT.value,
+            ]),
             Draft.thread_id.not_in(unsub_thread_ids)
         )
         .order_by(desc(Draft.created_at))
@@ -325,12 +426,42 @@ async def approve_draft_for_send(
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found")
         
-    draft.status = DraftStatus.SENT.value
-    # TODO: Push to email provider APIs via background jobs
-    draft.sent_at = datetime.now(timezone.utc)
-    
-    await db.commit()
-    return {"status": "success", "message": "Draft approved for sending"}
+    thread = await _load_thread(draft.thread_id, current_user.id, db)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    try:
+        recipient = await _resolve_reply_target(db, draft, current_user)
+
+        if thread.provider == "GMAIL":
+            access_token = await get_valid_google_token(current_user.id)
+            gmail = GmailClient(access_token, current_user.id)
+            provider_message_id = await gmail.send_message(
+                to=recipient,
+                subject=draft.subject,
+                body=draft.body or draft.content or "",
+                thread_id=thread.external_id,
+            )
+
+            draft.metadata_json = draft.metadata_json or {}
+            draft.metadata_json["provider_message_id"] = provider_message_id
+            draft.metadata_json["provider_action"] = "sent"
+            draft.metadata_json["recipient"] = recipient
+        else:
+            # Outlook live-send integration not implemented yet.
+            raise HTTPException(status_code=501, detail="Outlook send is not implemented yet")
+
+        draft.status = DraftStatus.SENT.value
+        draft.sent_at = datetime.now(timezone.utc)
+        await db.commit()
+        return {"status": "success", "message": "Draft sent", "draft_id": draft_id}
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as exc:
+        await db.rollback()
+        logger.exception("Failed to send draft %s", draft_id)
+        raise HTTPException(status_code=500, detail=f"Failed to send draft: {exc}")
 
 @router.post("/{draft_id}/schedule")
 async def schedule_draft(
@@ -339,26 +470,58 @@ async def schedule_draft(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Schedule a draft for 'Send Later' via background workers."""
+    """Schedule a draft for send-later and create provider-side draft when possible."""
     stmt = select(Draft).where(Draft.id == draft_id, Draft.user_id == current_user.id)
     draft = (await db.execute(stmt)).scalars().first()
     
     if not draft:
         raise HTTPException(status_code=404, detail="Draft not found")
         
-    draft.status = DraftStatus.EDITED.value # Means it was reviewed
+    thread = await _load_thread(draft.thread_id, current_user.id, db)
+    if not thread:
+        raise HTTPException(status_code=404, detail="Thread not found")
     
     try:
         scheduled_time = datetime.fromisoformat(payload.scheduled_for_date.replace('Z', '+00:00'))
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ISO date format.")
         
-    # In a full deployment, enqueue to Redis/Celery here using scheduled_time
-    logger.info(f"Draft {draft_id} scheduled to send at {scheduled_time}")
-    
-    draft.metadata_json = draft.metadata_json or {}
-    draft.metadata_json["scheduled_for"] = scheduled_time.isoformat()
-    
-    await db.commit()
-    return {"status": "success", "message": f"Draft scheduled for {scheduled_time.isoformat()}"}
+    try:
+        recipient = await _resolve_reply_target(db, draft, current_user)
+        metadata = draft.metadata_json or {}
+        metadata["scheduled_for"] = scheduled_time.isoformat()
+
+        if thread.provider == "GMAIL":
+            access_token = await get_valid_google_token(current_user.id)
+            gmail = GmailClient(access_token, current_user.id)
+            provider_draft_id = await gmail.create_draft(
+                to=recipient,
+                subject=draft.subject,
+                body=draft.body or draft.content or "",
+                thread_id=thread.external_id,
+            )
+            metadata["provider_draft_id"] = provider_draft_id
+            metadata["provider_action"] = "draft_saved"
+            metadata["recipient"] = recipient
+        else:
+            metadata["provider_action"] = "scheduled_backend_only"
+
+        # Keep as EDITED (reviewed + queued for send-later)
+        draft.status = DraftStatus.EDITED.value
+        draft.metadata_json = metadata
+
+        logger.info("Draft %s scheduled for %s", draft_id, scheduled_time.isoformat())
+        await db.commit()
+        return {
+            "status": "success",
+            "message": f"Draft scheduled for {scheduled_time.isoformat()}",
+            "draft_id": draft_id,
+        }
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as exc:
+        await db.rollback()
+        logger.exception("Failed to schedule draft %s", draft_id)
+        raise HTTPException(status_code=500, detail=f"Failed to schedule draft: {exc}")
 

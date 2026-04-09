@@ -27,6 +27,19 @@ export function useAiDrafts() {
     });
 }
 
+/** Fetch a single draft by id (used for edit/view flows) */
+export function useDraftById(draftId?: string) {
+    return useQuery<AiDraft>({
+        queryKey: ['ai-draft', draftId],
+        queryFn: async () => {
+            const { data } = await api.get(`${endpoints.drafts}/${draftId}`);
+            return data;
+        },
+        enabled: Boolean(draftId),
+        staleTime: 1000 * 30,
+    });
+}
+
 /** Approve a stored AI draft for immediate send */
 export function useApproveDraft() {
     const queryClient = useQueryClient();
@@ -37,6 +50,7 @@ export function useApproveDraft() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['ai-drafts'] });
+            queryClient.invalidateQueries({ queryKey: ['threads'] });
         },
     });
 }
@@ -51,6 +65,26 @@ export function useScheduleDraft() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['ai-drafts'] });
+            queryClient.invalidateQueries({ queryKey: ['threads'] });
+        },
+    });
+}
+
+/** Persist edits to an existing draft */
+export function useUpdateDraft() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ draftId, subject, body, tone }: { draftId: string; subject?: string; body?: string; tone?: string }) => {
+            const { data } = await api.patch(`${endpoints.drafts}/${draftId}`, {
+                subject,
+                body,
+                tone,
+            });
+            return data as AiDraft;
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['ai-drafts'] });
+            queryClient.invalidateQueries({ queryKey: ['ai-draft', data.id] });
         },
     });
 }
@@ -69,6 +103,7 @@ export function useGenerateDraft() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['ai-drafts'] });
+            queryClient.invalidateQueries({ queryKey: ['threads'] });
         },
     });
 }
