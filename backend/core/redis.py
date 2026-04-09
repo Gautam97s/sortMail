@@ -27,14 +27,13 @@ class RedisClient:
             # Parse Redis URL from settings or env
             redis_url = getattr(settings, "REDIS_URL", os.getenv("REDIS_URL", "redis://localhost:6379/0"))
             
-            cls._instance = redis.from_url(
+            cls._instance = InstrumentedRedis.from_url(
                 redis_url,
                 encoding="utf-8",
                 decode_responses=True,
                 max_connections=int(os.getenv("REDIS_MAX_CONNECTIONS", 50)),
                 socket_timeout=5.0,
                 socket_connect_timeout=5.0,
-                cls=InstrumentedRedis,
             )
         return cls._instance
 

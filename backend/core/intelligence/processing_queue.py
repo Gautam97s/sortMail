@@ -8,7 +8,6 @@ without hitting rate limits or blocking the webhook sync process.
 import json
 import asyncio
 import logging
-import redis.asyncio as aioredis
 from typing import List
 from core.redis import InstrumentedRedis
 
@@ -26,7 +25,7 @@ class IntelligenceQueue:
     """Queue threads for AI processing using Redis Sorted Sets."""
     
     def __init__(self, redis_url: str):
-        self.redis = aioredis.from_url(redis_url, decode_responses=True, cls=InstrumentedRedis)
+        self.redis = InstrumentedRedis.from_url(redis_url, decode_responses=True)
         self.queue_key = "intel:pending"
         
     async def enqueue(self, thread_id: str, priority: int = 50):
