@@ -76,6 +76,19 @@ ACTION_MARKERS = (
     "question",
     "follow up",
 )
+SOCIAL_NOTIFICATION_MARKERS = (
+    "linkedin",
+    "invited you to connect",
+    "connection request",
+    "accept or decline",
+    "view profile",
+    "new follower",
+    "started following you",
+    "commented on your post",
+    "liked your post",
+    "mentioned you",
+)
+STALE_WORKFLOW_DAYS = 14
 
 
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -171,7 +184,14 @@ async def process_thread_intelligence(
         if not should_create_tasks:
             action_items = []
 
-        workflow_reason = raw_intel.get("workflow_reason") or _build_workflow_reason(
+        stale_workflow_reason = _stale_workflow_reason(thread)
+        if stale_workflow_reason:
+            should_create_reply = False
+            should_create_tasks = False
+            suggested_draft = None
+            action_items = []
+
+        workflow_reason = stale_workflow_reason or raw_intel.get("workflow_reason") or _build_workflow_reason(
             intent=intent,
             should_create_reply=should_create_reply,
             should_create_tasks=should_create_tasks,
@@ -312,18 +332,25 @@ def _detect_low_value_thread(thread: Thread, messages: list[dict]) -> Optional[s
     if any(marker in text for marker in ("no-reply", "noreply", "do-not-reply")) and any(marker in text for marker in ("newsletter", "promotion", "sale", "discount", "coupon", "special offer", "unsubscribe")):
         return "no_reply_marketing_mail"
 
+    if any(marker in text for marker in SOCIAL_NOTIFICATION_MARKERS):
+        return "social_notification"
+
     return None
 
 
 def _build_low_value_intel(thread: Thread, reason: str) -> dict:
     subject = thread.subject or "(No Subject)"
     intent = "NEWSLETTER" if "subscription" in reason or "newsletter" in reason else "FYI"
+    if reason == "social_notification":
+        intent = "SOCIAL"
     summary = f"Low-value email: {subject}"
 
     if reason == "promotional_or_subscription":
         summary = f"Newsletter or subscription update: {subject}"
     elif reason == "marketing_blast":
         summary = f"Promotional email: {subject}"
+    elif reason == "social_notification":
+        summary = f"Social notification: {subject}"
 
     return {
         "thread_id": thread.id,
@@ -344,7 +371,7 @@ def _build_low_value_intel(thread: Thread, reason: str) -> dict:
         "suggested_reply_points": [],
         "key_points": [],
         "deadlines": [],
-        "tags": ["Newsletter"] if intent == "NEWSLETTER" else ["Promotional"],
+        "tags": ["Newsletter"] if intent == "NEWSLETTER" else (["Social"] if intent == "SOCIAL" else ["Promotional"]),
         "action_items": [],
         "suggested_draft": None,
         "follow_up_needed": False,
@@ -375,6 +402,17 @@ def _build_workflow_reason(
     if should_create_tasks:
         return f"Task-only thread with {action_items_count} task(s)."
     return "No workflow action needed."
+
+
+def _stale_workflow_reason(thread: Thread) -> Optional[str]:
+    """Disable auto-workflow for stale threads to avoid noise during backfills/redeploys."""
+    if not thread.last_email_at:
+        return None
+    now = datetime.now(timezone.utc)
+    age_days = (now - thread.last_email_at).total_seconds() / 86400
+    if age_days >= STALE_WORKFLOW_DAYS:
+        return f"Thread is {int(age_days)} days old; auto-workflow suppressed."
+    return None
 
 
 def _coerce_optional_bool(value) -> Optional[bool]:

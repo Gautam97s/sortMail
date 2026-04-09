@@ -27,6 +27,16 @@ Always respond with valid JSON only. No markdown fences, no explanation text out
 
 USER_PROMPT_TEMPLATE = """Analyze this email thread and extract actionable intelligence.
 
+WORKFLOW GUARDRAILS:
+- If the thread is a social-network notification (LinkedIn, X/Twitter, Instagram, Facebook, etc.), set:
+    - "intent" to "social" or "fyi"
+    - "should_create_reply" to false
+    - "should_create_tasks" to false
+    - "action_items" to []
+    - "suggested_draft" to null
+- If the thread is newsletter, promotional, digest, or subscription updates, also keep workflow flags false.
+- Do NOT create tasks for passive notifications like "connection request", "someone viewed your profile", "new follower", "weekly digest".
+
 <email_thread>
 <subject>{subject}</subject>
 <participants>{participants}</participants>
