@@ -55,7 +55,11 @@ async def get_dashboard_briefing(user_id: str, db: AsyncSession, min_urgency: in
         for t in critical_threads:
             # Safely parse cached intel
             intel = t.intel_json or {}
-            action_items = intel.get("action_items", [])
+            intent = (intel.get("intent") or t.intent or "").upper()
+            if intent in {"FYI", "NEWSLETTER", "SOCIAL", "OTHER", "UNKNOWN"}:
+                action_items = []
+            else:
+                action_items = intel.get("action_items", [])
             total_urgent_actions += len(action_items)
             
             briefing_items.append({

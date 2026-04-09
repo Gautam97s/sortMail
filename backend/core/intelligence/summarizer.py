@@ -47,6 +47,9 @@ def extract_suggested_action(intel_json: dict) -> Optional[str]:
     intent = (intel_json.get("intent") or "FYI").upper()  # Uppercase to match IntentType enum
     urgency = int(intel_json.get("urgency_score") or 0)
     main_ask = intel_json.get("main_ask")
+    should_reply = intel_json.get("should_create_reply")
+    if should_reply is False:
+        return None
 
     if urgency >= 70:
         return f"Respond immediately — {main_ask or 'urgent action required'}"
@@ -67,6 +70,14 @@ def extract_suggested_draft(intel_json: dict) -> Optional[str]:
     """
     Extract the AI's suggested draft reply.
     """
+    should_reply = intel_json.get("should_create_reply")
+    if should_reply is False:
+        return None
+
+    intent = (intel_json.get("intent") or "FYI").upper()
+    if intent in ("FYI", "NEWSLETTER", "SOCIAL", "OTHER", "UNKNOWN"):
+        return None
+
     draft = intel_json.get("suggested_draft")
     if draft and draft.lower() not in ("null", "none"):
         return draft.strip()

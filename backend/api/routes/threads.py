@@ -23,6 +23,7 @@ from sqlalchemy.orm import selectinload
 from app.config import settings
 
 from core.storage.database import get_db
+from core.redis import get_redis
 from api.dependencies import get_current_user
 from models.user import User
 from models.thread import Thread, IntelStatus
@@ -30,8 +31,28 @@ from models.email import Email
 from models.contact import Contact
 from sqlalchemy import and_, or_, func, exists
 from core.credits.credit_service import CreditService, InsufficientCreditsError, RateLimitExceededError
+from core.app_metrics import record_metric
 
 router = APIRouter(redirect_slashes=False)
+
+
+async def _try_enqueue_intel_once(user_id: str, thread_id: str, ttl_seconds: int = 30) -> bool:
+    """Return True only when this request should trigger a new background intel run."""
+    try:
+        r = await get_redis()
+        if not r:
+            return True
+        key = f"intel:request:{user_id}:{thread_id}"
+        created = await r.set(key, "1", ex=ttl_seconds, nx=True)
+        if created:
+            record_metric("intel_trigger_accepted")
+        else:
+            record_metric("intel_trigger_suppressed")
+        return bool(created)
+    except Exception:
+        # If Redis is unavailable, fall back to existing behavior.
+        record_metric("intel_trigger_fallback")
+        return True
 
 
 class ThreadListItem(BaseModel):
@@ -530,9 +551,11 @@ async def refresh_thread(
         await db.commit()
         
         # 5. Trigger intelligence pipeline in background
-        import asyncio
-        from core.ingestion.sync_service import _run_intel_safe
-        asyncio.create_task(_run_intel_safe(thread_id, current_user.id, db))
+        should_trigger = await _try_enqueue_intel_once(current_user.id, thread_id)
+        if should_trigger:
+            import asyncio
+            from core.ingestion.sync_service import _run_intel_safe
+            asyncio.create_task(_run_intel_safe(thread_id, current_user.id, db))
         
         return {"thread_id": thread_id, "status": "PROCESSING", "message": "Intelligence refresh queued"}
     except InsufficientCreditsError as e:
@@ -574,9 +597,11 @@ async def get_thread_intel(
         }
 
     # Trigger pipeline in background if not yet processed
-    import asyncio
-    from core.ingestion.sync_service import _run_intel_safe
-    asyncio.create_task(_run_intel_safe(thread_id, current_user.id, db))
+    should_trigger = await _try_enqueue_intel_once(current_user.id, thread_id)
+    if should_trigger:
+        import asyncio
+        from core.ingestion.sync_service import _run_intel_safe
+        asyncio.create_task(_run_intel_safe(thread_id, current_user.id, db))
     
     return {
         "status": "PROCESSING",

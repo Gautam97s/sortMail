@@ -116,6 +116,26 @@ class ThreadIntelV1(BaseModel):
         ge=0, le=100,
         description="Urgency score from 0 (not urgent) to 100 (critical)"
     )
+    should_create_reply: bool = Field(
+        default=False,
+        description="Whether this thread needs a reply draft"
+    )
+    should_create_tasks: bool = Field(
+        default=False,
+        description="Whether this thread should produce workflow tasks"
+    )
+    is_promotional: bool = Field(
+        default=False,
+        description="True when the thread is marketing or promotional mail"
+    )
+    is_subscription: bool = Field(
+        default=False,
+        description="True when the thread is a newsletter or subscription update"
+    )
+    workflow_reason: Optional[str] = Field(
+        default=None,
+        description="Short explanation for why AI should or should not create workflow items"
+    )
     
     # Extracted Data
     main_ask: Optional[str] = Field(
@@ -167,6 +187,11 @@ class ThreadIntelV1(BaseModel):
                 "summary": "Sarah sent the final contract terms and needs approval by Friday.",
                 "intent": "action_required",
                 "urgency_score": 75,
+                "should_create_reply": true,
+                "should_create_tasks": true,
+                "is_promotional": false,
+                "is_subscription": false,
+                "workflow_reason": "User approval is needed before Friday.",
                 "main_ask": "Approve or request changes to contract",
                 "decision_needed": "Contract approval",
                 "extracted_deadlines": [],

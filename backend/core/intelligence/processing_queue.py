@@ -10,10 +10,12 @@ import asyncio
 import logging
 import redis.asyncio as aioredis
 from typing import List
+from core.redis import InstrumentedRedis
 
 from core.intelligence.pipeline import process_thread_intelligence
 from core.intelligence.attachment_intel import analyze_attachment
 from core.storage.database import async_session
+from core.app_metrics import record_metric
 from sqlalchemy.future import select
 from models.thread import Thread
 from models.attachment import Attachment
@@ -24,7 +26,7 @@ class IntelligenceQueue:
     """Queue threads for AI processing using Redis Sorted Sets."""
     
     def __init__(self, redis_url: str):
-        self.redis = aioredis.from_url(redis_url, decode_responses=True)
+        self.redis = aioredis.from_url(redis_url, decode_responses=True, cls=InstrumentedRedis)
         self.queue_key = "intel:pending"
         
     async def enqueue(self, thread_id: str, priority: int = 50):
@@ -33,6 +35,7 @@ class IntelligenceQueue:
             self.queue_key,
             {thread_id: priority}
         )
+        record_metric("queue_enqueue")
         logger.debug(f"[Queue] Enqueued thread {thread_id} with priority {priority}")
     
     async def dequeue_batch(self, batch_size: int = 10) -> List[str]:
@@ -44,6 +47,7 @@ class IntelligenceQueue:
         if thread_ids:
             # Remove from pending so other workers don't grab them
             await self.redis.zrem(self.queue_key, *thread_ids)
+            record_metric("queue_dequeue_items", len(thread_ids))
         return thread_ids
     
     async def size(self) -> int:
@@ -64,9 +68,11 @@ async def generate_intelligence_for_thread(thread_id: str):
 
         try:
             await process_thread_intelligence(thread.id, thread.user_id, db)
+            record_metric("queue_thread_processed")
             logger.info(f"✅ [Worker] Successfully processed AI intel for {thread.id}")
             await db.commit()
         except Exception as e:
+            record_metric("queue_thread_failed")
             logger.error(f"❌ [Worker] Failed to process {thread.id}: {e}")
             await db.rollback()
 
@@ -75,7 +81,9 @@ async def generate_intelligence_for_attachment(attachment_id: str):
     async with async_session() as db:
         try:
             await analyze_attachment(attachment_id, db)
+            record_metric("queue_attachment_processed")
         except Exception as e:
+            record_metric("queue_attachment_failed")
             logger.error(f"❌ [Worker] Failed to process attachment {attachment_id}: {e}")
 
 async def intelligence_worker(redis_url: str):
@@ -104,6 +112,7 @@ async def intelligence_worker(redis_url: str):
             await asyncio.gather(*tasks, return_exceptions=True)
             
         except Exception as e:
+            record_metric("queue_worker_loop_error")
             logger.error(f"[Worker] Internal loop error: {e}")
             await asyncio.sleep(5)
 

@@ -20,6 +20,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
+    const redirectToLogin = () => {
+        if (typeof window === "undefined") return;
+
+        const currentPath = window.location.pathname;
+        const publicPaths = [
+            '/login', '/privacy', '/terms', '/onboarding', '/help',
+            '/callback', '/magic-link-sent', '/verify', '/reset-password'
+        ];
+
+        if (!publicPaths.some((path) => currentPath.startsWith(path)) && currentPath !== '/') {
+            router.replace('/login');
+        }
+    };
+
     const checkSession = async () => {
         try {
             console.log("🔍 Checking Session...");
@@ -36,6 +50,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 return true;
             } else {
                 setUser(null);
+                if (res.status === 401) {
+                    redirectToLogin();
+                }
                 return false;
             }
         } catch (error) {

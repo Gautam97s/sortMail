@@ -8,6 +8,14 @@ import os
 from typing import Optional
 import redis.asyncio as redis
 from app.config import settings
+from core.redis_metrics import record_redis_call
+
+
+class InstrumentedRedis(redis.Redis):
+    async def execute_command(self, *args, **options):
+        if args:
+            record_redis_call(str(args[0]))
+        return await super().execute_command(*args, **options)
 
 class RedisClient:
     _instance: Optional[redis.Redis] = None
@@ -25,7 +33,8 @@ class RedisClient:
                 decode_responses=True,
                 max_connections=int(os.getenv("REDIS_MAX_CONNECTIONS", 50)),
                 socket_timeout=5.0,
-                socket_connect_timeout=5.0
+                socket_connect_timeout=5.0,
+                cls=InstrumentedRedis,
             )
         return cls._instance
 

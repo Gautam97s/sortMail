@@ -16,6 +16,7 @@ import re
 import logging
 import asyncio
 from datetime import datetime, timezone
+from core.app_metrics import record_metric
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,14 @@ Respond ONLY with this JSON structure (no markdown, no extra text):
   "intent": "action_required|fyi|scheduling|urgent|question|social|newsletter|other",
   "urgency_score": 0,
   "urgency_reason": "Why this urgency score?",
+    "main_ask": "What the sender is asking the user to do, or null",
+    "decision_needed": "The decision the user must make, or null",
   "sentiment": "positive|neutral|negative|mixed",
+    "should_create_reply": true,
+    "should_create_tasks": true,
+    "is_promotional": false,
+    "is_subscription": false,
+    "workflow_reason": "Why this thread does or does not need a reply or task",
   "key_points": ["point 1", "point 2"],
   "action_items": [
     {{
@@ -64,7 +72,7 @@ Respond ONLY with this JSON structure (no markdown, no extra text):
   "reply_deadline": "YYYY-MM-DD or null",
   "topics": ["budget", "contract"],
   "tags": ["Invoice", "Meeting"],
-  "suggested_draft": "Always write a concise, professional reply to the latest message. Do not return null.",
+    "suggested_draft": "Only write a concise, professional reply when a reply is actually needed. Otherwise null.",
   "meeting_detected": {{
     "has_meeting": false,
     "date": "YYYY-MM-DD or null",
@@ -93,6 +101,7 @@ def _get_hf_client():
 async def _call_llama(messages: list[dict], max_tokens: int = 2048, temperature: float = 0.2) -> str:
     """Call Llama 3.3 70B via HF Inference API (async-wrapped)."""
     from app.config import settings
+    record_metric("llm_call_attempt")
 
     if not settings.HF_TOKEN:
         raise RuntimeError("HF_TOKEN not configured — cannot call Llama 3.3 70B.")
@@ -105,6 +114,7 @@ async def _call_llama(messages: list[dict], max_tokens: int = 2048, temperature:
             max_tokens=max_tokens,
             temperature=temperature,
         )
+        record_metric("llm_call_success")
         return response.choices[0].message.content
 
     return await asyncio.to_thread(_sync_call)
@@ -160,6 +170,7 @@ async def run_intelligence(
             intel = json.loads(raw)
             intel["thread_id"] = thread_id
             intel["processed_at"] = datetime.now(timezone.utc).isoformat()
+            intel["schema_version"] = "llama-3.3-70b-instruct"
             intel["model"] = "llama-3.3-70b-instruct"
 
             logger.info(
@@ -169,13 +180,16 @@ async def run_intelligence(
             return intel
 
         except json.JSONDecodeError as e:
+            record_metric("llm_json_parse_error")
             logger.warning(f"Llama JSON parse failed attempt {attempt+1}/{4} for {thread_id}: {e}")
             if attempt == 3:
                 logger.error(f"Llama JSON parse failed after 4 attempts for {thread_id}")
+                record_metric("llm_fallback_used")
                 return _fallback_intel(subject, thread_id)
             await asyncio.sleep(1)
 
         except Exception as e:
+            record_metric("llm_call_error")
             error_str = str(e)
             logger.warning(f"Llama call failed attempt {attempt+1}/4 for {thread_id}: {error_str}")
 
@@ -187,10 +201,12 @@ async def run_intelligence(
 
             if attempt == 3:
                 logger.error(f"Llama failed after 4 attempts for {thread_id}: {error_str}")
+                record_metric("llm_fallback_used")
                 return _fallback_intel(subject, thread_id)
 
             await asyncio.sleep(1)
 
+    record_metric("llm_fallback_used")
     return _fallback_intel(subject, thread_id)
 
 
@@ -208,8 +224,10 @@ async def llama_chat(
     """
     full_messages = [{"role": "system", "content": system_prompt}] + messages
     try:
+        record_metric("llm_chat_request")
         return await _call_llama(full_messages, max_tokens=max_tokens, temperature=0.7)
     except Exception as e:
+        record_metric("llm_chat_error")
         logger.error(f"Llama chat failed: {e}")
         return "I'm sorry, I couldn't process your request right now. Please try again."
 
@@ -224,6 +242,11 @@ def _fallback_intel(subject: str, thread_id: str) -> dict:
         "summary": f"Email thread: {subject or '(No Subject)'}",
         "intent": "fyi",
         "urgency_score": 10,
+        "should_create_reply": False,
+        "should_create_tasks": False,
+        "is_promotional": False,
+        "is_subscription": False,
+        "workflow_reason": "Fallback analysis only",
         "sentiment": "neutral",
         "key_points": [],
         "action_items": [],
@@ -234,5 +257,6 @@ def _fallback_intel(subject: str, thread_id: str) -> dict:
         "tags": [],
         "suggested_draft": None,
         "meeting_detected": {"has_meeting": False},
+        "schema_version": "fallback",
         "model": "fallback",
     }

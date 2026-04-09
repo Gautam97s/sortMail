@@ -139,6 +139,7 @@ async def health():
         "vector_store": "unknown",
         "ai_worker": "unknown",
     }
+    redis_metrics = None
 
     # Database health
     try:
@@ -153,10 +154,12 @@ async def health():
     # Redis health
     try:
         from core.redis import get_redis
+        from core.redis_metrics import get_redis_metrics_snapshot
 
         redis = await get_redis()
         await redis.ping()
         checks["redis"] = "healthy"
+        redis_metrics = get_redis_metrics_snapshot()
     except Exception as exc:
         checks["redis"] = f"unhealthy: {str(exc)}"
 
@@ -186,6 +189,7 @@ async def health():
         "version": settings.VERSION,
         "environment": settings.ENVIRONMENT,
         "checks": checks,
+        "redis_metrics": redis_metrics,
     }
 
 
@@ -198,7 +202,7 @@ async def simple_health():
 # Import and include routers
 from api.routes import (
     auth, emails, threads, tasks, drafts, reminders,
-    dashboard, admin_credits, notifications, credits, accounts, admin_users, events, webhooks,
+    dashboard, admin_credits, notifications, credits, accounts, admin_users, admin_metrics, events, webhooks,
     proxy, ai, attachments, contacts, tags, settings as app_settings, search
 )
 
@@ -214,6 +218,7 @@ app.include_router(notifications.router, prefix="/api/notifications", tags=["not
 app.include_router(credits.router, prefix="/api/credits", tags=["credits"])
 app.include_router(accounts.router, prefix="/api/connected-accounts", tags=["accounts"])
 app.include_router(admin_users.router, prefix="/api/admin", tags=["admin"])
+app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["admin"])
 app.include_router(events.router, prefix="/api/events", tags=["events"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
 app.include_router(ai.router, prefix="/api/ai", tags=["ai"])

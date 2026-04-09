@@ -23,9 +23,7 @@ if (typeof window !== 'undefined') {
                 const currentPath = window.location.pathname;
 
                 if (!publicPaths.some(path => currentPath.startsWith(path)) && currentPath !== '/') {
-                    // [BYPASS REDIRECT FOR DEV] 
-                    // window.location.href = '/login';
-                    console.warn("Intercepted 401 but redirect is bypassed for dev.");
+                    window.location.replace('/login');
                 }
             }
             return Promise.reject(error);
@@ -67,6 +65,10 @@ export const endpoints = {
     calendarSuggestions: '/api/tasks/calendar-suggestions',
     connectedAccounts: '/api/connected-accounts',
     adminUsers: '/api/admin/users',
+    adminMetricsOverview: '/api/admin/metrics/overview',
+    adminMetricsApp: '/api/admin/metrics/app',
+    adminMetricsRedis: '/api/admin/metrics/redis',
+    adminMetricsQueue: '/api/admin/metrics/queue',
     adminCreditsAdjust: '/api/admin/credits/adjust',
     helpCategories: '/api/help/categories',
     helpArticle: (slug: string) => `/api/help/articles/${slug}`,

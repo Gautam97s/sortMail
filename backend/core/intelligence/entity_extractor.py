@@ -44,6 +44,13 @@ def extract_action_items(intel_json: dict) -> list[dict]:
     Returns list of dicts with keys: title, description, due_date, priority.
     Skips items without a title.
     """
+    if intel_json.get("should_create_tasks") is False:
+        return []
+
+    intent = (intel_json.get("intent") or "FYI").upper()
+    if intent in {"FYI", "NEWSLETTER", "SOCIAL", "OTHER", "UNKNOWN"}:
+        return []
+
     raw = intel_json.get("action_items") or []
     valid = []
 

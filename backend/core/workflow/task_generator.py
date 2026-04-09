@@ -37,6 +37,12 @@ async def generate_tasks(
     Returns:
         List of TaskDTOv1 contracts
     """
+    if getattr(intel, "should_create_tasks", True) is False:
+        return []
+
+    if getattr(intel, "is_promotional", False) or getattr(intel, "is_subscription", False):
+        return []
+
     tasks = []
     
     # Generate task based on intent

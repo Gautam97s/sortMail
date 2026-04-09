@@ -36,8 +36,46 @@ from .entity_extractor import extract_entities, extract_action_items, extract_ta
 from models.contact import Contact
 from models.tag import Tag
 from models.draft import Draft, DraftStatus, DraftTone
+from core.app_metrics import record_metric
 
 logger = logging.getLogger(__name__)
+
+REPLY_INTENTS = {"ACTION_REQUIRED", "URGENT", "QUESTION", "SCHEDULING"}
+TASK_INTENTS = {"ACTION_REQUIRED", "URGENT", "SCHEDULING"}
+LOW_VALUE_MARKERS = (
+    "unsubscribe",
+    "manage preferences",
+    "view in browser",
+    "newsletter",
+    "weekly digest",
+    "daily digest",
+    "marketing",
+    "promotion",
+    "promotional",
+    "sale",
+    "discount",
+    "coupon",
+    "special offer",
+    "limited time",
+    "subscribe",
+    "subscription",
+    "product update",
+    "webinar",
+    "announcement",
+)
+ACTION_MARKERS = (
+    "please review",
+    "approve",
+    "approval",
+    "confirm",
+    "sign",
+    "schedule",
+    "meeting",
+    "deadline",
+    "due",
+    "question",
+    "follow up",
+)
 
 
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -53,21 +91,50 @@ async def process_thread_intelligence(
     Full intelligence pipeline for one thread.
     Safe to call in background â€” never raises, always returns.
     """
+    lock_acquired = False
+    redis_client = None
+    lock_key = f"intel:inflight:{user_id}:{thread_id}"
+    lock_token = str(uuid.uuid4())
+    record_metric("intel_request")
+
     try:
         # â”€â”€ 1. Load thread â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         thread = await _load_thread(thread_id, user_id, db)
         if not thread:
             return None
 
+        redis_client, lock_acquired = await _acquire_intel_lock(lock_key, lock_token)
+        if not lock_acquired:
+            record_metric("intel_lock_contended")
+            logger.debug(f"Thread {thread_id} intel already in progress, skipping duplicate run")
+            return None
+
         # Skip if already processed recently (< 24h)
         if thread.intel_generated_at:
             age = (datetime.now(timezone.utc) - thread.intel_generated_at).total_seconds() / 3600
             if age < 24:
+                record_metric("intel_skipped_fresh")
                 logger.debug(f"Thread {thread_id} intel fresh, skipping")
                 return None
 
         # â”€â”€ 2. Load messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         messages = await _load_messages(thread_id, db)
+
+        low_value_reason = _detect_low_value_thread(thread, messages)
+        if low_value_reason:
+            record_metric("intel_skipped_low_value")
+            final_intel = _build_low_value_intel(thread, low_value_reason)
+            thread.summary = final_intel["summary"]
+            thread.intent = final_intel["intent"]
+            thread.urgency_score = final_intel["urgency_score"]
+            thread.intel_json = final_intel
+            thread.intel_generated_at = datetime.now(timezone.utc)
+
+            await _process_contacts(user_id, messages, db)
+            await db.commit()
+            logger.info(f"Intel skipped for low-value thread={thread_id} reason={low_value_reason}")
+            await _publish_intel_ready(user_id, thread_id, final_intel)
+            return final_intel
 
         # â”€â”€ 3. Single Gemini Flash call â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         raw_intel = await run_intelligence(
@@ -91,6 +158,25 @@ async def process_thread_intelligence(
         action_items           = extract_action_items(raw_intel)
         tags_list              = extract_tags(raw_intel)
         suggested_draft        = extract_suggested_draft(raw_intel)
+        should_create_reply    = _coerce_optional_bool(raw_intel.get("should_create_reply"))
+        should_create_tasks    = _coerce_optional_bool(raw_intel.get("should_create_tasks"))
+
+        if should_create_reply is None:
+            should_create_reply = intent in REPLY_INTENTS and not _is_low_value_intent(intent)
+        if should_create_tasks is None:
+            should_create_tasks = intent in TASK_INTENTS and bool(action_items) and not _is_low_value_intent(intent)
+
+        if not should_create_reply:
+            suggested_draft = None
+        if not should_create_tasks:
+            action_items = []
+
+        workflow_reason = raw_intel.get("workflow_reason") or _build_workflow_reason(
+            intent=intent,
+            should_create_reply=should_create_reply,
+            should_create_tasks=should_create_tasks,
+            action_items_count=len(action_items),
+        )
 
         # â”€â”€ 5. Assemble final intel dict â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         final_intel = {
@@ -100,6 +186,11 @@ async def process_thread_intelligence(
             "suggested_action" : suggested_action,
             "intent"           : intent,
             "urgency_score"    : urgency_score,
+            "should_create_reply": bool(should_create_reply),
+            "should_create_tasks": bool(should_create_tasks),
+            "is_promotional"   : _coerce_bool(raw_intel.get("is_promotional")),
+            "is_subscription"  : _coerce_bool(raw_intel.get("is_subscription")),
+            "workflow_reason"  : workflow_reason,
             "priority_level"   : priority_level,
             "follow_up_needed" : follow_up,
             "expected_reply_by": reply_by,
@@ -125,7 +216,7 @@ async def process_thread_intelligence(
         await _process_tags(user_id, thread, tags_list, db)
 
         # â”€â”€ 6c. Process Suggested Draft â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        if suggested_draft:
+        if should_create_reply and suggested_draft:
             await _create_draft(user_id, thread_id, suggested_draft, db)
 
         await db.commit()
@@ -154,19 +245,24 @@ async def process_thread_intelligence(
                     break
 
         # â”€â”€ 7. Auto-create Tasks from action items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        if not is_unsubscribed:
+        if not is_unsubscribed and should_create_tasks:
             for item in action_items:
                 await _create_task(user_id, thread_id, item, db)
 
         # â”€â”€ 8. Publish SSE event â†’ frontend invalidates cache â”€â”€â”€â”€â”€â”€â”€â”€â”€
         await _publish_intel_ready(user_id, thread_id, final_intel)
+        record_metric("intel_completed")
 
         return final_intel
 
     except Exception as exc:
+        record_metric("intel_failed")
         await db.rollback()
         logger.error(f"Intel pipeline failed for {thread_id}: {exc}", exc_info=True)
         return None
+    finally:
+        if lock_acquired:
+            await _release_intel_lock(redis_client, lock_key, lock_token)
 
 
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -197,6 +293,130 @@ async def _load_messages(thread_id: str, db: AsyncSession) -> list[dict]:
         }
         for m in rows
     ]
+
+
+def _detect_low_value_thread(thread: Thread, messages: list[dict]) -> Optional[str]:
+    """Return a short reason when the thread looks promotional or subscription-like."""
+    parts = [thread.subject or "", " ".join(thread.participants or [])]
+    parts.extend(msg.get("body", "") for msg in messages[:3])
+    text = " ".join(parts).lower()
+
+    if any(marker in text for marker in ("unsubscribe", "manage preferences", "view in browser", "newsletter", "weekly digest", "daily digest")):
+        if not any(marker in text for marker in ACTION_MARKERS):
+            return "promotional_or_subscription"
+
+    if any(marker in text for marker in LOW_VALUE_MARKERS):
+        if not any(marker in text for marker in ACTION_MARKERS):
+            return "marketing_blast"
+
+    if any(marker in text for marker in ("no-reply", "noreply", "do-not-reply")) and any(marker in text for marker in ("newsletter", "promotion", "sale", "discount", "coupon", "special offer", "unsubscribe")):
+        return "no_reply_marketing_mail"
+
+    return None
+
+
+def _build_low_value_intel(thread: Thread, reason: str) -> dict:
+    subject = thread.subject or "(No Subject)"
+    intent = "NEWSLETTER" if "subscription" in reason or "newsletter" in reason else "FYI"
+    summary = f"Low-value email: {subject}"
+
+    if reason == "promotional_or_subscription":
+        summary = f"Newsletter or subscription update: {subject}"
+    elif reason == "marketing_blast":
+        summary = f"Promotional email: {subject}"
+
+    return {
+        "thread_id": thread.id,
+        "summary": summary,
+        "intent": intent,
+        "urgency_score": 0,
+        "should_create_reply": False,
+        "should_create_tasks": False,
+        "is_promotional": True,
+        "is_subscription": intent == "NEWSLETTER",
+        "workflow_reason": reason,
+        "main_ask": None,
+        "decision_needed": None,
+        "extracted_deadlines": [],
+        "entities": [],
+        "attachment_summaries": [],
+        "suggested_action": None,
+        "suggested_reply_points": [],
+        "key_points": [],
+        "deadlines": [],
+        "tags": ["Newsletter"] if intent == "NEWSLETTER" else ["Promotional"],
+        "action_items": [],
+        "suggested_draft": None,
+        "follow_up_needed": False,
+        "expected_reply_by": None,
+        "priority_level": "low",
+        "processed_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": "heuristic-low-value",
+        "model": "heuristic-low-value",
+    }
+
+
+def _is_low_value_intent(intent: str) -> bool:
+    return intent in {"FYI", "NEWSLETTER", "SOCIAL", "OTHER", "UNKNOWN"}
+
+
+def _build_workflow_reason(
+    intent: str,
+    should_create_reply: bool,
+    should_create_tasks: bool,
+    action_items_count: int,
+) -> str:
+    if _is_low_value_intent(intent):
+        return "Informational mail only; no workflow action needed."
+    if should_create_reply and should_create_tasks:
+        return f"Actionable thread with {action_items_count} task(s) and a reply needed."
+    if should_create_reply:
+        return "Reply needed, but no task should be created."
+    if should_create_tasks:
+        return f"Task-only thread with {action_items_count} task(s)."
+    return "No workflow action needed."
+
+
+def _coerce_optional_bool(value) -> Optional[bool]:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"true", "yes", "1"}:
+            return True
+        if lowered in {"false", "no", "0", "null", "none", ""}:
+            return False
+    return bool(value)
+
+
+def _coerce_bool(value) -> bool:
+    return bool(_coerce_optional_bool(value))
+
+
+async def _acquire_intel_lock(lock_key: str, token: str) -> tuple[Optional[object], bool]:
+    """Acquire a short-lived Redis lock to avoid duplicate model calls."""
+    try:
+        from core.redis import get_redis
+        r = await get_redis()
+        acquired = await r.set(lock_key, token, ex=180, nx=True)
+        return r, bool(acquired)
+    except Exception:
+        # If Redis is unavailable, do not block processing.
+        return None, True
+
+
+async def _release_intel_lock(redis_client, lock_key: str, token: str) -> None:
+    """Best-effort lock release with token check to avoid deleting others' locks."""
+    if not redis_client:
+        return
+    try:
+        current_token = await redis_client.get(lock_key)
+        if current_token == token:
+            await redis_client.delete(lock_key)
+    except Exception:
+        pass
 
 
 _PRIORITY_MAP = {
@@ -325,6 +545,7 @@ async def _create_draft(user_id: str, thread_id: str, content: str, db: AsyncSes
         status=DraftStatus.GENERATED.value
     )
     db.add(draft)
+    record_metric("auto_draft_created")
     logger.info(f"Auto-draft created for thread={thread_id}")
 
 
@@ -395,6 +616,7 @@ async def _create_task(
     try:
         db.add(task)
         await db.commit()
+        record_metric("auto_task_created")
         logger.info(f"Auto-task created: '{title}' (thread={thread_id})")
     except Exception as e:
         await db.rollback()
