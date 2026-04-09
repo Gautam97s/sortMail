@@ -195,14 +195,21 @@ class GmailClient:
         subject: str,
         body: str,
         thread_id: Optional[str] = None,
+        cc: Optional[str] = None,
+        bcc: Optional[str] = None,
+        attachments: Optional[List[dict]] = None,
     ) -> str:
         """Create a draft email."""
-        from email.mime.text import MIMEText
         import base64
-        
-        message = MIMEText(body)
-        message['to'] = to
-        message['subject'] = subject
+
+        message = self._build_mime_message(
+            to=to,
+            subject=subject,
+            body=body,
+            cc=cc,
+            bcc=bcc,
+            attachments=attachments,
+        )
         
         raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
         body_payload =({'message': {'raw': raw_message}})
@@ -225,14 +232,21 @@ class GmailClient:
         subject: str,
         body: str,
         thread_id: Optional[str] = None,
+        cc: Optional[str] = None,
+        bcc: Optional[str] = None,
+        attachments: Optional[List[dict]] = None,
     ) -> str:
         """Send an email message immediately."""
-        from email.mime.text import MIMEText
         import base64
 
-        message = MIMEText(body)
-        message['to'] = to
-        message['subject'] = subject
+        message = self._build_mime_message(
+            to=to,
+            subject=subject,
+            body=body,
+            cc=cc,
+            bcc=bcc,
+            attachments=attachments,
+        )
 
         raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
         body_payload = {'raw': raw_message}
@@ -247,3 +261,53 @@ class GmailClient:
         )
 
         return sent.get('id', '')
+
+    def _build_mime_message(
+        self,
+        to: str,
+        subject: str,
+        body: str,
+        cc: Optional[str] = None,
+        bcc: Optional[str] = None,
+        attachments: Optional[List[dict]] = None,
+    ):
+        """Build a MIME email with optional cc/bcc and file attachments."""
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.base import MIMEBase
+        from email import encoders
+        import base64
+
+        safe_attachments = attachments or []
+        if safe_attachments:
+            message = MIMEMultipart()
+            message.attach(MIMEText(body or "", "plain", "utf-8"))
+        else:
+            message = MIMEText(body or "", "plain", "utf-8")
+
+        message['to'] = to
+        message['subject'] = subject
+        if cc:
+            message['cc'] = cc
+        if bcc:
+            message['bcc'] = bcc
+
+        for item in safe_attachments:
+            content_base64 = item.get('content_base64')
+            filename = item.get('filename') or 'attachment.bin'
+            mime_type = item.get('mime_type') or 'application/octet-stream'
+            if not content_base64:
+                continue
+            try:
+                raw_bytes = base64.b64decode(content_base64)
+            except Exception:
+                continue
+
+            maintype, subtype = (mime_type.split('/', 1) + ['octet-stream'])[:2]
+            part = MIMEBase(maintype, subtype)
+            part.set_payload(raw_bytes)
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
+            message.attach(part)
+
+        return message

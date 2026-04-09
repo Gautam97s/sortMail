@@ -272,6 +272,18 @@ export interface AiDraft {
     tone: string;
     status: string;
     created_at: string;
+    metadata_json?: {
+        to?: string[];
+        cc?: string[];
+        bcc?: string[];
+        attachments?: Array<{
+            filename: string;
+            mime_type: string;
+            content_base64?: string;
+            size_bytes?: number;
+        }>;
+        [key: string]: any;
+    };
 }
 
 // ─── Legacy Compat (for old dashboard components) ────────────

@@ -5,7 +5,7 @@ Draft generation endpoints.
 """
 
 import re
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
@@ -47,6 +47,7 @@ class DraftResponse(BaseModel):
     tone: str
     status: str
     created_at: str
+    metadata_json: Optional[dict] = None
 
     class Config:
         from_attributes = True
@@ -59,6 +60,10 @@ class UpdateDraftRequest(BaseModel):
     subject: Optional[str] = None
     body: Optional[str] = None
     tone: Optional[ToneType] = None
+    to: Optional[List[str]] = None
+    cc: Optional[List[str]] = None
+    bcc: Optional[List[str]] = None
+    attachments: Optional[List[dict]] = None
 
 
 def _extract_email(value: Optional[str]) -> Optional[str]:
@@ -70,6 +75,22 @@ def _extract_email(value: Optional[str]) -> Optional[str]:
     if '@' in value:
         return value.strip().lower()
     return None
+
+
+def _normalize_email_list(values: Optional[List[str]]) -> List[str]:
+    if not values:
+        return []
+    seen = set()
+    result: List[str] = []
+    for raw in values:
+        email = _extract_email(raw)
+        if not email:
+            continue
+        if email in seen:
+            continue
+        seen.add(email)
+        result.append(email)
+    return result
 
 
 async def _resolve_reply_target(db: AsyncSession, draft: Draft, current_user: User) -> str:
@@ -185,7 +206,8 @@ Provide ONLY the raw email body text. Do not include subject lines or enclosed M
             "body": draft.body,
             "tone": draft.tone,
             "status": draft.status,
-            "created_at": draft.created_at.isoformat() if draft.created_at else ""
+            "created_at": draft.created_at.isoformat() if draft.created_at else "",
+            "metadata_json": draft.metadata_json,
         }
     except InsufficientCreditsError:
         await db.rollback()
@@ -219,7 +241,8 @@ async def get_draft(
         "body": draft.body,
         "tone": draft.tone,
         "status": draft.status,
-        "created_at": draft.created_at.isoformat() if draft.created_at else ""
+        "created_at": draft.created_at.isoformat() if draft.created_at else "",
+        "metadata_json": draft.metadata_json,
     }
 
 
@@ -292,7 +315,8 @@ Provide ONLY the raw email body text. Do not include subject lines or enclosed M
             "body": draft.body,
             "tone": draft.tone,
             "status": draft.status,
-            "created_at": draft.created_at.isoformat() if draft.created_at else ""
+            "created_at": draft.created_at.isoformat() if draft.created_at else "",
+            "metadata_json": draft.metadata_json,
         }
     except InsufficientCreditsError as e:
         await db.rollback()
@@ -333,6 +357,17 @@ async def update_draft(
     if payload.tone is not None:
         draft.tone = payload.tone
 
+    metadata = draft.metadata_json or {}
+    if payload.to is not None:
+        metadata["to"] = _normalize_email_list(payload.to)
+    if payload.cc is not None:
+        metadata["cc"] = _normalize_email_list(payload.cc)
+    if payload.bcc is not None:
+        metadata["bcc"] = _normalize_email_list(payload.bcc)
+    if payload.attachments is not None:
+        metadata["attachments"] = payload.attachments
+    draft.metadata_json = metadata
+
     if draft.status != DraftStatus.SENT.value:
         draft.status = DraftStatus.EDITED.value
 
@@ -347,7 +382,8 @@ async def update_draft(
         "body": draft.body,
         "tone": draft.tone,
         "status": draft.status,
-        "created_at": draft.created_at.isoformat() if draft.created_at else ""
+        "created_at": draft.created_at.isoformat() if draft.created_at else "",
+        "metadata_json": draft.metadata_json,
     }
 
 
@@ -409,7 +445,8 @@ async def list_drafts(
             "body": d.body or d.content,
             "tone": d.tone.value if hasattr(d.tone, "value") else str(d.tone),
             "status": d.status,
-            "created_at": d.created_at.isoformat() if d.created_at else ""
+            "created_at": d.created_at.isoformat() if d.created_at else "",
+            "metadata_json": d.metadata_json,
         })
     return final_result
 
@@ -431,7 +468,15 @@ async def approve_draft_for_send(
         raise HTTPException(status_code=404, detail="Thread not found")
 
     try:
-        recipient = await _resolve_reply_target(db, draft, current_user)
+        metadata = draft.metadata_json or {}
+        to_list = _normalize_email_list(metadata.get("to"))
+        cc_list = _normalize_email_list(metadata.get("cc"))
+        bcc_list = _normalize_email_list(metadata.get("bcc"))
+        attachments = metadata.get("attachments") or []
+
+        if not to_list:
+            to_list = [await _resolve_reply_target(db, draft, current_user)]
+        recipient = ",".join(to_list)
 
         if thread.provider == "GMAIL":
             access_token = await get_valid_google_token(current_user.id)
@@ -441,12 +486,15 @@ async def approve_draft_for_send(
                 subject=draft.subject,
                 body=draft.body or draft.content or "",
                 thread_id=thread.external_id,
+                cc=",".join(cc_list) if cc_list else None,
+                bcc=",".join(bcc_list) if bcc_list else None,
+                attachments=attachments,
             )
 
-            draft.metadata_json = draft.metadata_json or {}
-            draft.metadata_json["provider_message_id"] = provider_message_id
-            draft.metadata_json["provider_action"] = "sent"
-            draft.metadata_json["recipient"] = recipient
+            metadata["provider_message_id"] = provider_message_id
+            metadata["provider_action"] = "sent"
+            metadata["recipient"] = recipient
+            draft.metadata_json = metadata
         else:
             # Outlook live-send integration not implemented yet.
             raise HTTPException(status_code=501, detail="Outlook send is not implemented yet")
@@ -487,8 +535,14 @@ async def schedule_draft(
         raise HTTPException(status_code=400, detail="Invalid ISO date format.")
         
     try:
-        recipient = await _resolve_reply_target(db, draft, current_user)
         metadata = draft.metadata_json or {}
+        to_list = _normalize_email_list(metadata.get("to"))
+        cc_list = _normalize_email_list(metadata.get("cc"))
+        bcc_list = _normalize_email_list(metadata.get("bcc"))
+        attachments = metadata.get("attachments") or []
+        if not to_list:
+            to_list = [await _resolve_reply_target(db, draft, current_user)]
+        recipient = ",".join(to_list)
         metadata["scheduled_for"] = scheduled_time.isoformat()
 
         if thread.provider == "GMAIL":
@@ -499,6 +553,9 @@ async def schedule_draft(
                 subject=draft.subject,
                 body=draft.body or draft.content or "",
                 thread_id=thread.external_id,
+                cc=",".join(cc_list) if cc_list else None,
+                bcc=",".join(bcc_list) if bcc_list else None,
+                attachments=attachments,
             )
             metadata["provider_draft_id"] = provider_draft_id
             metadata["provider_action"] = "draft_saved"

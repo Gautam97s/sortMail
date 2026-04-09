@@ -74,11 +74,15 @@ export function useScheduleDraft() {
 export function useUpdateDraft() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async ({ draftId, subject, body, tone }: { draftId: string; subject?: string; body?: string; tone?: string }) => {
+        mutationFn: async ({ draftId, subject, body, tone, to, cc, bcc, attachments }: { draftId: string; subject?: string; body?: string; tone?: string; to?: string[]; cc?: string[]; bcc?: string[]; attachments?: Array<{ filename: string; mime_type: string; content_base64?: string; size_bytes?: number; }> }) => {
             const { data } = await api.patch(`${endpoints.drafts}/${draftId}`, {
                 subject,
                 body,
                 tone,
+                to,
+                cc,
+                bcc,
+                attachments,
             });
             return data as AiDraft;
         },

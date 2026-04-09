@@ -1,49 +1,82 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppShell from '@/components/layout/AppShell';
-import { formatDistanceToNow } from 'date-fns';
-import { useAiDrafts, useApproveDraft, useScheduleDraft, useGenerateDraft, useDraftById, useUpdateDraft } from '@/hooks/useDrafts';
-import { DraftControls } from '@/components/drafts/DraftControls';
-import { DraftEditor } from '@/components/drafts/DraftEditor';
-import { AiDraft } from '@/types/dashboard';
+import { useApproveDraft, useDraftById, useGenerateDraft, useScheduleDraft, useUpdateDraft } from '@/hooks/useDrafts';
 import { useThreads } from '@/hooks/useThreads';
-import {
-    Dialog,
-    DialogContent,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
-const MaterialSymbol = ({ icon, filled = false, className = '' }: { icon: string; filled?: boolean; className?: string }) => (
-    <span 
-        className={`material-symbols-outlined ${className}`}
-        style={{ fontVariationSettings: `'FILL' ${filled ? 1 : 0}` }}
-    >
-        {icon}
-    </span>
+const MaterialSymbol = ({ icon, className = '' }: { icon: string; className?: string }) => (
+    <span className={`material-symbols-outlined ${className}`}>{icon}</span>
 );
 
+type AttachmentItem = {
+    filename: string;
+    mime_type: string;
+    content_base64?: string;
+    size_bytes?: number;
+};
+
+const extractEmail = (value?: string): string => {
+    if (!value) return '';
+    const match = value.match(/<([^>]+)>/);
+    if (match?.[1]) return match[1].trim().toLowerCase();
+    return value.includes('@') ? value.trim().toLowerCase() : '';
+};
+
+const parseEmails = (raw: string): string[] => {
+    return raw
+        .split(/[;,\n]/)
+        .map((v) => extractEmail(v))
+        .filter(Boolean)
+        .filter((v, i, arr) => arr.indexOf(v) === i);
+};
+
+const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = String(reader.result || '');
+            const base64 = result.includes(',') ? result.split(',')[1] : result;
+            resolve(base64);
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+    });
+};
+
 export default function DraftWorkspacePage() {
-    const [draftIdParam, setDraftIdParam] = useState<string | undefined>(undefined);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    const [draftIdParam, setDraftIdParam] = useState<string | undefined>();
     const [selectedThreadId, setSelectedThreadId] = useState('');
     const [tone, setTone] = useState('NORMAL');
     const [instructions, setInstructions] = useState('');
-    const [draftContent, setDraftContent] = useState('');
+
     const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
-    const [pendingOpen, setPendingOpen] = useState(true);
-    const [scheduleTarget, setScheduleTarget] = useState<AiDraft | null>(null);
+    const [subject, setSubject] = useState('');
+    const [body, setBody] = useState('');
+    const [toField, setToField] = useState('');
+    const [ccField, setCcField] = useState('');
+    const [bccField, setBccField] = useState('');
+    const [showCcBcc, setShowCcBcc] = useState(false);
+    const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+
+    const [scheduleOpen, setScheduleOpen] = useState(false);
     const [scheduledDate, setScheduledDate] = useState('');
-    const [previewDraft, setPreviewDraft] = useState<AiDraft | null>(null);
 
-    const { data: drafts = [] } = useAiDrafts();
     const { data: threads = [] } = useThreads();
-    const { data: selectedDraft, isLoading: isLoadingDraft } = useDraftById(draftIdParam);
-    const { mutate: generateDraft, isPending: isGenerating } = useGenerateDraft();
-    const { mutate: approveDraft, isPending: approving } = useApproveDraft();
+    const { data: selectedDraft, isLoading: loadingDraft } = useDraftById(draftIdParam);
+    const { mutate: generateDraft, isPending: generating } = useGenerateDraft();
+    const { mutate: updateDraft, isPending: saving } = useUpdateDraft();
+    const { mutate: approveDraft, isPending: sending } = useApproveDraft();
     const { mutate: scheduleDraft, isPending: scheduling } = useScheduleDraft();
-    const { mutate: updateDraft, isPending: savingDraft } = useUpdateDraft();
 
-    const selectedThread = threads.find((t: any) => t.thread_id === selectedThreadId) ?? null;
+    const selectedThread = useMemo(
+        () => threads.find((t: any) => t.thread_id === selectedThreadId) ?? null,
+        [threads, selectedThreadId]
+    );
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -55,20 +88,52 @@ export default function DraftWorkspacePage() {
         setCurrentDraftId(selectedDraft.id);
         setSelectedThreadId(selectedDraft.thread_id);
         setTone(selectedDraft.tone || 'NORMAL');
-        setDraftContent(selectedDraft.body || '');
+        setSubject(selectedDraft.subject || '');
+        setBody(selectedDraft.body || '');
+
+        const meta = selectedDraft.metadata_json || {};
+        const to = Array.isArray(meta.to) ? meta.to.join(', ') : '';
+        const cc = Array.isArray(meta.cc) ? meta.cc.join(', ') : '';
+        const bcc = Array.isArray(meta.bcc) ? meta.bcc.join(', ') : '';
+        setToField(to);
+        setCcField(cc);
+        setBccField(bcc);
+        setShowCcBcc(Boolean(cc || bcc));
+        setAttachments(Array.isArray(meta.attachments) ? meta.attachments : []);
     }, [selectedDraft]);
 
+    useEffect(() => {
+        if (toField || !selectedThread?.participants?.length) return;
+        const firstOther = selectedThread.participants.map((p: string) => extractEmail(p)).find(Boolean);
+        if (firstOther) setToField(firstOther);
+    }, [selectedThread, toField]);
+
+    const createOrRegenerateDraft = () => {
+        if (!selectedThreadId) return;
+        generateDraft(
+            { threadId: selectedThreadId, tone, additionalContext: instructions || undefined },
+            {
+                onSuccess: (data: any) => {
+                    setCurrentDraftId(data.id ?? null);
+                    setSubject((prev) => prev || data.subject || '');
+                    setBody(data.body || '');
+                },
+            }
+        );
+    };
+
     const persistCurrentDraft = (onSuccess?: () => void) => {
-        if (!currentDraftId) {
-            onSuccess?.();
-            return;
-        }
+        if (!currentDraftId) return;
         updateDraft(
             {
                 draftId: currentDraftId,
-                body: draftContent,
+                subject,
+                body,
                 tone,
-                subject: selectedDraft?.subject,
+                to: parseEmails(toField),
+                cc: parseEmails(ccField),
+                bcc: parseEmails(bccField),
+                attachments,
             },
             {
                 onSuccess: () => onSuccess?.(),
@@ -76,271 +141,240 @@ export default function DraftWorkspacePage() {
         );
     };
 
-    const handleGenerate = () => {
-        if (!selectedThreadId) return;
-        generateDraft(
-            { threadId: selectedThreadId, tone, additionalContext: instructions },
-            {
-                onSuccess: (data: any) => {
-                    setDraftContent(data.body ?? '');
-                    setCurrentDraftId(data.id ?? null);
-                },
-            }
-        );
+    const handleSendNow = () => {
+        if (!currentDraftId) return;
+        persistCurrentDraft(() => approveDraft(currentDraftId));
     };
 
-    const handleRegenerate = () => {
-        if (!selectedThreadId) return;
-        handleGenerate();
+    const handleSchedule = () => {
+        if (!currentDraftId || !scheduledDate) return;
+        persistCurrentDraft(() => {
+            scheduleDraft(
+                { draftId: currentDraftId, scheduledForDate: new Date(scheduledDate).toISOString() },
+                { onSuccess: () => setScheduleOpen(false) }
+            );
+        });
     };
 
-    const handleScheduleSubmit = () => {
-        if (!scheduleTarget || !scheduledDate) return;
-        updateDraft(
-            {
-                draftId: scheduleTarget.id,
-                body: scheduleTarget.body,
-                tone: scheduleTarget.tone,
-                subject: scheduleTarget.subject,
-            },
-            {
-                onSuccess: () => {
-                    scheduleDraft(
-                        { draftId: scheduleTarget.id, scheduledForDate: new Date(scheduledDate).toISOString() },
-                        { onSuccess: () => setScheduleTarget(null) }
-                    );
-                },
-            }
+    const handleAttachmentPick = async (files: FileList | null) => {
+        if (!files?.length) return;
+        const picked = Array.from(files);
+        const encoded = await Promise.all(
+            picked.map(async (file) => ({
+                filename: file.name,
+                mime_type: file.type || 'application/octet-stream',
+                size_bytes: file.size,
+                content_base64: await fileToBase64(file),
+            }))
         );
+        setAttachments((prev) => [...prev, ...encoded]);
     };
+
+    const disableActions = !currentDraftId || saving || sending || scheduling;
 
     return (
-        <AppShell title="Copilot Workspace" subtitle="Intelligent Reply Synthesis">
-            <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-surface-container-lowest">
-                <DraftControls
-                    selectedThreadId={selectedThreadId}
-                    onThreadChange={setSelectedThreadId}
-                    tone={tone}
-                    onToneChange={setTone}
-                    instructions={instructions}
-                    onInstructionsChange={setInstructions}
-                    isGenerating={isGenerating}
-                    onGenerate={handleGenerate}
-                />
-
-                <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="flex items-center justify-between px-6 h-14 border-b border-outline-variant/10 bg-white/50 backdrop-blur-sm">
-                        <Link href="/drafts" className="flex items-center gap-2 text-outline-variant hover:text-on-surface transition-colors">
+        <AppShell title="Copilot Workspace" subtitle="Draft Composer">
+            <div className="h-[calc(100vh-64px)] overflow-y-auto bg-surface-container-lowest">
+                <div className="max-w-5xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/10 pb-3">
+                        <Link href="/drafts" className="inline-flex items-center gap-2 text-sm font-medium text-outline-variant hover:text-on-surface">
                             <MaterialSymbol icon="arrow_back" className="text-lg" />
-                            <span className="text-sm font-medium">Back to Drafts</span>
+                            Back to Drafts
                         </Link>
-                        <button
-                            onClick={() => persistCurrentDraft()}
-                            disabled={!currentDraftId || savingDraft}
-                            className="h-9 px-4 bg-primary text-on-primary rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-40 hover:scale-105 active:scale-95 transition-all"
-                        >
-                            {savingDraft ? 'Saving...' : 'Save Draft'}
-                        </button>
-                    </div>
 
-                    <div className="flex-1 overflow-hidden">
-                        <DraftEditor
-                            content={draftContent}
-                            onUpdateContent={setDraftContent}
-                            originalThread={selectedThread as any}
-                            isGenerating={isGenerating}
-                            onRegenerate={handleRegenerate}
-                            isLoading={isLoadingDraft}
-                        />
-                    </div>
-
-                    {drafts.length > 0 && (
-                        <div className="border-t border-outline-variant/10 bg-white/80 backdrop-blur-xl shrink-0 shadow-[0_-4px_30px_-10px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center gap-2">
                             <button
-                                className="w-full h-10 flex items-center justify-between px-4 hover:bg-surface-container transition-all group"
-                                onClick={() => setPendingOpen(p => !p)}
+                                onClick={() => persistCurrentDraft()}
+                                disabled={disableActions}
+                                className="h-9 px-4 rounded-xl border border-outline-variant/20 text-xs font-bold uppercase tracking-wider disabled:opacity-40"
                             >
-                                <div className="flex items-center gap-3">
-                                    <div className="h-4 w-4 bg-primary-fixed rounded-full animate-pulse shadow-sm shadow-primary/20" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-on-surface flex items-center gap-3">
-                                        Active Intelligence Queue
-                                        <span className="h-5 px-2 bg-on-surface text-surface rounded-full flex items-center justify-center font-black">
-                                            {drafts.length}
-                                        </span>
-                                    </span>
-                                </div>
-                                <div className={`p-2 rounded-xl group-hover:bg-primary-fixed/20 group-hover:text-primary transition-all ${pendingOpen ? 'rotate-180' : ''}`}>
-                                    <MaterialSymbol icon="expand_less" className="text-xl" />
-                                </div>
+                                {saving ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                                onClick={() => setScheduleOpen(true)}
+                                disabled={disableActions}
+                                className="h-9 px-4 rounded-xl border border-outline-variant/20 text-xs font-bold uppercase tracking-wider disabled:opacity-40"
+                            >
+                                Schedule
+                            </button>
+                            <button
+                                onClick={handleSendNow}
+                                disabled={disableActions}
+                                className="h-9 px-4 rounded-xl bg-primary text-on-primary text-xs font-bold uppercase tracking-wider disabled:opacity-40"
+                            >
+                                {sending ? 'Sending...' : 'Send'}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-outline-variant/15 bg-white overflow-hidden">
+                        <div className="px-4 md:px-5 py-3 border-b border-outline-variant/10 bg-surface-container-lowest flex flex-wrap items-center gap-3">
+                            <select
+                                value={selectedThreadId}
+                                onChange={(e) => setSelectedThreadId(e.target.value)}
+                                className="h-9 min-w-[220px] px-3 rounded-xl border border-outline-variant/20 text-sm"
+                            >
+                                <option value="">Select thread context</option>
+                                {threads.map((thread: any) => (
+                                    <option key={thread.thread_id} value={thread.thread_id}>
+                                        {thread.subject || '(No Subject)'}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={tone}
+                                onChange={(e) => setTone(e.target.value)}
+                                className="h-9 px-3 rounded-xl border border-outline-variant/20 text-sm"
+                            >
+                                <option value="BRIEF">Incise</option>
+                                <option value="NORMAL">Balanced</option>
+                                <option value="FORMAL">Elevated</option>
+                            </select>
+
+                            <button
+                                onClick={createOrRegenerateDraft}
+                                disabled={!selectedThreadId || generating}
+                                className="h-9 px-4 rounded-xl bg-surface-container text-on-surface text-xs font-bold uppercase tracking-wider disabled:opacity-40"
+                            >
+                                {generating ? 'Generating...' : currentDraftId ? 'Regenerate' : 'Generate'}
                             </button>
 
-                            {pendingOpen && (
-                                <div className="max-h-64 overflow-y-auto px-4 pb-4 space-y-2.5">
-                                    {drafts.map(draft => (
-                                        <div
-                                            key={draft.id}
-                                            className="group bg-surface-container-low border border-outline-variant/5 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center gap-4 hover:bg-white hover:border-primary-fixed hover:shadow-xl hover:shadow-primary/5 transition-all"
-                                        >
-                                            <div className="h-10 w-10 bg-white rounded-xl flex items-center justify-center text-outline group-hover:text-primary transition-colors border border-outline-variant/5">
-                                                <MaterialSymbol icon="auto_fix" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-0.5">
-                                                    <p className="text-sm font-bold text-on-surface truncate tracking-tight">{draft.subject}</p>
-                                                    <div className="px-1.5 py-0.5 bg-primary-fixed/20 text-primary font-black text-[8px] rounded uppercase tracking-wider">{draft.tone}</div>
-                                                </div>
-                                                <p
-                                                    className="text-xs font-medium text-outline-variant truncate cursor-pointer hover:text-on-surface transition-colors italic"
-                                                    onClick={() => setPreviewDraft(draft)}
-                                                >
-                                                    &ldquo;{draft.body.slice(0, 120)}...&rdquo;
-                                                </p>
-                                                <div className="flex items-center gap-1.5 text-[9px] font-black text-outline uppercase tracking-tighter mt-1">
-                                                    <MaterialSymbol icon="schedule" className="text-xs" />
-                                                    Manifested {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
-                                                </div>
-                                            </div>
-                                            <div className="w-full lg:w-52 shrink-0 rounded-xl border border-primary-fixed/10 bg-primary-fixed/5 p-3 space-y-2">
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">AI Intelligence</span>
-                                                    <span className="px-2 py-0.5 rounded-full bg-white border border-primary-fixed/20 text-[9px] font-black uppercase tracking-widest text-primary">
-                                                        {draft.status}
-                                                    </span>
-                                                </div>
-                                                <p className="text-[10px] font-medium text-on-surface-variant">
-                                                    {draft.tone} · Generated {formatDistanceToNow(new Date(draft.created_at), { addSuffix: true })}
-                                                </p>
-                                                <p className="text-[10px] font-medium text-outline-variant truncate">
-                                                    Draft body length {draft.body.length} characters
-                                                </p>
-                                            </div>
-                                            <div className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
-                                                <button
-                                                    className="h-10 px-4 bg-primary text-on-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
-                                                    onClick={() => {
-                                                        updateDraft(
-                                                            {
-                                                                draftId: draft.id,
-                                                                body: draft.body,
-                                                                tone: draft.tone,
-                                                                subject: draft.subject,
-                                                            },
-                                                            {
-                                                                onSuccess: () => approveDraft(draft.id),
-                                                            }
-                                                        );
-                                                    }}
-                                                    disabled={approving}
-                                                >
-                                                    <MaterialSymbol icon="send" className="text-lg" />
-                                                    Deploy
-                                                </button>
-                                                <button
-                                                    className="h-10 px-4 bg-surface-container text-on-surface-variant rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:shadow-md transition-all flex items-center gap-2 border border-outline-variant/10"
-                                                    onClick={() => { setScheduleTarget(draft); setScheduledDate(''); }}
-                                                    disabled={scheduling}
-                                                >
-                                                    <MaterialSymbol icon="event" className="text-lg" />
-                                                    Defer
-                                                </button>
-                                            </div>
+                            <input
+                                value={instructions}
+                                onChange={(e) => setInstructions(e.target.value)}
+                                placeholder="Optional AI instruction"
+                                className="h-9 flex-1 min-w-[220px] px-3 rounded-xl border border-outline-variant/20 text-sm"
+                            />
+                        </div>
+
+                        <div className="px-4 md:px-5 py-3 space-y-3">
+                            <div className="flex items-center gap-2">
+                                <label className="w-14 text-xs font-bold uppercase tracking-wider text-outline-variant">To</label>
+                                <input
+                                    value={toField}
+                                    onChange={(e) => setToField(e.target.value)}
+                                    placeholder="recipient@example.com"
+                                    className="h-9 flex-1 px-3 rounded-xl border border-outline-variant/20 text-sm"
+                                />
+                                <button
+                                    onClick={() => setShowCcBcc((v) => !v)}
+                                    className="text-xs font-bold text-primary"
+                                >
+                                    {showCcBcc ? 'Hide Cc/Bcc' : 'Cc/Bcc'}
+                                </button>
+                            </div>
+
+                            {showCcBcc && (
+                                <>
+                                    <div className="flex items-center gap-2">
+                                        <label className="w-14 text-xs font-bold uppercase tracking-wider text-outline-variant">Cc</label>
+                                        <input
+                                            value={ccField}
+                                            onChange={(e) => setCcField(e.target.value)}
+                                            placeholder="cc@example.com"
+                                            className="h-9 flex-1 px-3 rounded-xl border border-outline-variant/20 text-sm"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <label className="w-14 text-xs font-bold uppercase tracking-wider text-outline-variant">Bcc</label>
+                                        <input
+                                            value={bccField}
+                                            onChange={(e) => setBccField(e.target.value)}
+                                            placeholder="bcc@example.com"
+                                            className="h-9 flex-1 px-3 rounded-xl border border-outline-variant/20 text-sm"
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            <div className="flex items-center gap-2">
+                                <label className="w-14 text-xs font-bold uppercase tracking-wider text-outline-variant">Subject</label>
+                                <input
+                                    value={subject}
+                                    onChange={(e) => setSubject(e.target.value)}
+                                    placeholder="Subject"
+                                    className="h-9 flex-1 px-3 rounded-xl border border-outline-variant/20 text-sm"
+                                />
+                            </div>
+
+                            <textarea
+                                value={body}
+                                onChange={(e) => setBody(e.target.value)}
+                                placeholder={loadingDraft ? 'Loading draft...' : 'Compose your draft email...'}
+                                className="w-full min-h-[360px] p-3 md:p-4 rounded-xl border border-outline-variant/20 text-sm leading-7 resize-y"
+                            />
+
+                            {attachments.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {attachments.map((att, idx) => (
+                                        <div key={`${att.filename}-${idx}`} className="inline-flex items-center gap-2 px-3 h-8 rounded-full bg-surface-container text-xs">
+                                            <MaterialSymbol icon="attach_file" className="text-base" />
+                                            <span className="max-w-[180px] truncate">{att.filename}</span>
+                                            <button
+                                                onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                                                className="text-outline-variant hover:text-error"
+                                            >
+                                                <MaterialSymbol icon="close" className="text-sm" />
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
                             )}
-                        </div>
-                    )}
 
-                    {drafts.length === 0 && (
-                        <div className="h-14 border-t border-outline-variant/10 px-6 flex items-center gap-3 text-[10px] font-black text-outline uppercase tracking-widest bg-white/80">
-                            <MaterialSymbol icon="cloud_done" className="text-lg text-primary" />
-                            Intelligence Queue Exhausted · Ready for next synthesis
+                            <div className="flex items-center justify-between border-t border-outline-variant/10 pt-3">
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        multiple
+                                        className="hidden"
+                                        onChange={(e) => handleAttachmentPick(e.target.files)}
+                                    />
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="h-9 px-3 rounded-xl border border-outline-variant/20 text-xs font-bold uppercase tracking-wider inline-flex items-center gap-2"
+                                    >
+                                        <MaterialSymbol icon="attach_file" className="text-base" />
+                                        Attach
+                                    </button>
+                                </div>
+
+                                <div className="text-[11px] text-outline-variant">
+                                    {currentDraftId ? `Draft: ${currentDraftId.slice(0, 8)}...` : 'Generate from thread to create draft'}
+                                </div>
+                            </div>
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
 
-            {previewDraft && (
-                <Dialog open onOpenChange={() => setPreviewDraft(null)}>
-                    <DialogContent className="max-w-2xl rounded-2xl border-none shadow-2xl p-0 overflow-hidden">
-                        <div className="bg-white p-6 space-y-5">
-                            <div className="flex items-center justify-between pb-5 border-b border-outline-variant/10">
-                                <div className="space-y-1">
-                                    <div className="px-2 py-0.5 bg-primary-fixed/20 text-primary font-black text-[8px] rounded-full uppercase tracking-widest inline-block mb-1">Response Preview</div>
-                                    <h3 className="text-lg font-headline font-bold text-on-surface tracking-tight">{previewDraft.subject}</h3>
-                                </div>
-                                <button onClick={() => setPreviewDraft(null)} className="h-9 w-9 flex items-center justify-center bg-surface-container rounded-xl text-outline hover:text-error transition-all">
-                                    <MaterialSymbol icon="close" />
-                                </button>
-                            </div>
-                            <div className="bg-surface-container-low rounded-2xl p-5 text-sm font-body text-on-surface leading-relaxed whitespace-pre-wrap max-h-[50vh] overflow-y-auto border border-outline-variant/5 italic">
-                                {previewDraft.body}
-                            </div>
-                            <div className="flex items-center justify-between pt-1">
-                                <div className="flex items-center gap-2 text-[9px] font-black text-outline uppercase tracking-widest">
-                                    <MaterialSymbol icon="architecture" className="text-base" />
-                                    {previewDraft.tone}
-                                </div>
-                                <div className="flex gap-2">
-                                    <button 
-                                        className="h-10 px-6 bg-primary text-on-primary rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
-                                        onClick={() => { approveDraft(previewDraft.id); setPreviewDraft(null); }}
-                                        disabled={approving}
-                                    >
-                                        <MaterialSymbol icon="send_and_archive" className="text-xl" />
-                                        Authorize & Deploy
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            )}
-
-            {scheduleTarget && (
-                <Dialog open onOpenChange={() => setScheduleTarget(null)}>
-                    <DialogContent className="max-w-md rounded-2xl border-none shadow-2xl p-6 space-y-6">
-                        <div className="space-y-3">
-                            <div className="h-12 w-12 bg-surface-container rounded-xl flex items-center justify-center text-primary border border-outline-variant/5">
-                                <MaterialSymbol icon="schedule_send" className="text-xl" />
-                            </div>
-                            <div className="space-y-1">
-                                <h3 className="text-lg font-headline font-bold text-on-surface">Schedule Send</h3>
-                                <p className="text-sm font-medium text-on-surface-variant">
-                                    Finalizing sending parameters for <span className="text-primary font-bold">{scheduleTarget.subject}</span>
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div className="space-y-2.5">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-outline px-1">Schedule For</label>
-                            <input
-                                type="datetime-local"
-                                value={scheduledDate}
-                                onChange={e => setScheduledDate(e.target.value)}
-                                className="w-full h-10 px-3 bg-surface-container rounded-xl border border-outline-variant/15 focus:ring-2 focus:ring-primary-fixed focus:border-primary text-sm font-bold transition-all"
-                            />
-                        </div>
-
-                        <div className="flex gap-2">
-                            <button 
-                                onClick={() => setScheduleTarget(null)}
-                                className="flex-1 h-10 rounded-xl border border-outline-variant/15 text-[9px] font-black uppercase tracking-widest text-on-surface-variant hover:bg-surface-container transition-all"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleScheduleSubmit}
-                                disabled={!scheduledDate || scheduling}
-                                className="flex-1 px-6 bg-on-surface text-surface h-10 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-on-surface/90 transition-all shadow-lg shadow-black/10 disabled:opacity-30"
-                            >
-                                <MaterialSymbol icon="lock_clock" className="text-lg" />
-                                Secure Schedule
-                            </button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            )}
+            <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
+                <DialogContent className="max-w-md rounded-2xl border-none shadow-2xl p-6 space-y-5">
+                    <h3 className="text-base font-bold text-on-surface">Schedule Draft</h3>
+                    <input
+                        type="datetime-local"
+                        value={scheduledDate}
+                        onChange={(e) => setScheduledDate(e.target.value)}
+                        className="w-full h-10 px-3 rounded-xl border border-outline-variant/20 text-sm"
+                    />
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setScheduleOpen(false)}
+                            className="flex-1 h-10 rounded-xl border border-outline-variant/20 text-xs font-bold uppercase tracking-wider"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSchedule}
+                            disabled={disableActions || !scheduledDate}
+                            className="flex-1 h-10 rounded-xl bg-primary text-on-primary text-xs font-bold uppercase tracking-wider disabled:opacity-40"
+                        >
+                            {scheduling ? 'Scheduling...' : 'Schedule'}
+                        </button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </AppShell>
     );
 }
