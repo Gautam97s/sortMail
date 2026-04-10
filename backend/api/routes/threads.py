@@ -89,13 +89,19 @@ async def list_threads(
     """
 
 
-    sender_is_unsubscribed = exists(
-        select(Contact.id).where(
-            Contact.user_id == current_user.id,
-            Contact.is_unsubscribed == True,
-            # sender may be "Name <email>" â€” ILIKE with % handles both formats
-            Email.sender.ilike(func.concat('%', Contact.email_address, '%'))
-        ).correlate(Email)
+    unsubscribed_thread_exists = exists(
+        select(Email.id)
+        .join(
+            Contact,
+            and_(
+                Contact.user_id == current_user.id,
+                Contact.is_unsubscribed == True,
+                # sender may be "Name <email>"; match embedded email safely.
+                Email.sender.ilike(func.concat('%', Contact.email_address, '%')),
+            ),
+        )
+        .where(Email.thread_id == Thread.id)
+        .correlate(Thread)
     )
 
     # Build WHERE filters
@@ -103,10 +109,7 @@ async def list_threads(
         Thread.user_id == current_user.id,
         Thread.is_archived == False,
         Thread.is_trash == False,
-        or_(
-            Email.id == None,          # thread has no emails yet â€“ always show
-            ~sender_is_unsubscribed    # sender is NOT a known unsubscribed contact
-        )
+        ~unsubscribed_thread_exists,
     ]
 
     # Intent filter (urgent / action_required / fyi)
@@ -125,14 +128,6 @@ async def list_threads(
 
     stmt = (
         select(Thread)
-        # LEFT JOIN to get the most recent email for each thread
-        .outerjoin(
-            Email,
-            and_(
-                Email.thread_id == Thread.id,
-                Email.received_at == Thread.last_email_at
-            )
-        )
         .options(selectinload(Thread.tags))
         .where(*filters)
         .order_by(desc(Thread.last_email_at))
@@ -204,13 +199,30 @@ async def get_nav_counts(
     from models.draft import Draft, DraftStatus as DS
     from sqlalchemy import case, literal_column
 
+    unsubscribed_thread_exists = exists(
+        select(Email.id)
+        .join(
+            Contact,
+            and_(
+                Contact.user_id == current_user.id,
+                Contact.is_unsubscribed == True,
+                Email.sender.ilike(func.concat('%', Contact.email_address, '%')),
+            ),
+        )
+        .where(Email.thread_id == Thread.id)
+        .correlate(Thread)
+    )
+
     result = await db.execute(
         select(
             func.count().filter(Thread.is_unread > 0, Thread.is_archived == False, Thread.is_trash == False).label("inbox"),
             func.count().filter(Thread.intent == "action_required", Thread.is_archived == False, Thread.is_trash == False).label("actions"),
             func.count().filter(Thread.intent == "urgent", Thread.is_archived == False, Thread.is_trash == False).label("urgent"),
             func.count().filter(Thread.intent == "fyi", Thread.is_archived == False, Thread.is_trash == False).label("fyi"),
-        ).where(Thread.user_id == current_user.id)
+        ).where(
+            Thread.user_id == current_user.id,
+            ~unsubscribed_thread_exists,
+        )
     )
     row = result.one()
 

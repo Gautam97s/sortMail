@@ -22,6 +22,22 @@ const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string
 const INITIAL_LIMIT = 15;
 const PAGE_SIZE = 5;
 
+function findScrollParent(start: HTMLElement | null): HTMLElement | null {
+    if (!start || typeof window === 'undefined') return null;
+    let current: HTMLElement | null = start.parentElement;
+
+    while (current) {
+        const style = window.getComputedStyle(current);
+        const overflow = `${style.overflow} ${style.overflowY} ${style.overflowX}`;
+        if (/(auto|scroll|overlay)/i.test(overflow)) {
+            return current;
+        }
+        current = current.parentElement;
+    }
+
+    return null;
+}
+
 function InboxContent() {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -45,6 +61,7 @@ function InboxContent() {
     });
     const sentinelRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null);
     const queryClient = useQueryClient();
     
     useEffect(() => {
@@ -98,8 +115,7 @@ function InboxContent() {
         setCurrentOffset(prev => prev + PAGE_SIZE);
     }, [hasMore, isLoading, isLoadingMore]);
 
-    const handleListScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
-        const el = event.currentTarget;
+    const evaluateScroll = useCallback((el: HTMLElement) => {
         const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
         const nearBottom = remaining <= 180;
 
@@ -122,9 +138,31 @@ function InboxContent() {
         }
     }, [scrollDebugEnabled, hasMore, isLoading, isLoadingMore, currentLimit, allThreads.length, requestNextPage]);
 
+    // Resolve the actual scrolling element (often AppShell's overflow container).
+    useEffect(() => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+        const parent = findScrollParent(container);
+        setScrollRoot(parent ?? container);
+    }, [allThreads.length]);
+
+    // Listen on the true scroll root so near-bottom checks use real metrics.
+    useEffect(() => {
+        if (!scrollRoot) return;
+
+        const onScroll = () => evaluateScroll(scrollRoot);
+
+        scrollRoot.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+
+        return () => {
+            scrollRoot.removeEventListener('scroll', onScroll);
+        };
+    }, [scrollRoot, evaluateScroll]);
+
     // Intersection Observer for infinite scroll
     useEffect(() => {
-        if (!sentinelRef.current || !scrollContainerRef.current) return;
+        if (!sentinelRef.current) return;
 
         const observer = new IntersectionObserver(
             entries => {
@@ -133,7 +171,7 @@ function InboxContent() {
                 }
             },
             {
-                root: scrollContainerRef.current,
+                root: scrollRoot ?? null,
                 rootMargin: '0px 0px 120px 0px',
                 threshold: 0.1,
             }
@@ -141,7 +179,7 @@ function InboxContent() {
 
         observer.observe(sentinelRef.current);
         return () => observer.disconnect();
-    }, [hasMore, isLoading, isLoadingMore, requestNextPage]);
+    }, [hasMore, isLoading, isLoadingMore, requestNextPage, scrollRoot]);
 
     const filtered = allThreads;
 
@@ -224,7 +262,7 @@ function InboxContent() {
             </div>
 
             {/* Thread List */}
-            <div ref={scrollContainerRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+            <div ref={scrollContainerRef} className="flex-1 min-h-0">
                 {isLoading && filtered.length === 0 ? (
                     <div className="divide-y divide-outline-variant/5">
                         {[1, 2, 3, 4, 5, 6, 7].map((i) => (
