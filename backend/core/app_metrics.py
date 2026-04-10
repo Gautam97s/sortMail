@@ -42,6 +42,7 @@ def record_ai_usage(
     model_id: str,
     input_tokens: int = 0,
     output_tokens: int = 0,
+    token_source: str = "exact",
     call_ref: str | None = None,
     status: str = "success",
     latency_ms: int | None = None,
@@ -54,6 +55,7 @@ def record_ai_usage(
     safe_input = max(int(input_tokens or 0), 0)
     safe_output = max(int(output_tokens or 0), 0)
     total_tokens = safe_input + safe_output
+    safe_token_source = (token_source or "unknown").strip().lower()
 
     record = {
         "call_ref": ref,
@@ -62,6 +64,7 @@ def record_ai_usage(
         "input_tokens": safe_input,
         "output_tokens": safe_output,
         "total_tokens": total_tokens,
+        "token_source": safe_token_source,
         "status": (status or "success").strip().lower(),
         "latency_ms": latency_ms,
         "metadata": metadata or {},
@@ -74,6 +77,7 @@ def record_ai_usage(
         _ai_lifetime["input_tokens"] += safe_input
         _ai_lifetime["output_tokens"] += safe_output
         _ai_lifetime["total_tokens"] += total_tokens
+        _ai_lifetime[f"token_source:{safe_token_source}"] += 1
         _ai_lifetime[f"operation:{record['operation']}"] += 1
         _ai_lifetime[f"model:{record['model_id']}"] += 1
         _ai_lifetime[f"status:{record['status']}"] += 1
@@ -93,15 +97,22 @@ def get_metrics_snapshot() -> dict[str, Any]:
         _trim_ai_locked(now)
         ai_recent = [record for _, record in _recent_ai_calls]
         ai_per_minute = Counter(record["operation"] for record in ai_recent)
+        token_source_per_minute = Counter(record.get("token_source", "unknown") for record in ai_recent)
         ai_usage_recent = {
             "calls_last_minute": len(ai_recent),
             "input_tokens_last_minute": sum(record["input_tokens"] for record in ai_recent),
             "output_tokens_last_minute": sum(record["output_tokens"] for record in ai_recent),
             "total_tokens_last_minute": sum(record["total_tokens"] for record in ai_recent),
+            "token_source_counts_last_minute": dict(token_source_per_minute),
             "by_operation_last_minute": dict(ai_per_minute),
             "recent_calls": ai_recent[-25:],
         }
         ai_usage_lifetime = dict(_ai_lifetime)
+        token_source_lifetime = {
+            key.removeprefix("token_source:"): value
+            for key, value in ai_usage_lifetime.items()
+            if key.startswith("token_source:")
+        }
 
     return {
         "window_seconds": int(_WINDOW_SECONDS),
@@ -112,6 +123,7 @@ def get_metrics_snapshot() -> dict[str, Any]:
         "ai_usage": {
             "last_minute": ai_usage_recent,
             "lifetime": ai_usage_lifetime,
+            "token_source_counts_lifetime": token_source_lifetime,
         },
         "sampled_at": datetime.now(timezone.utc).isoformat(),
     }

@@ -24,6 +24,8 @@ summary, intent, urgency_score, urgency_reason, sentiment, main_ask, decision_ne
 should_create_reply, should_create_tasks, is_promotional, is_subscription, workflow_reason,
 suggested_draft, key_points, action_items, entities, tags, topics, follow_up_needed, reply_deadline, meeting_detected.
 
+urgency_score must be an integer from 0 to 100, where 0 is not urgent and 100 is critical.
+
 Suggested intent values:
 ACTION_REQUIRED, QUESTION, SCHEDULING, URGENT, FYI, NEWSLETTER, SOCIAL, PROMOTIONAL, OTHER, UNKNOWN
 

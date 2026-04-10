@@ -41,6 +41,7 @@ from models.contact import Contact
 from models.tag import Tag
 from models.draft import Draft, DraftStatus, DraftTone
 from core.app_metrics import record_metric
+from core.credits.credit_service import CreditService, InsufficientCreditsError
 
 logger = logging.getLogger(__name__)
 
@@ -173,138 +174,164 @@ async def process_thread_intelligence(
             await _publish_intel_ready(user_id, thread_id, final_intel)
             return final_intel
 
-        # â”€â”€ 3. Single Gemini Flash call â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        raw_intel = await run_intelligence(
-            thread_id=thread_id,
-            user_id=user_id,
-            subject=thread.subject or "",
-            participants=list(thread.participants or []),
-            messages=messages,
-        )
+        # Charge credits only for full model-based intelligence runs.
+        intel_operation_type = "thread_intel"
+        charged_credits = await CreditService.get_operation_cost(db, intel_operation_type)
+        reservation_id = None
+        try:
+            reservation_id = await CreditService.reserve_credits(
+                db,
+                user_id,
+                intel_operation_type,
+                related_entity_id=thread_id,
+                metadata={"source": "thread_intel"},
+            )
+        except InsufficientCreditsError:
+            record_metric("intel_skipped_insufficient_credits")
+            logger.info("Intel skipped for insufficient credits thread=%s", thread_id)
+            return None
 
-        # â”€â”€ 4. Module extraction (pure functions, no LLM calls) â”€â”€â”€â”€â”€â”€â”€
-        summary          = extract_summary(raw_intel)
-        key_points       = extract_key_points(raw_intel)
-        suggested_action = extract_suggested_action(raw_intel)
-        attachment_context = await _load_attachment_context(thread_id, db)
-        summary, key_points = _merge_attachment_context(summary, key_points, attachment_context)
+        try:
+            # â”€â”€ 3. Single Gemini Flash call â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            raw_intel = await run_intelligence(
+                thread_id=thread_id,
+                user_id=user_id,
+                credits_charged=charged_credits,
+                subject=thread.subject or "",
+                participants=list(thread.participants or []),
+                messages=messages,
+            )
 
-        intent, urgency_score  = extract_intent(raw_intel)
-        priority_level         = extract_priority_level(raw_intel)
-        follow_up, reply_by    = should_follow_up(raw_intel)
+            # â”€â”€ 4. Module extraction (pure functions, no LLM calls) â”€â”€â”€â”€â”€â”€â”€
+            summary = extract_summary(raw_intel)
+            key_points = extract_key_points(raw_intel)
+            suggested_action = extract_suggested_action(raw_intel)
+            attachment_context = await _load_attachment_context(thread_id, db)
+            summary, key_points = _merge_attachment_context(summary, key_points, attachment_context)
 
-        deadlines              = extract_deadlines(raw_intel)
-        entities               = extract_entities(raw_intel)
-        action_items           = extract_action_items(raw_intel)
-        tags_list              = extract_tags(raw_intel)
-        suggested_draft        = extract_suggested_draft(raw_intel)
-        should_create_reply    = _coerce_optional_bool(raw_intel.get("should_create_reply"))
-        should_create_tasks    = _coerce_optional_bool(raw_intel.get("should_create_tasks"))
+            intent, urgency_score = extract_intent(raw_intel)
+            priority_level = extract_priority_level(raw_intel)
+            follow_up, reply_by = should_follow_up(raw_intel)
 
-        if should_create_reply is None:
-            should_create_reply = intent in REPLY_INTENTS and not _is_low_value_intent(intent)
-        if should_create_tasks is None:
-            should_create_tasks = intent in TASK_INTENTS and bool(action_items) and not _is_low_value_intent(intent)
+            deadlines = extract_deadlines(raw_intel)
+            entities = extract_entities(raw_intel)
+            action_items = extract_action_items(raw_intel)
+            tags_list = extract_tags(raw_intel)
+            suggested_draft = extract_suggested_draft(raw_intel)
+            should_create_reply = _coerce_optional_bool(raw_intel.get("should_create_reply"))
+            should_create_tasks = _coerce_optional_bool(raw_intel.get("should_create_tasks"))
 
-        if not should_create_reply:
-            suggested_draft = None
-        if not should_create_tasks:
-            action_items = []
+            if should_create_reply is None:
+                should_create_reply = intent in REPLY_INTENTS and not _is_low_value_intent(intent)
+            if should_create_tasks is None:
+                should_create_tasks = intent in TASK_INTENTS and bool(action_items) and not _is_low_value_intent(intent)
 
-        stale_workflow_reason = _stale_workflow_reason(thread)
-        if stale_workflow_reason:
-            should_create_reply = False
-            should_create_tasks = False
-            suggested_draft = None
-            action_items = []
+            if not should_create_reply:
+                suggested_draft = None
+            if not should_create_tasks:
+                action_items = []
 
-        workflow_reason = stale_workflow_reason or raw_intel.get("workflow_reason") or _build_workflow_reason(
-            intent=intent,
-            should_create_reply=should_create_reply,
-            should_create_tasks=should_create_tasks,
-            action_items_count=len(action_items),
-        )
+            stale_workflow_reason = _stale_workflow_reason(thread)
+            if stale_workflow_reason:
+                should_create_reply = False
+                should_create_tasks = False
+                suggested_draft = None
+                action_items = []
 
-        # â”€â”€ 5. Assemble final intel dict â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        final_intel = {
-            **raw_intel,                          # keep all Gemini fields
-            "summary"          : summary,
-            "key_points"       : key_points,
-            "suggested_action" : suggested_action,
-            "intent"           : intent,
-            "urgency_score"    : urgency_score,
-            "should_create_reply": bool(should_create_reply),
-            "should_create_tasks": bool(should_create_tasks),
-            "is_promotional"   : _coerce_bool(raw_intel.get("is_promotional")),
-            "is_subscription"  : _coerce_bool(raw_intel.get("is_subscription")),
-            "workflow_reason"  : workflow_reason,
-            "priority_level"   : priority_level,
-            "follow_up_needed" : follow_up,
-            "expected_reply_by": reply_by,
-            "deadlines"        : deadlines,
-            "entities"         : entities,
-            "action_items"     : action_items,
-            "tags"             : tags_list,
-            "attachment_intel"  : attachment_context,
-            "suggested_draft"  : suggested_draft,
-            "processed_at"     : datetime.now(timezone.utc).isoformat(),
-        }
+            workflow_reason = stale_workflow_reason or raw_intel.get("workflow_reason") or _build_workflow_reason(
+                intent=intent,
+                should_create_reply=should_create_reply,
+                should_create_tasks=should_create_tasks,
+                action_items_count=len(action_items),
+            )
 
-        # â”€â”€ 6. Persist intel to Thread model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        thread.summary              = summary
-        thread.intent               = intent
-        thread.urgency_score        = urgency_score
-        thread.intel_json           = final_intel
-        thread.intel_generated_at   = datetime.now(timezone.utc)
-        
-        # â”€â”€ 6a. Process Contacts FIRST (so tags can be linked) â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        await _process_contacts(user_id, messages, db)
+            # â”€â”€ 5. Assemble final intel dict â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            final_intel = {
+                **raw_intel,
+                "summary": summary,
+                "key_points": key_points,
+                "suggested_action": suggested_action,
+                "intent": intent,
+                "urgency_score": urgency_score,
+                "should_create_reply": bool(should_create_reply),
+                "should_create_tasks": bool(should_create_tasks),
+                "is_promotional": _coerce_bool(raw_intel.get("is_promotional")),
+                "is_subscription": _coerce_bool(raw_intel.get("is_subscription")),
+                "workflow_reason": workflow_reason,
+                "priority_level": priority_level,
+                "follow_up_needed": follow_up,
+                "expected_reply_by": reply_by,
+                "deadlines": deadlines,
+                "entities": entities,
+                "action_items": action_items,
+                "tags": tags_list,
+                "attachment_intel": attachment_context,
+                "suggested_draft": suggested_draft,
+                "processed_at": datetime.now(timezone.utc).isoformat(),
+            }
 
-        # â”€â”€ 6b. Process Tags (Gemini tags + Contact tags) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        await _process_tags(user_id, thread, tags_list, db)
+            # â”€â”€ 6. Persist intel to Thread model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            thread.summary = summary
+            thread.intent = intent
+            thread.urgency_score = urgency_score
+            thread.intel_json = final_intel
+            thread.intel_generated_at = datetime.now(timezone.utc)
 
-        # Background intelligence must not auto-create reply drafts.
-        # Drafts are generated only when the user explicitly requests them.
+            # â”€â”€ 6a. Process Contacts FIRST (so tags can be linked) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            await _process_contacts(user_id, messages, db)
 
-        await db.commit()
-        logger.info(f"Intel saved: thread={thread_id} intent={intent} score={urgency_score}")
-        _log_intel_payload(thread_id, final_intel, source="full")
+            # â”€â”€ 6b. Process Tags (Gemini tags + Contact tags) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            await _process_tags(user_id, thread, tags_list, db)
 
-        # â”€â”€ 6.5 Embed thread into ChromaDB if valuable â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        from core.intelligence.embedding_strategy import embed_thread_if_valuable
-        messages_text = "\n".join([m.get("body", "") for m in messages])
-        await embed_thread_if_valuable(thread, user_id, messages_text, db)
+            # Background intelligence must not auto-create reply drafts.
+            # Drafts are generated only when the user explicitly requests them.
 
-        # â”€â”€ 6.7 Check if sender is unsubscribed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        # If the thread sender is unsubscribed, skip auto-creating tasks.
-        is_unsubscribed = False
-        import re
-        email_regex = re.compile(r"<([^>]+)>|([^\s<>]+@[^\s<>]+)")
-        for p in list(thread.participants or []):
-            match = email_regex.search(p)
-            if match:
-                email = (match.group(1) or match.group(2)).lower()
-                stmt_unsub = select(Contact.is_unsubscribed).where(
-                    Contact.user_id == user_id, 
-                    Contact.email_address == email
-                )
-                if (await db.execute(stmt_unsub)).scalar():
-                    is_unsubscribed = True
-                    break
+            await CreditService.commit_reservation(db, reservation_id)
+            await db.commit()
+            logger.info(f"Intel saved: thread={thread_id} intent={intent} score={urgency_score}")
+            _log_intel_payload(thread_id, final_intel, source="full")
 
-        # â”€â”€ 7. Auto-create Tasks from action items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        if not is_unsubscribed and should_create_tasks:
-            for item in action_items:
-                confidence = item.get("confidence")
-                if confidence is not None and isinstance(confidence, (int, float)) and confidence < 0.75:
-                    continue
-                await _create_task(user_id, thread_id, item, db)
+            # â”€â”€ 6.5 Embed thread into ChromaDB if valuable â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            from core.intelligence.embedding_strategy import embed_thread_if_valuable
+            messages_text = "\n".join([m.get("body", "") for m in messages])
+            await embed_thread_if_valuable(thread, user_id, messages_text, db)
 
-        # â”€â”€ 8. Publish SSE event â†’ frontend invalidates cache â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        await _publish_intel_ready(user_id, thread_id, final_intel)
-        record_metric("intel_completed")
+            # â”€â”€ 6.7 Check if sender is unsubscribed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            # If the thread sender is unsubscribed, skip auto-creating tasks.
+            is_unsubscribed = False
+            import re
+            email_regex = re.compile(r"<([^>]+)>|([^\s<>]+@[^\s<>]+)")
+            for p in list(thread.participants or []):
+                match = email_regex.search(p)
+                if match:
+                    email = (match.group(1) or match.group(2)).lower()
+                    stmt_unsub = select(Contact.is_unsubscribed).where(
+                        Contact.user_id == user_id,
+                        Contact.email_address == email,
+                    )
+                    if (await db.execute(stmt_unsub)).scalar():
+                        is_unsubscribed = True
+                        break
 
-        return final_intel
+            # â”€â”€ 7. Auto-create Tasks from action items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            if not is_unsubscribed and should_create_tasks:
+                for item in action_items:
+                    confidence = item.get("confidence")
+                    if confidence is not None and isinstance(confidence, (int, float)) and confidence < 0.75:
+                        continue
+                    await _create_task(user_id, thread_id, item, db)
+
+            # â”€â”€ 8. Publish SSE event â†’ frontend invalidates cache â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            await _publish_intel_ready(user_id, thread_id, final_intel)
+            record_metric("intel_completed")
+
+            return final_intel
+
+        except Exception as exc:
+            record_metric("intel_failed")
+            await db.rollback()
+            logger.error(f"Intel pipeline failed for {thread_id}: {exc}", exc_info=True)
+            return None
 
     except Exception as exc:
         record_metric("intel_failed")

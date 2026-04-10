@@ -534,11 +534,11 @@ async def refresh_thread(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Re-process thread intelligence. (Cost: 2 credits)
+    Re-process thread intelligence. Charged using the thread intel pricing row.
     
     Useful after new emails arrive or if user wants updated analysis.
     """
-    OPERATION_TYPE = "thread_summary"
+    OPERATION_TYPE = "thread_intel"
     
     # 1. Verify thread belongs to user
     stmt = select(Thread).where(Thread.id == thread_id, Thread.user_id == current_user.id)
@@ -552,17 +552,11 @@ async def refresh_thread(
          raise HTTPException(status_code=402, detail="Insufficient credits.")
 
     try:
-        # 3. Deduct Credits
-        await CreditService.deduct_credits(
-            db, user_id=current_user.id, operation_type=OPERATION_TYPE,
-            metadata={"thread_id": thread_id, "action": "refresh"}
-        )
-        
-        # 4. Force re-process by clearing the intel timestamp
+        # 3. Force re-process by clearing the intel timestamp
         thread.intel_generated_at = None
         await db.commit()
         
-        # 5. Trigger intelligence pipeline in background
+        # 4. Trigger intelligence pipeline in background
         should_trigger = await _try_enqueue_intel_once(current_user.id, thread_id)
         if should_trigger:
             import asyncio
@@ -570,9 +564,6 @@ async def refresh_thread(
             asyncio.create_task(_run_intel_safe(thread_id, current_user.id, db))
         
         return {"thread_id": thread_id, "status": "PROCESSING", "message": "Intelligence refresh queued"}
-    except InsufficientCreditsError as e:
-        await db.rollback()
-        raise HTTPException(status_code=402, detail=str(e))
     except RateLimitExceededError as e:
         await db.rollback()
         raise HTTPException(status_code=429, detail=str(e))

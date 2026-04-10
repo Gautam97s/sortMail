@@ -171,37 +171,60 @@ async def _resolve_reply_target(db: AsyncSession, draft: Draft, current_user: Us
 @router.post("/generate-freeform")
 async def generate_freeform_draft(
     payload: FreeformDraftRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Generate draft body for a new email without requiring an existing thread."""
+    operation_type = "smart_compose"
+    if not await CreditService.check_balance(db, current_user.id, operation_type):
+        raise HTTPException(status_code=402, detail="Insufficient credits.")
+
+    charged_credits = await CreditService.get_operation_cost(db, operation_type)
     tone_val = payload.tone.value if hasattr(payload.tone, 'value') else payload.tone
     target = ", ".join(_normalize_email_list(payload.to)) if payload.to else "a recipient"
-    prompt = FREEFORM_DRAFT_USER_PROMPT_TEMPLATE.format(
-        recipient_context=target,
-        subject=payload.subject or "General outreach",
-        tone=tone_val,
-        instruction=payload.instruction or "No additional instruction",
-    )
-
-    chat_messages = [{"role": "system", "content": FREEFORM_DRAFT_SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
-    generated_text = (
-        await _call_llama(
-            chat_messages,
-            max_tokens=900,
-            operation="draft_freeform",
-            metadata={
-                "user_id": current_user.id,
-                "related_entity_type": "draft",
-                "related_entity_id": "freeform",
-            },
+    try:
+        reservation_id = await CreditService.reserve_credits(
+            db,
+            current_user.id,
+            operation_type,
+            related_entity_id="freeform",
+            metadata={"source": "freeform_draft"},
         )
-    ).strip()
-    return {
-        "subject": payload.subject or "",
-        "body": generated_text,
-        "tone": tone_val,
-        "generated_for": current_user.id,
-    }
+        prompt = FREEFORM_DRAFT_USER_PROMPT_TEMPLATE.format(
+            recipient_context=target,
+            subject=payload.subject or "General outreach",
+            tone=tone_val,
+            instruction=payload.instruction or "No additional instruction",
+        )
+
+        chat_messages = [{"role": "system", "content": FREEFORM_DRAFT_SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
+        generated_text = (
+            await _call_llama(
+                chat_messages,
+                max_tokens=900,
+                operation="draft_freeform",
+                metadata={
+                    "user_id": current_user.id,
+                    "related_entity_type": "draft",
+                    "related_entity_id": "freeform",
+                    "credits_charged": charged_credits,
+                },
+            )
+        ).strip()
+        await CreditService.commit_reservation(db, reservation_id)
+        await db.commit()
+        return {
+            "subject": payload.subject or "",
+            "body": generated_text,
+            "tone": tone_val,
+            "generated_for": current_user.id,
+        }
+    except InsufficientCreditsError:
+        await db.rollback()
+        raise HTTPException(status_code=402, detail="Insufficient credits.")
+    except Exception as exc:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Freeform draft generation failed: {exc}")
 
 
 @router.post("/send-direct")
@@ -284,6 +307,15 @@ async def generate_draft(
             messages_text += f"From: {sender}\n{body}\n\n"
             
         tone_val = request.tone.value if hasattr(request.tone, 'value') else request.tone
+        charged_credits = await CreditService.get_operation_cost(db, OPERATION_TYPE)
+        draft_id = str(uuid.uuid4())
+        reservation_id = await CreditService.reserve_credits(
+            db,
+            current_user.id,
+            OPERATION_TYPE,
+            related_entity_id=draft_id,
+            metadata={"thread_id": request.thread_id, "tone": request.tone, "source": "thread_draft"},
+        )
         prompt = DRAFT_REPLY_USER_PROMPT_TEMPLATE.format(
             tone=tone_val,
             instruction=request.additional_context or "No additional instruction",
@@ -300,12 +332,13 @@ async def generate_draft(
                     "user_id": current_user.id,
                     "related_entity_type": "thread",
                     "related_entity_id": request.thread_id,
+                    "credits_charged": charged_credits,
                 },
             )
         ).strip()
         
         draft = Draft(
-            id=str(uuid.uuid4()),
+            id=draft_id,
             user_id=current_user.id,
             thread_id=request.thread_id,
             subject=f"Re: {thread.subject}",
@@ -317,14 +350,8 @@ async def generate_draft(
         )
         db.add(draft)
         
-        # 2. Deduct Credits (only on success)
-        await CreditService.deduct_credits(
-            db, 
-            current_user.id, 
-            OPERATION_TYPE, 
-            related_entity_id=draft.id,
-            metadata={"thread_id": request.thread_id, "tone": request.tone}
-        )
+        # 2. Commit reserved credits only after the draft is persisted.
+        await CreditService.commit_reservation(db, reservation_id)
         await db.commit() # Commit deduction and draft insertion
         
         return {
@@ -407,6 +434,14 @@ async def regenerate_draft(
 
         target_tone = tone or draft.tone
         tone_val = target_tone.value if hasattr(target_tone, 'value') else target_tone
+        charged_credits = await CreditService.get_operation_cost(db, OPERATION_TYPE)
+        reservation_id = await CreditService.reserve_credits(
+            db,
+            current_user.id,
+            OPERATION_TYPE,
+            related_entity_id=draft_id,
+            metadata={"draft_id": draft_id, "action": "regenerate", "tone": tone_val, "source": "draft_regenerate"},
+        )
         prompt = DRAFT_REPLY_USER_PROMPT_TEMPLATE.format(
             tone=tone_val,
             instruction="Rewrite the existing draft with the same intent and clearer wording.",
@@ -424,6 +459,7 @@ async def regenerate_draft(
                     "user_id": current_user.id,
                     "related_entity_type": "draft",
                     "related_entity_id": draft_id,
+                    "credits_charged": charged_credits,
                 },
             )
         ).strip()
@@ -434,11 +470,8 @@ async def regenerate_draft(
         if tone:
             draft.tone = tone
 
-        # 6. Deduct
-        await CreditService.deduct_credits(
-            db, user_id=current_user.id, operation_type=OPERATION_TYPE,
-            metadata={"draft_id": draft_id, "action": "regenerate", "tone": tone_val}
-        )
+        # 6. Commit the reservation now that the updated draft is ready.
+        await CreditService.commit_reservation(db, reservation_id)
         await db.commit()
         
         return {

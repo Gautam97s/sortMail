@@ -25,6 +25,10 @@ def _estimate_tokens(text: str) -> int:
         # Fallback estimation 1 token ~= 1.3 words (standard cl100k estimate)
         return int(len(text.split()) * 1.3)
 
+
+def _token_source(provider: str, exact: bool) -> str:
+    return f"{provider}:{'exact' if exact else 'estimated'}"
+
 async def generate_embedding(text: str) -> List[float]:
     """Generate embedding using configured provider with a fixed output dimensionality."""
     from app.config import settings
@@ -51,12 +55,14 @@ async def generate_embedding(text: str) -> List[float]:
             body = response.get("body")
             data = json.loads(body.read()) if body else {}
             embedding = data.get("embedding") or data.get("embeddings") or []
-            token_count = int(data.get("inputTextTokenCount") or 0)
-            return embedding, token_count
+            token_count_raw = data.get("inputTextTokenCount")
+            token_count = int(token_count_raw or 0)
+            token_source = _token_source("bedrock", token_count_raw is not None)
+            return embedding, token_count, token_source
 
         try:
             record_metric("embedding_call_attempt")
-            embedding, input_tokens = await asyncio.to_thread(_embed_bedrock)
+            embedding, input_tokens, token_source = await asyncio.to_thread(_embed_bedrock)
             fitted = _fit_dimensions(embedding, target_dims)
             record_metric("embedding_call_success")
             record_ai_usage(
@@ -64,7 +70,8 @@ async def generate_embedding(text: str) -> List[float]:
                 model_id=model_id,
                 input_tokens=input_tokens or _estimate_tokens(text),
                 output_tokens=0,
-                metadata={"dimension": len(fitted), "provider": "bedrock"},
+                token_source=token_source,
+                metadata={"dimension": len(fitted), "provider": "bedrock", "token_source": token_source},
             )
             return fitted
         except Exception as e:
@@ -75,8 +82,9 @@ async def generate_embedding(text: str) -> List[float]:
                 model_id=model_id,
                 input_tokens=0,
                 output_tokens=0,
+                token_source="error",
                 status="error",
-                metadata={"provider": "bedrock", "error": str(e)[:300]},
+                metadata={"provider": "bedrock", "error": str(e)[:300], "token_source": "error"},
             )
             return [0.0] * target_dims
 
@@ -101,7 +109,8 @@ async def generate_embedding(text: str) -> List[float]:
                 model_id="gemini-embedding-001",
                 input_tokens=_estimate_tokens(text),
                 output_tokens=0,
-                metadata={"dimension": len(fitted), "provider": "gemini"},
+                token_source=_token_source("gemini", False),
+                metadata={"dimension": len(fitted), "provider": "gemini", "token_source": _token_source("gemini", False)},
             )
             return fitted
         except Exception as e:
@@ -112,8 +121,9 @@ async def generate_embedding(text: str) -> List[float]:
                 model_id="gemini-embedding-001",
                 input_tokens=0,
                 output_tokens=0,
+                token_source="error",
                 status="error",
-                metadata={"provider": "gemini", "error": str(e)[:300]},
+                metadata={"provider": "gemini", "error": str(e)[:300], "token_source": "error"},
             )
             return [0.0] * target_dims
             
@@ -133,7 +143,8 @@ async def generate_embedding(text: str) -> List[float]:
                 model_id="text-embedding-3-small",
                 input_tokens=_estimate_tokens(text),
                 output_tokens=0,
-                metadata={"dimension": len(fitted), "provider": "openai"},
+                token_source=_token_source("openai", False),
+                metadata={"dimension": len(fitted), "provider": "openai", "token_source": _token_source("openai", False)},
             )
             return fitted
         except Exception as e:
@@ -144,8 +155,9 @@ async def generate_embedding(text: str) -> List[float]:
                 model_id="text-embedding-3-small",
                 input_tokens=0,
                 output_tokens=0,
+                token_source="error",
                 status="error",
-                metadata={"provider": "openai", "error": str(e)[:300]},
+                metadata={"provider": "openai", "error": str(e)[:300], "token_source": "error"},
             )
             return [0.0] * target_dims
             

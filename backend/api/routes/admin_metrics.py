@@ -221,6 +221,7 @@ async def ai_usage_metrics(
             "error_occurred": row.error_occurred,
             "error_type": row.error_type,
             "cache_hit": row.cache_hit,
+            "token_source": (row.metadata_json or {}).get("token_source"),
         }
         for row in rows
     ]

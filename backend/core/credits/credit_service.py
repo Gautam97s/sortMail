@@ -67,15 +67,27 @@ class CreditService:
 
     @staticmethod
     async def get_operation_cost(db: AsyncSession, operation_type: str) -> int:
-        stmt = select(CreditPricing).where(
-            CreditPricing.operation_type == operation_type,
-            CreditPricing.is_active == True
-        )
-        result = await db.execute(stmt)
-        pricing = result.scalar_one_or_none()
-        if not pricing:
-            raise ValueError(f"Pricing not found for operation: {operation_type}")
-        return pricing.credits_cost
+        lookup_candidates = [operation_type]
+        fallback_aliases = {
+            "thread_intel": ["email_analysis", "thread_summary"],
+            "attachment_intel": ["attachment_analysis"],
+            "email_analysis": ["thread_intel", "thread_summary"],
+            "attachment_analysis": ["attachment_intel"],
+            "thread_summary": ["thread_intel", "email_analysis"],
+        }
+        lookup_candidates.extend(fallback_aliases.get(operation_type, []))
+
+        for candidate in lookup_candidates:
+            stmt = select(CreditPricing).where(
+                CreditPricing.operation_type == candidate,
+                CreditPricing.is_active == True
+            )
+            result = await db.execute(stmt)
+            pricing = result.scalar_one_or_none()
+            if pricing:
+                return pricing.credits_cost
+
+        raise ValueError(f"Pricing not found for operation: {operation_type}")
 
     @staticmethod
     async def check_rate_limits(db: AsyncSession, user_credits: UserCredits, limits: Optional[UserCreditLimits]) -> None:

@@ -131,11 +131,12 @@ def _extract_text(response: dict[str, Any]) -> str:
     return "".join(text_parts).strip()
 
 
-def _extract_usage(response: dict[str, Any]) -> tuple[int, int]:
+def _extract_usage(response: dict[str, Any]) -> tuple[int, int, str]:
     usage = response.get("usage") or {}
     input_tokens = usage.get("inputTokens") or usage.get("input_tokens") or usage.get("promptTokens") or 0
     output_tokens = usage.get("outputTokens") or usage.get("output_tokens") or usage.get("completionTokens") or 0
-    return int(input_tokens or 0), int(output_tokens or 0)
+    token_source = "provider_reported" if usage else "missing"
+    return int(input_tokens or 0), int(output_tokens or 0), token_source
 
 
 def _truncate_messages(messages: list[dict], max_message_count: int = 4, max_chars_per_message: int = 1200) -> list[dict]:
@@ -188,13 +189,14 @@ async def _call_llama(
 
         response = _get_bedrock_client().converse(**request_kwargs)
         text = _extract_text(response)
-        input_tokens, output_tokens = _extract_usage(response)
+        input_tokens, output_tokens, token_source = _extract_usage(response)
         latency_ms = int((time.perf_counter() - start) * 1000)
         call_ref = record_ai_usage(
             operation=operation,
             model_id=model_id,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
+            token_source=token_source,
             latency_ms=latency_ms,
             metadata=metadata or {},
         )
@@ -203,6 +205,7 @@ async def _call_llama(
             model_id=model_id,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
+            token_source=token_source,
             status="success",
             latency_ms=latency_ms,
             metadata=metadata or {},
@@ -229,6 +232,7 @@ async def _call_llama(
             model_id=model_id,
             input_tokens=0,
             output_tokens=0,
+            token_source="error",
             status="error",
             latency_ms=latency_ms,
             metadata={**(metadata or {}), "error": str(exc)[:300]},
@@ -238,6 +242,7 @@ async def _call_llama(
             model_id=model_id,
             input_tokens=0,
             output_tokens=0,
+            token_source="error",
             status="error",
             latency_ms=latency_ms,
             metadata={**(metadata or {}), "error": str(exc)[:300]},
@@ -262,6 +267,7 @@ async def run_intelligence(
     participants: list[str],
     messages: list[dict],
     user_id: str | None = None,
+    credits_charged: int | None = None,
 ) -> dict:
     """Run Bedrock Nova intelligence on a thread."""
     selected_messages = _truncate_messages(messages, max_message_count=4, max_chars_per_message=1200)
@@ -295,6 +301,7 @@ async def run_intelligence(
                     "user_id": user_id,
                     "related_entity_type": "thread",
                     "related_entity_id": thread_id,
+                    "credits_charged": int(credits_charged or 0),
                 },
             )
             raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw.strip(), flags=re.DOTALL).strip()
@@ -353,7 +360,7 @@ def _fallback_intel(subject: str, thread_id: str) -> dict:
         "processed_at": datetime.now(timezone.utc).isoformat(),
         "summary": f"Email thread: {subject or '(No Subject)'}",
         "intent": "FYI",
-        "urgency_score": 10,
+        "urgency_score": 0,
         "should_create_reply": False,
         "should_create_tasks": False,
         "is_promotional": False,
@@ -401,6 +408,7 @@ async def _persist_ai_usage_log(
     model_id: str,
     input_tokens: int,
     output_tokens: int,
+    token_source: str,
     status: str,
     latency_ms: int | None,
     metadata: dict[str, Any],
@@ -413,6 +421,7 @@ async def _persist_ai_usage_log(
 
     related_entity_type = (metadata or {}).get("related_entity_type")
     related_entity_id = (metadata or {}).get("related_entity_id")
+    credits_charged = (metadata or {}).get("credits_charged")
     error_text = str((metadata or {}).get("error") or "")
 
     try:
@@ -426,13 +435,14 @@ async def _persist_ai_usage_log(
                 tokens_output=max(int(output_tokens or 0), 0),
                 tokens_total=max(int(input_tokens or 0), 0) + max(int(output_tokens or 0), 0),
                 cost_cents=0,
+                credits_charged=max(int(credits_charged or 0), 0),
                 latency_ms=latency_ms,
                 related_entity_type=str(related_entity_type) if related_entity_type else None,
                 related_entity_id=str(related_entity_id) if related_entity_id else None,
                 request_id=call_ref,
                 error_occurred=(status or "success").lower() != "success",
                 error_type=error_text[:120] if error_text else None,
-                metadata_json=metadata or {},
+                metadata_json={**(metadata or {}), "token_source": token_source},
             )
             db.add(row)
             await db.commit()

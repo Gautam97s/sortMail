@@ -162,7 +162,7 @@ def _fallback_intel(subject: str, thread_id: str) -> dict:
         "processed_at": datetime.now(timezone.utc).isoformat(),
         "summary": f"Email thread: {subject or '(No Subject)'}",
         "intent": "fyi",
-        "urgency_score": 10,
+        "urgency_score": 0,
         "sentiment": "neutral",
         "key_points": [],
         "action_items": [],
