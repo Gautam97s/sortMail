@@ -1,121 +1,165 @@
 "use client";
 
-import React from "react";
-import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { Brain, Coins, Inbox, Users, ShieldCheck, ArrowRight } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bot, Save, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, endpoints } from "@/lib/api";
-import { useAuth } from "@/context/AuthContext";
 
-interface CreditBalance {
-    balance: number;
-    plan: string;
-    monthly_allowance: number;
-    used_this_month: number;
-}
+type AIPreferences = {
+    model: string;
+    tone: string;
+    auto_draft: boolean;
+    summary_length: number;
+};
 
-interface NavCounts {
-    inbox: number;
-    actions: number;
-    urgent: number;
-    fyi: number;
-    drafts: number;
-}
+const MODELS = [
+    { value: "bedrock-nova", label: "Bedrock Nova" },
+    { value: "bedrock-llama", label: "Bedrock Llama" },
+    { value: "bedrock-custom", label: "Bedrock Custom" },
+];
+
+const TONES = [
+    { value: "BRIEF", label: "Brief" },
+    { value: "NORMAL", label: "Normal" },
+    { value: "FORMAL", label: "Formal" },
+];
 
 export default function SettingsAIPage() {
-    const { user } = useAuth();
+    const queryClient = useQueryClient();
+    const [saved, setSaved] = useState(false);
+    const [local, setLocal] = useState<AIPreferences | null>(null);
 
-    const { data: credits } = useQuery<CreditBalance>({
-        queryKey: ["credits-me", "settings-ai"],
+    const { data, isLoading } = useQuery<AIPreferences>({
+        queryKey: ["settings-ai-preferences"],
         queryFn: async () => {
-            const { data } = await api.get(endpoints.creditsMe);
+            const { data } = await api.get(endpoints.settingsAIPreferences);
             return data;
         },
     });
 
-    const { data: counts } = useQuery<NavCounts>({
-        queryKey: ["nav-counts", "settings-ai"],
-        queryFn: async () => {
-            const { data } = await api.get(endpoints.navCounts);
-            return data;
+    useEffect(() => {
+        if (data) {
+            setLocal(data);
+        }
+    }, [data]);
+
+    const save = useMutation({
+        mutationFn: async (payload: AIPreferences) => {
+            const { data } = await api.patch(endpoints.settingsAIPreferences, payload);
+            return data as AIPreferences;
+        },
+        onSuccess: (next) => {
+            queryClient.setQueryData(["settings-ai-preferences"], next);
+            queryClient.invalidateQueries({ queryKey: ["settings"] });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2500);
         },
     });
 
-    const { data: accounts = [] } = useQuery<any[]>({
-        queryKey: ["connected-accounts", "settings-ai"],
-        queryFn: async () => {
-            const { data } = await api.get(endpoints.connectedAccounts);
-            return data;
-        },
-    });
-
-    const activeAccounts = accounts.filter((a) => a.status === "ACTIVE").length;
+    if (isLoading || !local) {
+        return (
+            <div className="max-w-4xl space-y-4">
+                {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-28 rounded-xl bg-paper-mid animate-pulse" />
+                ))}
+            </div>
+        );
+    }
 
     return (
-        <div className="max-w-5xl space-y-8">
+        <div className="max-w-4xl space-y-6">
             <div>
                 <h1 className="font-display text-3xl text-ink font-bold">AI & Intelligence</h1>
-                <p className="text-ink-light mt-2">Live status of your intelligence pipeline and usage footprint.</p>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <MetricCard title="Available Credits" value={String(credits?.balance ?? 0)} icon={<Coins className="w-4 h-4" />} />
-                <MetricCard title="Used This Month" value={String(credits?.used_this_month ?? 0)} icon={<Brain className="w-4 h-4" />} />
-                <MetricCard title="Inbox Threads" value={String(counts?.inbox ?? 0)} icon={<Inbox className="w-4 h-4" />} />
-                <MetricCard title="Connected Inboxes" value={String(activeAccounts)} icon={<Users className="w-4 h-4" />} />
+                <p className="text-ink-light mt-2">Configure persisted AI behavior for your account.</p>
             </div>
 
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <ShieldCheck className="w-5 h-5 text-primary" />
-                        Runtime AI Engine
+                        <Bot className="w-5 h-5 text-primary" /> Model & Tone
                     </CardTitle>
-                    <CardDescription>
-                        SortMail currently runs intelligence processing through Amazon Bedrock-backed workflows configured on the server.
-                    </CardDescription>
+                    <CardDescription>These preferences are saved to your profile and reused by assistant workflows.</CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-wrap items-center gap-3">
-                    <Badge variant="secondary">Provider: Bedrock</Badge>
-                    <Badge variant="outline">Per-user usage logging enabled</Badge>
-                    <Badge variant="outline">Thread intelligence active</Badge>
+                <CardContent className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-ink-light">Model</label>
+                        <Select value={local.model} onValueChange={(value) => setLocal((p) => p ? ({ ...p, model: value }) : p)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select model" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {MODELS.map((model) => (
+                                    <SelectItem key={model.value} value={model.value}>{model.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold uppercase tracking-widest text-ink-light">Tone</label>
+                        <Select value={local.tone} onValueChange={(value) => setLocal((p) => p ? ({ ...p, tone: value }) : p)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select tone" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {TONES.map((tone) => (
+                                    <SelectItem key={tone.value} value={tone.value}>{tone.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Deep Metrics</CardTitle>
-                    <CardDescription>
-                        Token-level Bedrock usage and per-call telemetry are available from Admin metrics.
-                    </CardDescription>
+                    <CardTitle>Automation</CardTitle>
+                    <CardDescription>Control proactive generation and summary compression level.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    {user?.is_superuser ? (
-                        <Link href="/admin/ai/usage" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
-                            Open Admin AI Usage Dashboard
-                            <ArrowRight className="w-4 h-4" />
-                        </Link>
-                    ) : (
-                        <p className="text-sm text-ink-light">Ask an admin to share usage snapshots for token and cost analytics.</p>
-                    )}
+                <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="font-medium text-ink">Auto Draft</p>
+                            <p className="text-xs text-ink-light">Allow automatic draft generation when configured by workflow.</p>
+                        </div>
+                        <Switch
+                            checked={local.auto_draft}
+                            onCheckedChange={(checked) => setLocal((p) => p ? ({ ...p, auto_draft: checked }) : p)}
+                        />
+                    </div>
+
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium text-ink">Summary Length</span>
+                            <span className="font-mono text-ink-light">{local.summary_length}%</span>
+                        </div>
+                        <Slider
+                            value={[local.summary_length]}
+                            min={20}
+                            max={100}
+                            step={5}
+                            onValueChange={([value]) => setLocal((p) => p ? ({ ...p, summary_length: value }) : p)}
+                        />
+                    </div>
                 </CardContent>
             </Card>
-        </div>
-    );
-}
 
-function MetricCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
-    return (
-        <Card>
-            <CardContent className="p-5">
-                <div className="flex items-center justify-between text-muted-foreground mb-2">
-                    <span className="text-[10px] uppercase tracking-widest font-bold">{title}</span>
-                    {icon}
-                </div>
-                <div className="text-2xl font-display text-ink">{value}</div>
-            </CardContent>
-        </Card>
+            <div className="flex justify-end items-center gap-3">
+                {saved && (
+                    <div className="text-sm text-success flex items-center gap-1.5">
+                        <Check className="w-4 h-4" /> Saved
+                    </div>
+                )}
+                <Button onClick={() => local && save.mutate(local)} disabled={save.isPending} className="gap-2">
+                    <Save className="w-4 h-4" />
+                    {save.isPending ? "Saving..." : "Save AI Preferences"}
+                </Button>
+            </div>
+        </div>
     );
 }

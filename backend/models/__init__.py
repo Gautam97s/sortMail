@@ -13,6 +13,7 @@ from .calendar_suggestion import CalendarSuggestion
 from .credits import UserCredits, CreditTransaction, CreditPricing, CreditPackage
 from .contact import Contact
 from .tag import Tag, thread_tags
+from .user_settings import UserSettings
 
 __all__ = [
     # Users & Auth
@@ -47,4 +48,5 @@ __all__ = [
     "Contact",
     "Tag",
     "thread_tags",
+    "UserSettings",
 ]

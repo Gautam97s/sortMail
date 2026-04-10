@@ -6,6 +6,17 @@ export interface SettingsData {
     sessions: any[];
     integrations: any[];
     teamMembers: any[];
+    aiPreferences?: {
+        model: string;
+        tone: string;
+        auto_draft: boolean;
+        summary_length: number;
+    };
+    privacyPreferences?: {
+        data_retention: string;
+        email_tracking: boolean;
+        read_receipts: boolean;
+    };
 }
 
 export function useSettings() {

@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Shield, Mail, Database, ExternalLink, TriangleAlert } from "lucide-react";
+import { Shield, Mail, Database, ExternalLink, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { api, endpoints } from "@/lib/api";
@@ -64,7 +64,7 @@ export default function SettingsPrivacyPage() {
             <Card className="border-danger/20 bg-danger/5">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-danger">
-                        <TriangleAlert className="w-5 h-5" />
+                        <AlertTriangle className="w-5 h-5" />
                         Dangerous Actions
                     </CardTitle>
                     <CardDescription>
