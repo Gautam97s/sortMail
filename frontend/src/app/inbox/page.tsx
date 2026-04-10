@@ -32,6 +32,7 @@ function InboxContent() {
     const [hasMore, setHasMore] = useState(true);
     const [prevSearch, setPrevSearch] = useState('');
     const sentinelRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
     
     useEffect(() => {
@@ -73,7 +74,7 @@ function InboxContent() {
 
     // Intersection Observer for infinite scroll
     useEffect(() => {
-        if (!sentinelRef.current) return;
+        if (!sentinelRef.current || !scrollContainerRef.current) return;
 
         const observer = new IntersectionObserver(
             entries => {
@@ -82,7 +83,11 @@ function InboxContent() {
                     setCurrentOffset(prev => prev + PAGE_SIZE);
                 }
             },
-            { threshold: 0.1 }
+            {
+                root: scrollContainerRef.current,
+                rootMargin: '0px 0px 120px 0px',
+                threshold: 0.1,
+            }
         );
 
         observer.observe(sentinelRef.current);
@@ -110,7 +115,7 @@ function InboxContent() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-surface-container-lowest">
+        <div className="flex flex-col h-full min-h-0 bg-surface-container-lowest">
             {/* Toolbar / Action Bar */}
             <div className="h-10 border-b border-outline-variant/10 flex items-center justify-between px-4 bg-white/50 backdrop-blur-sm sticky top-0 z-20">
                 <div className="flex items-center gap-6">
@@ -170,7 +175,7 @@ function InboxContent() {
             </div>
 
             {/* Thread List */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                 {isLoading && filtered.length === 0 ? (
                     <div className="divide-y divide-outline-variant/5">
                         {[1, 2, 3, 4, 5, 6, 7].map((i) => (

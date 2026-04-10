@@ -172,18 +172,7 @@ export default function DraftWorkspacePage() {
         setCcField('');
         setBccField('');
         setAttachments([]);
-
-        // Auto-create a draft when none exists for the selected context.
-        generateDraft(
-            { threadId, tone, additionalContext: instructions || undefined },
-            {
-                onSuccess: (data: any) => {
-                    setCurrentDraftId(data.id ?? null);
-                    setSubject(data.subject || selected?.subject || '');
-                    setBody(data.body || '');
-                },
-            }
-        );
+        setActionMessage('Context selected. Click Generate Draft to create AI output.');
     };
 
     useEffect(() => {
