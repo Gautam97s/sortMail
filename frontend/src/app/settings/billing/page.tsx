@@ -21,6 +21,12 @@ interface CreditBalance {
     monthly_allowance: number;
     used_this_month: number;
     resets_on?: string;
+    bonus_available?: number;
+    bonus_consumed_this_cycle?: number;
+    monthly_remaining?: number;
+    total_spent_this_cycle?: number;
+    raw_used_this_month?: number;
+    consumption_policy?: string;
 }
 
 interface Transaction {
@@ -62,7 +68,10 @@ export default function SettingsBillingPage() {
     });
 
     const remainingMonthlyCredits = credits
-        ? Math.max((credits.monthly_allowance || 0) - (credits.used_this_month || 0), 0)
+        ? Math.max(
+            credits.monthly_remaining ?? ((credits.monthly_allowance || 0) - (credits.used_this_month || 0)),
+            0
+        )
         : 0;
 
     // Utilization matrix represents current billing-cycle allowance remaining,
@@ -138,6 +147,17 @@ export default function SettingsBillingPage() {
                         <div className="text-[10px] font-black text-outline-variant uppercase tracking-widest">
                             {credits?.used_this_month ?? 0} / {credits?.monthly_allowance ?? 0} Consumed
                         </div>
+                    </div>
+                    <div className="flex justify-between items-center px-1 text-[10px] font-black text-outline-variant uppercase tracking-widest">
+                        <div>
+                            Bonus Available: {credits?.bonus_available ?? 0}
+                        </div>
+                        <div>
+                            Bonus Consumed (cycle): {credits?.bonus_consumed_this_cycle ?? 0}
+                        </div>
+                    </div>
+                    <div className="px-1 text-[10px] font-medium text-outline-variant italic">
+                        Consumption order: bonus/extra credits are consumed first, then monthly subscription allowance.
                     </div>
                 </div>
             </div>

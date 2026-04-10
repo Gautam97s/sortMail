@@ -26,6 +26,12 @@ class CreditBalanceResponse(BaseModel):
     monthly_allowance: int
     used_this_month: int
     resets_on: Optional[str]  # ISO date string
+    bonus_available: int = 0
+    bonus_consumed_this_cycle: int = 0
+    monthly_remaining: int = 0
+    total_spent_this_cycle: int = 0
+    raw_used_this_month: int = 0
+    consumption_policy: str = "bonus_first_then_monthly"
 
 
 class TransactionOut(BaseModel):
@@ -49,9 +55,25 @@ async def get_my_credits(
     """Get the current user's credit balance and plan info."""
     credits = await CreditService.get_or_create_user_credits(db, current_user.id)
 
+    plan_name = credits.plan.value if credits.plan else "FREE"
+    plan_defaults = {
+        "FREE": 50,
+        "PRO": 500,
+        "TEAM": 2000,
+        "ENTERPRISE": 10000,
+    }
+    stored_allowance = int(credits.monthly_credits_allowance or 0)
+    plan_allowance = int(plan_defaults.get(plan_name.upper(), stored_allowance or 50))
+
+    # If allowance is unset (or stale default for non-free plans), derive from plan.
+    monthly_allowance = stored_allowance
+    if monthly_allowance <= 0 or (plan_name.upper() != "FREE" and monthly_allowance == 50):
+        monthly_allowance = plan_allowance
+
     # Compute monthly usage from transaction ledger for current billing cycle.
     # This avoids stale counters and guarantees the UI reflects real consumption.
-    used_this_month = int(credits.credits_used_this_month or 0)
+    raw_used_this_month = int(credits.credits_used_this_month or 0)
+    total_spent_this_cycle = 0
     if credits.billing_cycle_start:
         cycle_start_dt = datetime.combine(
             credits.billing_cycle_start,
@@ -68,12 +90,25 @@ async def get_my_credits(
             CreditTransaction.amount < 0,
             CreditTransaction.created_at >= cycle_start_dt,
         )
-        used_this_month = int((await db.execute(usage_stmt)).scalar() or 0)
+        total_spent_this_cycle = int((await db.execute(usage_stmt)).scalar() or 0)
+        raw_used_this_month = total_spent_this_cycle
 
-        if used_this_month != int(credits.credits_used_this_month or 0):
-            credits.credits_used_this_month = used_this_month
+        # Bonus-first consumption model for UI:
+        # Extra credits are consumed before touching monthly subscription allowance.
+        bonus_available = max(int(credits.credits_balance or 0) - monthly_allowance, 0)
+        monthly_used_after_bonus = max(total_spent_this_cycle - bonus_available, 0)
+        monthly_used_after_bonus = min(monthly_used_after_bonus, monthly_allowance)
+
+        if raw_used_this_month != int(credits.credits_used_this_month or 0):
+            credits.credits_used_this_month = raw_used_this_month
+    else:
+        bonus_available = max(int(credits.credits_balance or 0) - monthly_allowance, 0)
+        monthly_used_after_bonus = 0
 
     await db.commit()
+
+    bonus_consumed_this_cycle = max(total_spent_this_cycle - monthly_used_after_bonus, 0)
+    monthly_remaining = max(monthly_allowance - monthly_used_after_bonus, 0)
 
     # Calculate reset date (billing_cycle_start + 1 month)
     from dateutil.relativedelta import relativedelta
@@ -84,10 +119,16 @@ async def get_my_credits(
 
     return CreditBalanceResponse(
         balance=credits.credits_balance,
-        plan=credits.plan.value if credits.plan else "free",
-        monthly_allowance=credits.monthly_credits_allowance,
-        used_this_month=used_this_month,
+        plan=plan_name,
+        monthly_allowance=monthly_allowance,
+        used_this_month=monthly_used_after_bonus,
         resets_on=resets_on,
+        bonus_available=bonus_available,
+        bonus_consumed_this_cycle=bonus_consumed_this_cycle,
+        monthly_remaining=monthly_remaining,
+        total_spent_this_cycle=total_spent_this_cycle,
+        raw_used_this_month=raw_used_this_month,
+        consumption_policy="bonus_first_then_monthly",
     )
 
 

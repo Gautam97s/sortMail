@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { Users, Gauge, Coins, ArrowRight } from 'lucide-react';
+import { Users, Gauge, Coins, ArrowRight, Brain } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -24,13 +24,18 @@ const liveModules = [
         href: '/admin/credits',
         icon: Coins,
     },
+    {
+        title: 'AI Usage',
+        description: 'Live Bedrock calls, token consumption, and error telemetry.',
+        href: '/admin/ai/usage',
+        icon: Brain,
+    },
 ];
 
 const upcomingModules = [
     'System Health',
     'Security',
     'Billing',
-    'AI Usage',
     'Alerts',
     'Analytics',
     'Compliance',
