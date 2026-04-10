@@ -80,8 +80,12 @@ async def get_settings(
     Returns settings for the user.
     Rules, sessions, and integrations are not yet backed by the database.
     """
-    # Fetch real team members (all users for now)
-    stmt = select(User)
+    # Scope team members to the current user's workspace.
+    # If user is not assigned to a workspace yet, only return self.
+    if current_user.workspace_id:
+        stmt = select(User).where(User.workspace_id == current_user.workspace_id)
+    else:
+        stmt = select(User).where(User.id == current_user.id)
     result = await db.execute(stmt)
     users = result.scalars().all()
     

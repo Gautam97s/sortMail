@@ -61,8 +61,14 @@ export default function SettingsBillingPage() {
         },
     });
 
-    const balancePct = credits
-        ? Math.round((credits.balance / (credits.monthly_allowance || 1)) * 100)
+    const remainingMonthlyCredits = credits
+        ? Math.max((credits.monthly_allowance || 0) - (credits.used_this_month || 0), 0)
+        : 0;
+
+    // Utilization matrix represents current billing-cycle allowance remaining,
+    // not total wallet balance (which can exceed monthly allowance).
+    const balancePct = credits && credits.monthly_allowance > 0
+        ? Math.round((remainingMonthlyCredits / credits.monthly_allowance) * 100)
         : 0;
 
     const balanceColorClass = balancePct > 50 ? "text-primary" : balancePct > 20 ? "text-tertiary" : "text-error";

@@ -5,16 +5,16 @@ User-facing credit balance and transaction history endpoints.
 """
 
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func
 from pydantic import BaseModel
 
 from core.storage.database import get_db
 from api.dependencies import get_current_user
 from models.user import User
-from models.credits import UserCredits, CreditTransaction
+from models.credits import UserCredits, CreditTransaction, TransactionType, TransactionStatus
 from core.credits.credit_service import CreditService
 
 router = APIRouter()
@@ -48,6 +48,31 @@ async def get_my_credits(
 ):
     """Get the current user's credit balance and plan info."""
     credits = await CreditService.get_or_create_user_credits(db, current_user.id)
+
+    # Compute monthly usage from transaction ledger for current billing cycle.
+    # This avoids stale counters and guarantees the UI reflects real consumption.
+    used_this_month = int(credits.credits_used_this_month or 0)
+    if credits.billing_cycle_start:
+        cycle_start_dt = datetime.combine(
+            credits.billing_cycle_start,
+            datetime.min.time(),
+            tzinfo=timezone.utc,
+        )
+
+        usage_stmt = select(
+            func.coalesce(func.sum(func.abs(CreditTransaction.amount)), 0)
+        ).where(
+            CreditTransaction.user_id == current_user.id,
+            CreditTransaction.transaction_type == TransactionType.DEDUCTION,
+            CreditTransaction.status == TransactionStatus.COMPLETED,
+            CreditTransaction.amount < 0,
+            CreditTransaction.created_at >= cycle_start_dt,
+        )
+        used_this_month = int((await db.execute(usage_stmt)).scalar() or 0)
+
+        if used_this_month != int(credits.credits_used_this_month or 0):
+            credits.credits_used_this_month = used_this_month
+
     await db.commit()
 
     # Calculate reset date (billing_cycle_start + 1 month)
@@ -61,7 +86,7 @@ async def get_my_credits(
         balance=credits.credits_balance,
         plan=credits.plan.value if credits.plan else "free",
         monthly_allowance=credits.monthly_credits_allowance,
-        used_this_month=credits.credits_used_this_month,
+        used_this_month=used_this_month,
         resets_on=resets_on,
     )
 
