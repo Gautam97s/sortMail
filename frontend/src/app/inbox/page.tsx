@@ -76,9 +76,9 @@ function InboxContent() {
         setScrollDebugEnabled(enabled);
     }, []);
 
-    // Calculate current limit for the query (grows with each load)
-    const currentLimit = INITIAL_LIMIT + currentOffset;
-    const { data: threads, isLoading, error } = useThreads(undefined, debouncedSearch || undefined, 0, currentLimit);
+    // Use true offset paging: first fetch is larger, then load fixed-size pages.
+    const currentLimit = currentOffset === 0 ? INITIAL_LIMIT : PAGE_SIZE;
+    const { data: threads, isLoading, error } = useThreads(undefined, debouncedSearch || undefined, currentOffset, currentLimit);
     
     const { syncState, triggerSync } = useSmartSync();
     useRealtimeEvents();
@@ -99,20 +99,29 @@ function InboxContent() {
     // Update allThreads when initial data loads or updates
     useEffect(() => {
         if (!threads) return;
-        setAllThreads(threads);
-        // Check if we got fewer than requested, meaning no more data.
+        if (currentOffset === 0) {
+            setAllThreads(threads);
+        } else {
+            setAllThreads((prev) => {
+                const seen = new Set(prev.map((t) => t.thread_id));
+                const next = threads.filter((t) => !seen.has(t.thread_id));
+                return next.length ? [...prev, ...next] : prev;
+            });
+        }
+
+        // If backend returns fewer than requested page size, there are no more rows.
         if (threads.length < currentLimit) {
             setHasMore(false);
         } else {
             setHasMore(true);
         }
         setIsLoadingMore(false);
-    }, [threads, currentLimit]);
+    }, [threads, currentLimit, currentOffset]);
 
     const requestNextPage = useCallback(() => {
         if (!hasMore || isLoading || isLoadingMore) return;
         setIsLoadingMore(true);
-        setCurrentOffset(prev => prev + PAGE_SIZE);
+        setCurrentOffset((prev) => prev + (prev === 0 ? INITIAL_LIMIT : PAGE_SIZE));
     }, [hasMore, isLoading, isLoadingMore]);
 
     const evaluateScroll = useCallback((el: HTMLElement) => {
