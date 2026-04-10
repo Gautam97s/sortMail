@@ -76,10 +76,10 @@ async def trigger_sync(
         raise HTTPException(status_code=404, detail="Account not found")
 
     # Queue sync (reuse existing email sync logic)
-    from core.ingestion.ingestion_service import IngestionService
+    from core.ingestion.sync_service import IngestionService
     async def run_sync():
-        from core.storage.database import AsyncSessionLocal
-        async with AsyncSessionLocal() as session:
+        from core.storage.database import async_session_factory
+        async with async_session_factory() as session:
             service = IngestionService(session)
             await service.sync_user_emails(current_user.id)
 

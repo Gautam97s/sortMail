@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel, Field
 
-from app.dependencies import get_current_user
+from api.dependencies import get_current_user
 from core.storage.database import get_db
 from models.user import User
 from models.user_settings import UserSettings
