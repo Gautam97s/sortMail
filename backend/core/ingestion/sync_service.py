@@ -153,7 +153,6 @@ class IngestionService:
             await self.db.commit()
 
             # 7. Setup Real-time Webhooks (if configured)
-            from app.config import settings
             if account.provider == ProviderType.GMAIL and settings.GOOGLE_PUBSUB_TOPIC_NAME:
                 try:
                     await client.watch(settings.GOOGLE_PUBSUB_TOPIC_NAME)
@@ -351,7 +350,6 @@ class IngestionService:
         # Trigger AI intelligence pipeline in background (non-blocking)
         import asyncio
         import logging
-        from app.config import settings
         
         try:
             # Check if there is a running event loop to attach the task to

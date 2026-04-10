@@ -13,6 +13,7 @@ from typing import Any
 
 import boto3
 from botocore.config import Config
+from botocore.exceptions import NoCredentialsError
 
 from app.config import settings
 from core.app_metrics import record_ai_usage, record_metric
@@ -28,6 +29,45 @@ from core.intelligence.prompts import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _is_auth_error(exc: Exception) -> bool:
+    if isinstance(exc, NoCredentialsError):
+        return True
+
+    message = str(exc).lower()
+    markers = (
+        "unable to locate credentials",
+        "no credentials",
+        "could not load credentials",
+        "accessdeniedexception",
+        "not authorized to perform",
+        "identity-based policy allows",
+        "bedrock:invokemodel",
+        "bedrock:converse",
+        "unrecognizedclientexception",
+        "invalidsecuritytoken",
+        "signaturedoesnotmatch",
+    )
+    return any(marker in message for marker in markers)
+
+
+def _fallback_text_for_operation(operation: str) -> str:
+    if operation == "draft_freeform":
+        return (
+            "Hi,\n\n"
+            "I wanted to follow up on this and keep things moving. "
+            "Could you please share any updates when convenient?\n\n"
+            "Best regards,"
+        )
+    if operation in {"draft_reply", "draft_regenerate"}:
+        return (
+            "Thanks for your message. I have reviewed the details and will follow up shortly with next steps."
+        )
+    if operation == "chat":
+        return "I'm sorry, I can't access live AI generation right now. Please try again in a moment."
+
+    return ""
 
 
 def _get_bedrock_client():
@@ -180,6 +220,15 @@ async def _call_llama(
             metadata={"error": str(exc)[:300]},
         )
         logger.error("Bedrock AI call failed op=%s model=%s: %s", operation, model_id, exc)
+
+        if _is_auth_error(exc):
+            record_metric("ai_call_auth_error")
+            record_metric(f"ai_call_auth_error_{operation}")
+            fallback_text = _fallback_text_for_operation(operation)
+            if fallback_text:
+                logger.warning("Bedrock auth/authorization issue; returning fallback text for op=%s", operation)
+                return fallback_text
+
         raise
 
 
