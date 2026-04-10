@@ -8,7 +8,7 @@ from time import monotonic
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
 from models.ai import AIUsageLog
@@ -127,8 +127,27 @@ async def ai_usage_metrics(
         func.coalesce(func.sum(AIUsageLog.tokens_input), 0),
         func.coalesce(func.sum(AIUsageLog.tokens_output), 0),
         func.coalesce(func.sum(AIUsageLog.tokens_total), 0),
+        func.coalesce(func.sum(AIUsageLog.cost_cents), 0),
+        func.coalesce(func.sum(case((AIUsageLog.error_occurred.is_(True), 1), else_=0)), 0),
     ).where(*filters)
     totals_row = (await db.execute(totals_stmt)).one()
+
+    lower_model = func.lower(AIUsageLog.model_name)
+    bedrock_model_expr = (
+        lower_model.like("%amazon%")
+        | lower_model.like("%nova%")
+        | lower_model.like("%bedrock%")
+    )
+
+    bedrock_totals_stmt = select(
+        func.count(AIUsageLog.id),
+        func.coalesce(func.sum(AIUsageLog.tokens_input), 0),
+        func.coalesce(func.sum(AIUsageLog.tokens_output), 0),
+        func.coalesce(func.sum(AIUsageLog.tokens_total), 0),
+        func.coalesce(func.sum(AIUsageLog.cost_cents), 0),
+        func.coalesce(func.sum(case((AIUsageLog.error_occurred.is_(True), 1), else_=0)), 0),
+    ).where(*filters, bedrock_model_expr)
+    bedrock_totals_row = (await db.execute(bedrock_totals_stmt)).one()
 
     by_user_stmt = (
         select(
@@ -142,6 +161,37 @@ async def ai_usage_metrics(
         .limit(50)
     )
     by_user_rows = (await db.execute(by_user_stmt)).all()
+
+    by_model_stmt = (
+        select(
+            AIUsageLog.model_name,
+            func.count(AIUsageLog.id).label("calls"),
+            func.coalesce(func.sum(AIUsageLog.tokens_input), 0).label("tokens_input"),
+            func.coalesce(func.sum(AIUsageLog.tokens_output), 0).label("tokens_output"),
+            func.coalesce(func.sum(AIUsageLog.tokens_total), 0).label("tokens_total"),
+            func.coalesce(func.avg(AIUsageLog.latency_ms), 0).label("avg_latency_ms"),
+            func.coalesce(func.sum(case((AIUsageLog.error_occurred.is_(True), 1), else_=0)), 0).label("errors"),
+        )
+        .where(*filters)
+        .group_by(AIUsageLog.model_name)
+        .order_by(func.coalesce(func.sum(AIUsageLog.tokens_total), 0).desc())
+        .limit(20)
+    )
+    by_model_rows = (await db.execute(by_model_stmt)).all()
+
+    by_operation_stmt = (
+        select(
+            AIUsageLog.operation_type,
+            func.count(AIUsageLog.id).label("calls"),
+            func.coalesce(func.sum(AIUsageLog.tokens_total), 0).label("tokens_total"),
+            func.coalesce(func.sum(AIUsageLog.cost_cents), 0).label("cost_cents"),
+        )
+        .where(*filters)
+        .group_by(AIUsageLog.operation_type)
+        .order_by(func.coalesce(func.sum(AIUsageLog.tokens_total), 0).desc())
+        .limit(20)
+    )
+    by_operation_rows = (await db.execute(by_operation_stmt)).all()
 
     rows_stmt = (
         select(AIUsageLog)
@@ -158,18 +208,30 @@ async def ai_usage_metrics(
             "user_id": row.user_id,
             "operation_type": row.operation_type,
             "model_name": row.model_name,
+            "provider": row.provider.value if row.provider else None,
             "tokens_input": row.tokens_input,
             "tokens_output": row.tokens_output,
             "tokens_total": row.tokens_total,
+            "cost_cents": row.cost_cents,
+            "credits_charged": row.credits_charged,
             "latency_ms": row.latency_ms,
             "related_entity_type": row.related_entity_type,
             "related_entity_id": row.related_entity_id,
             "request_id": row.request_id,
             "error_occurred": row.error_occurred,
             "error_type": row.error_type,
+            "cache_hit": row.cache_hit,
         }
         for row in rows
     ]
+
+    total_calls = int(totals_row[0] or 0)
+    total_tokens = int(totals_row[3] or 0)
+    total_errors = int(totals_row[5] or 0)
+
+    bedrock_calls = int(bedrock_totals_row[0] or 0)
+    bedrock_tokens = int(bedrock_totals_row[3] or 0)
+    bedrock_errors = int(bedrock_totals_row[5] or 0)
 
     return {
         "window": {
@@ -182,10 +244,24 @@ async def ai_usage_metrics(
             "limit": safe_limit,
         },
         "totals": {
-            "calls": int(totals_row[0] or 0),
+            "calls": total_calls,
             "tokens_input": int(totals_row[1] or 0),
             "tokens_output": int(totals_row[2] or 0),
-            "tokens_total": int(totals_row[3] or 0),
+            "tokens_total": total_tokens,
+            "cost_cents": int(totals_row[4] or 0),
+            "errors": total_errors,
+            "avg_tokens_per_call": round((total_tokens / total_calls), 2) if total_calls else 0,
+            "error_rate_pct": round((total_errors / total_calls) * 100, 3) if total_calls else 0,
+        },
+        "bedrock": {
+            "calls": bedrock_calls,
+            "tokens_input": int(bedrock_totals_row[1] or 0),
+            "tokens_output": int(bedrock_totals_row[2] or 0),
+            "tokens_total": bedrock_tokens,
+            "cost_cents": int(bedrock_totals_row[4] or 0),
+            "errors": bedrock_errors,
+            "avg_tokens_per_call": round((bedrock_tokens / bedrock_calls), 2) if bedrock_calls else 0,
+            "error_rate_pct": round((bedrock_errors / bedrock_calls) * 100, 3) if bedrock_calls else 0,
         },
         "by_user": [
             {
@@ -194,6 +270,27 @@ async def ai_usage_metrics(
                 "tokens_total": int(row[2] or 0),
             }
             for row in by_user_rows
+        ],
+        "by_model": [
+            {
+                "model_name": row[0],
+                "calls": int(row[1] or 0),
+                "tokens_input": int(row[2] or 0),
+                "tokens_output": int(row[3] or 0),
+                "tokens_total": int(row[4] or 0),
+                "avg_latency_ms": round(float(row[5] or 0), 2),
+                "errors": int(row[6] or 0),
+            }
+            for row in by_model_rows
+        ],
+        "by_operation": [
+            {
+                "operation_type": row[0],
+                "calls": int(row[1] or 0),
+                "tokens_total": int(row[2] or 0),
+                "cost_cents": int(row[3] or 0),
+            }
+            for row in by_operation_rows
         ],
         "records": records,
     }

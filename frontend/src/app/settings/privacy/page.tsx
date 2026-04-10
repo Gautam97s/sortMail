@@ -1,180 +1,96 @@
 "use client";
 
-import React, { useState } from "react";
-import { Shield, Download, Trash2, Save, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import React from "react";
+import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { Shield, Mail, Database, ExternalLink, TriangleAlert } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { api, endpoints } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SettingsPrivacyPage() {
-    const [settings, setSettings] = useState({
-        dataRetention: "1year",
-        emailTracking: false,
-        readReceipts: true,
+    const { user } = useAuth();
+
+    const { data: accounts = [] } = useQuery<any[]>({
+        queryKey: ["connected-accounts", "settings-privacy"],
+        queryFn: async () => {
+            const { data } = await api.get(endpoints.connectedAccounts);
+            return data;
+        },
     });
 
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-    const handleSave = () => {
-        console.log("Saving privacy settings:", settings);
-    };
-
-    const handleExportData = () => {
-        console.log("Exporting user data...");
-    };
-
-    const handleDeleteAccount = () => {
-        console.log("Deleting account...");
-    };
+    const activeAccounts = accounts.filter((a) => a.status === "ACTIVE").length;
 
     return (
-        <div className="max-w-4xl">
-            <div className="mb-6">
-                <h1 className="font-display text-2xl text-ink mb-2">Privacy Settings</h1>
-                <p className="text-muted">
-                    Manage your data, privacy preferences, and account security.
-                </p>
+        <div className="max-w-5xl space-y-8">
+            <div>
+                <h1 className="font-display text-3xl text-ink font-bold">Privacy & Data</h1>
+                <p className="text-ink-light mt-2">Current account privacy posture and data handling entry points.</p>
             </div>
 
-            <div className="space-y-6">
-                {/* Data Retention */}
-                <Card className="p-6">
-                    <div className="mb-4">
-                        <h3 className="font-medium text-ink mb-1">Data Retention</h3>
-                        <p className="text-sm text-muted">
-                            How long to keep your email data and AI analysis
-                        </p>
-                    </div>
-                    <Select
-                        value={settings.dataRetention}
-                        onValueChange={(value) =>
-                            setSettings({ ...settings, dataRetention: value })
-                        }
-                    >
-                        <SelectTrigger className="w-full">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="30days">30 days</SelectItem>
-                            <SelectItem value="90days">90 days</SelectItem>
-                            <SelectItem value="6months">6 months</SelectItem>
-                            <SelectItem value="1year">1 year</SelectItem>
-                            <SelectItem value="forever">Forever</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </Card>
-
-                {/* Email Tracking */}
-                <Card className="p-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <h3 className="font-medium text-ink mb-1">Email Tracking</h3>
-                            <p className="text-sm text-muted">
-                                Track when recipients open your emails
-                            </p>
-                        </div>
-                        <Switch
-                            checked={settings.emailTracking}
-                            onCheckedChange={(checked) =>
-                                setSettings({ ...settings, emailTracking: checked })
-                            }
-                        />
-                    </div>
-                </Card>
-
-                {/* Read Receipts */}
-                <Card className="p-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <h3 className="font-medium text-ink mb-1">Read Receipts</h3>
-                            <p className="text-sm text-muted">
-                                Send read receipts when you open emails
-                            </p>
-                        </div>
-                        <Switch
-                            checked={settings.readReceipts}
-                            onCheckedChange={(checked) =>
-                                setSettings({ ...settings, readReceipts: checked })
-                            }
-                        />
-                    </div>
-                </Card>
-
-                {/* Export Data */}
-                <Card className="p-6">
-                    <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                            <h3 className="font-medium text-ink mb-1">Export Your Data</h3>
-                            <p className="text-sm text-muted">
-                                Download a copy of all your data (emails, tasks, AI analysis)
-                            </p>
-                        </div>
-                        <Button onClick={handleExportData} variant="outline" className="gap-2">
-                            <Download className="w-4 h-4" />
-                            Export Data
-                        </Button>
-                    </div>
-                </Card>
-
-                {/* Save Button */}
-                <div className="flex justify-end">
-                    <Button onClick={handleSave} className="gap-2">
-                        <Save className="w-4 h-4" />
-                        Save Settings
-                    </Button>
-                </div>
-                {/* Danger Zone */}
-                <Card className="p-6 border-danger/20 bg-danger/5">
-                    <div className="flex items-start gap-3 mb-4">
-                        <AlertTriangle className="w-5 h-5 text-danger shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                            <h3 className="font-medium text-danger mb-1">Danger Zone</h3>
-                            <p className="text-sm text-muted">
-                                Permanently delete your account and all associated data
-                            </p>
-                        </div>
-                    </div>
-                    {!showDeleteConfirm ? (
-                        <Button
-                            onClick={() => setShowDeleteConfirm(true)}
-                            variant="outline"
-                            className="gap-2 text-danger border-danger hover:bg-danger hover:text-white"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            Delete Account
-                        </Button>
-                    ) : (
-                        <div className="space-y-3">
-                            <p className="text-sm font-medium text-danger">
-                                Are you absolutely sure? This action cannot be undone.
-                            </p>
-                            <div className="flex gap-2">
-                                <Button
-                                    onClick={handleDeleteAccount}
-                                    variant="default"
-                                    className="bg-danger hover:bg-danger/90"
-                                >
-                                    Yes, Delete My Account
-                                </Button>
-                                <Button
-                                    onClick={() => setShowDeleteConfirm(false)}
-                                    variant="outline"
-                                >
-                                    Cancel
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                </Card>
+            <div className="grid gap-4 md:grid-cols-3">
+                <StatusCard title="Auth Provider" value={user?.provider || "Unknown"} icon={<Shield className="w-4 h-4" />} />
+                <StatusCard title="Connected Inboxes" value={String(activeAccounts)} icon={<Mail className="w-4 h-4" />} />
+                <StatusCard title="Account Status" value={user?.is_active ? "Active" : "Inactive"} icon={<Database className="w-4 h-4" />} />
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Data Access & Export</CardTitle>
+                    <CardDescription>
+                        Use official legal and support channels for policy details and export/deletion requests.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary">OAuth-based mailbox access</Badge>
+                        <Badge variant="outline">User-scoped data processing</Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-3 pt-1">
+                        <Link href="/privacy" className="text-sm font-semibold text-primary hover:underline inline-flex items-center gap-1">
+                            Privacy Policy <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
+                        <Link href="/terms" className="text-sm font-semibold text-primary hover:underline inline-flex items-center gap-1">
+                            Terms of Service <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
+                        <Link href="/support" className="text-sm font-semibold text-primary hover:underline inline-flex items-center gap-1">
+                            Contact Support <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card className="border-danger/20 bg-danger/5">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-danger">
+                        <TriangleAlert className="w-5 h-5" />
+                        Dangerous Actions
+                    </CardTitle>
+                    <CardDescription>
+                        Account removal and destructive operations are centralized in Danger Zone.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Link href="/settings/danger" className="text-sm font-semibold text-danger hover:underline">
+                        Open Danger Zone
+                    </Link>
+                </CardContent>
+            </Card>
         </div>
+    );
+}
+
+function StatusCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
+    return (
+        <Card>
+            <CardContent className="p-5">
+                <div className="flex items-center justify-between text-muted-foreground mb-2">
+                    <span className="text-[10px] uppercase tracking-widest font-bold">{title}</span>
+                    {icon}
+                </div>
+                <div className="text-xl font-display text-ink">{value}</div>
+            </CardContent>
+        </Card>
     );
 }
