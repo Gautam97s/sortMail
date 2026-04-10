@@ -18,6 +18,7 @@ Flow:
 
 import logging
 import json
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -149,6 +150,12 @@ async def process_thread_intelligence(
         # â”€â”€ 2. Load messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         messages = await _load_messages(thread_id, db)
 
+        # Do not run AI intel for unsubscribed contacts.
+        if await _is_unsubscribed_sender_thread(user_id, thread, messages, db):
+            record_metric("intel_skipped_unsubscribed")
+            logger.info("Intel skipped for unsubscribed sender thread=%s", thread_id)
+            return None
+
         low_value_reason = _detect_low_value_thread(thread, messages)
         if low_value_reason:
             record_metric("intel_skipped_low_value")
@@ -169,6 +176,7 @@ async def process_thread_intelligence(
         # â”€â”€ 3. Single Gemini Flash call â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         raw_intel = await run_intelligence(
             thread_id=thread_id,
+            user_id=user_id,
             subject=thread.subject or "",
             participants=list(thread.participants or []),
             messages=messages,
@@ -385,6 +393,47 @@ def _detect_low_value_thread(thread: Thread, messages: list[dict]) -> Optional[s
         return "social_notification"
 
     return None
+
+
+async def _is_unsubscribed_sender_thread(
+    user_id: str,
+    thread: Thread,
+    messages: list[dict],
+    db: AsyncSession,
+) -> bool:
+    """Return True when any sender/participant maps to an unsubscribed contact."""
+
+    def _extract_email(text: str | None) -> str | None:
+        if not text:
+            return None
+        match = re.search(r"<([^>]+)>", text)
+        if match:
+            return match.group(1).strip().lower()
+        if "@" in text:
+            return text.strip().lower()
+        return None
+
+    candidates: set[str] = set()
+    for msg in messages:
+        email = _extract_email(msg.get("from"))
+        if email:
+            candidates.add(email)
+
+    for participant in list(thread.participants or []):
+        email = _extract_email(participant)
+        if email:
+            candidates.add(email)
+
+    if not candidates:
+        return False
+
+    stmt = select(Contact.email_address).where(
+        Contact.user_id == user_id,
+        Contact.is_unsubscribed == True,
+        Contact.email_address.in_(list(candidates)),
+    )
+    row = (await db.execute(stmt)).first()
+    return row is not None
 
 
 def _build_low_value_intel(thread: Thread, reason: str) -> dict:

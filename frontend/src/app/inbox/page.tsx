@@ -31,6 +31,18 @@ function InboxContent() {
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [prevSearch, setPrevSearch] = useState('');
+    const [scrollDebugEnabled, setScrollDebugEnabled] = useState(false);
+    const [scrollDebug, setScrollDebug] = useState({
+        scrollTop: 0,
+        clientHeight: 0,
+        scrollHeight: 0,
+        nearBottom: false,
+        hasMore: true,
+        isLoading: false,
+        isLoadingMore: false,
+        currentLimit: INITIAL_LIMIT,
+        loadedThreads: 0,
+    });
     const sentinelRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const queryClient = useQueryClient();
@@ -39,6 +51,13 @@ function InboxContent() {
         const t = setTimeout(() => setDebouncedSearch(search), 400);
         return () => clearTimeout(t);
     }, [search]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const enabled = params.get('scrollDebug') === '1';
+        setScrollDebugEnabled(enabled);
+    }, []);
 
     // Calculate current limit for the query (grows with each load)
     const currentLimit = INITIAL_LIMIT + currentOffset;
@@ -55,22 +74,53 @@ function InboxContent() {
             setCurrentOffset(0);
             setAllThreads([]);
             setHasMore(true);
+            setIsLoadingMore(false);
             setPrevSearch(debouncedSearch);
         }
     }, [debouncedSearch, prevSearch]);
 
     // Update allThreads when initial data loads or updates
     useEffect(() => {
-        if (threads && threads.length > 0) {
-            setAllThreads(threads);
-            // Check if we got fewer than requested, meaning no more data
-            if (threads.length < currentLimit) {
-                setHasMore(false);
-            } else {
-                setHasMore(true);
-            }
+        if (!threads) return;
+        setAllThreads(threads);
+        // Check if we got fewer than requested, meaning no more data.
+        if (threads.length < currentLimit) {
+            setHasMore(false);
+        } else {
+            setHasMore(true);
         }
+        setIsLoadingMore(false);
     }, [threads, currentLimit]);
+
+    const requestNextPage = useCallback(() => {
+        if (!hasMore || isLoading || isLoadingMore) return;
+        setIsLoadingMore(true);
+        setCurrentOffset(prev => prev + PAGE_SIZE);
+    }, [hasMore, isLoading, isLoadingMore]);
+
+    const handleListScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+        const el = event.currentTarget;
+        const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+        const nearBottom = remaining <= 180;
+
+        if (scrollDebugEnabled) {
+            setScrollDebug({
+                scrollTop: Math.round(el.scrollTop),
+                clientHeight: el.clientHeight,
+                scrollHeight: el.scrollHeight,
+                nearBottom,
+                hasMore,
+                isLoading,
+                isLoadingMore,
+                currentLimit,
+                loadedThreads: allThreads.length,
+            });
+        }
+
+        if (nearBottom) {
+            requestNextPage();
+        }
+    }, [scrollDebugEnabled, hasMore, isLoading, isLoadingMore, currentLimit, allThreads.length, requestNextPage]);
 
     // Intersection Observer for infinite scroll
     useEffect(() => {
@@ -79,8 +129,7 @@ function InboxContent() {
         const observer = new IntersectionObserver(
             entries => {
                 if (entries[0].isIntersecting && hasMore && !isLoading && !isLoadingMore) {
-                    // Load next batch
-                    setCurrentOffset(prev => prev + PAGE_SIZE);
+                    requestNextPage();
                 }
             },
             {
@@ -92,7 +141,7 @@ function InboxContent() {
 
         observer.observe(sentinelRef.current);
         return () => observer.disconnect();
-    }, [hasMore, isLoading, isLoadingMore]);
+    }, [hasMore, isLoading, isLoadingMore, requestNextPage]);
 
     const filtered = allThreads;
 
@@ -175,7 +224,7 @@ function InboxContent() {
             </div>
 
             {/* Thread List */}
-            <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+            <div ref={scrollContainerRef} onScroll={handleListScroll} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                 {isLoading && filtered.length === 0 ? (
                     <div className="divide-y divide-outline-variant/5">
                         {[1, 2, 3, 4, 5, 6, 7].map((i) => (
@@ -237,6 +286,11 @@ function InboxContent() {
                                 <span className="text-xs text-outline-variant">No more messages</span>
                             ) : null}
                         </div>
+                        {scrollDebugEnabled && (
+                            <div className="px-4 pb-3 text-[11px] text-outline-variant font-mono">
+                                scrollTop={scrollDebug.scrollTop} clientHeight={scrollDebug.clientHeight} scrollHeight={scrollDebug.scrollHeight} nearBottom={String(scrollDebug.nearBottom)} hasMore={String(scrollDebug.hasMore)} loading={String(scrollDebug.isLoading)} loadingMore={String(scrollDebug.isLoadingMore)} limit={scrollDebug.currentLimit} loaded={scrollDebug.loadedThreads}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

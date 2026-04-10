@@ -184,7 +184,18 @@ async def generate_freeform_draft(
     )
 
     chat_messages = [{"role": "system", "content": FREEFORM_DRAFT_SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
-    generated_text = (await _call_llama(chat_messages, max_tokens=900, operation="draft_freeform")).strip()
+    generated_text = (
+        await _call_llama(
+            chat_messages,
+            max_tokens=900,
+            operation="draft_freeform",
+            metadata={
+                "user_id": current_user.id,
+                "related_entity_type": "draft",
+                "related_entity_id": "freeform",
+            },
+        )
+    ).strip()
     return {
         "subject": payload.subject or "",
         "body": generated_text,
@@ -280,7 +291,18 @@ async def generate_draft(
         )
 
         chat_messages = [{"role": "system", "content": DRAFT_REPLY_SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
-        generated_text = (await _call_llama(chat_messages, max_tokens=900, operation="draft_reply")).strip()
+        generated_text = (
+            await _call_llama(
+                chat_messages,
+                max_tokens=900,
+                operation="draft_reply",
+                metadata={
+                    "user_id": current_user.id,
+                    "related_entity_type": "thread",
+                    "related_entity_id": request.thread_id,
+                },
+            )
+        ).strip()
         
         draft = Draft(
             id=str(uuid.uuid4()),
@@ -393,7 +415,18 @@ async def regenerate_draft(
 
         # 4. Generate
         chat_messages = [{"role": "system", "content": DRAFT_REPLY_SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
-        generated_text = (await _call_llama(chat_messages, max_tokens=900, operation="draft_regenerate")).strip()
+        generated_text = (
+            await _call_llama(
+                chat_messages,
+                max_tokens=900,
+                operation="draft_regenerate",
+                metadata={
+                    "user_id": current_user.id,
+                    "related_entity_type": "draft",
+                    "related_entity_id": draft_id,
+                },
+            )
+        ).strip()
         
         # 5. Update draft
         draft.content = generated_text

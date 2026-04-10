@@ -17,6 +17,7 @@ from botocore.exceptions import NoCredentialsError
 
 from app.config import settings
 from core.app_metrics import record_ai_usage, record_metric
+from core.storage.database import async_session_factory
 from core.intelligence.prompts import (
     ATTACHMENT_ANALYSIS_SYSTEM_PROMPT,
     CHAT_SYSTEM_PROMPT,
@@ -27,6 +28,7 @@ from core.intelligence.prompts import (
     THREAD_INTEL_SYSTEM_PROMPT,
     THREAD_INTEL_USER_PROMPT_TEMPLATE,
 )
+from models.ai import AIProvider, AIUsageLog
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +164,7 @@ async def _call_llama(
     max_tokens: int = 2048,
     temperature: float = 0.2,
     operation: str = "general",
+    metadata: dict[str, Any] | None = None,
 ) -> str:
     """Call Amazon Bedrock Nova via the Converse API."""
     model_id = settings.BEDROCK_MODEL_ID
@@ -193,6 +196,17 @@ async def _call_llama(
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             latency_ms=latency_ms,
+            metadata=metadata or {},
+        )
+        await _persist_ai_usage_log(
+            operation=operation,
+            model_id=model_id,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            status="success",
+            latency_ms=latency_ms,
+            metadata=metadata or {},
+            call_ref=call_ref,
         )
         record_metric("ai_call_success")
         record_metric(f"ai_call_success_{operation}")
@@ -217,7 +231,17 @@ async def _call_llama(
             output_tokens=0,
             status="error",
             latency_ms=latency_ms,
-            metadata={"error": str(exc)[:300]},
+            metadata={**(metadata or {}), "error": str(exc)[:300]},
+        )
+        await _persist_ai_usage_log(
+            operation=operation,
+            model_id=model_id,
+            input_tokens=0,
+            output_tokens=0,
+            status="error",
+            latency_ms=latency_ms,
+            metadata={**(metadata or {}), "error": str(exc)[:300]},
+            call_ref=None,
         )
         logger.error("Bedrock AI call failed op=%s model=%s: %s", operation, model_id, exc)
 
@@ -237,6 +261,7 @@ async def run_intelligence(
     subject: str,
     participants: list[str],
     messages: list[dict],
+    user_id: str | None = None,
 ) -> dict:
     """Run Bedrock Nova intelligence on a thread."""
     selected_messages = _truncate_messages(messages, max_message_count=4, max_chars_per_message=1200)
@@ -263,7 +288,15 @@ async def run_intelligence(
 
     for attempt in range(4):
         try:
-            raw = await _call_llama(chat_messages, operation="thread_intel")
+            raw = await _call_llama(
+                chat_messages,
+                operation="thread_intel",
+                metadata={
+                    "user_id": user_id,
+                    "related_entity_type": "thread",
+                    "related_entity_id": thread_id,
+                },
+            )
             raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw.strip(), flags=re.DOTALL).strip()
             json_match = re.search(r"\{.*\}", raw, re.DOTALL)
             if json_match:
@@ -295,12 +328,19 @@ async def llama_chat(
     messages: list[dict],
     system_prompt: str = CHAT_SYSTEM_PROMPT,
     max_tokens: int = 1024,
+    metadata: dict[str, Any] | None = None,
 ) -> str:
     """General-purpose chat completion using Bedrock Nova."""
     full_messages = [{"role": "system", "content": system_prompt}] + messages
     try:
         record_metric("ai_chat_request")
-        return await _call_llama(full_messages, max_tokens=max_tokens, temperature=0.7, operation="chat")
+        return await _call_llama(
+            full_messages,
+            max_tokens=max_tokens,
+            temperature=0.7,
+            operation="chat",
+            metadata=metadata,
+        )
     except Exception as exc:
         record_metric("ai_chat_error")
         logger.error("Bedrock chat failed: %s", exc)
@@ -353,3 +393,48 @@ def _prompt_for_freeform_draft(recipient_context: str, subject: str, tone: str, 
 
 def _prompt_for_attachment_analysis(document_text: str) -> str:
     return f"{ATTACHMENT_ANALYSIS_SYSTEM_PROMPT}\n\n{document_text}".strip()
+
+
+async def _persist_ai_usage_log(
+    *,
+    operation: str,
+    model_id: str,
+    input_tokens: int,
+    output_tokens: int,
+    status: str,
+    latency_ms: int | None,
+    metadata: dict[str, Any],
+    call_ref: str | None,
+) -> None:
+    """Persist AI usage rows for per-user/per-entity reporting."""
+    user_id = str((metadata or {}).get("user_id") or "").strip()
+    if not user_id:
+        return
+
+    related_entity_type = (metadata or {}).get("related_entity_type")
+    related_entity_id = (metadata or {}).get("related_entity_id")
+    error_text = str((metadata or {}).get("error") or "")
+
+    try:
+        async with async_session_factory() as db:
+            row = AIUsageLog(
+                user_id=user_id,
+                operation_type=(operation or "unknown").upper(),
+                provider=AIProvider.CUSTOM,
+                model_name=model_id,
+                tokens_input=max(int(input_tokens or 0), 0),
+                tokens_output=max(int(output_tokens or 0), 0),
+                tokens_total=max(int(input_tokens or 0), 0) + max(int(output_tokens or 0), 0),
+                cost_cents=0,
+                latency_ms=latency_ms,
+                related_entity_type=str(related_entity_type) if related_entity_type else None,
+                related_entity_id=str(related_entity_id) if related_entity_id else None,
+                request_id=call_ref,
+                error_occurred=(status or "success").lower() != "success",
+                error_type=error_text[:120] if error_text else None,
+                metadata_json=metadata or {},
+            )
+            db.add(row)
+            await db.commit()
+    except Exception as exc:
+        logger.warning("Failed to persist ai_usage_logs row for op=%s: %s", operation, exc)
