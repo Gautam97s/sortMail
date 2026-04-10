@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { api, endpoints } from "@/lib/api";
 import { formatDistanceToNow, format } from "date-fns";
@@ -171,9 +172,9 @@ export default function SettingsBillingPage() {
                         </div>
                         <h2 className="font-headline text-xl font-bold text-on-surface tracking-tight">Transactional Ledger</h2>
                     </div>
-                    <button className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline px-4 py-2 hover:bg-primary-fixed/10 rounded-xl transition-all">
+                    <Link href="/settings/billing/history" className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline px-4 py-2 hover:bg-primary-fixed/10 rounded-xl transition-all">
                         Complete History
-                    </button>
+                    </Link>
                 </div>
 
                 {txLoading ? (
