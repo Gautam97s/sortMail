@@ -17,6 +17,7 @@ Flow:
 """
 
 import logging
+import json
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -161,6 +162,7 @@ async def process_thread_intelligence(
             await _process_contacts(user_id, messages, db)
             await db.commit()
             logger.info(f"Intel skipped for low-value thread={thread_id} reason={low_value_reason}")
+            _log_intel_payload(thread_id, final_intel, source="low_value")
             await _publish_intel_ready(user_id, thread_id, final_intel)
             return final_intel
 
@@ -258,6 +260,7 @@ async def process_thread_intelligence(
 
         await db.commit()
         logger.info(f"Intel saved: thread={thread_id} intent={intent} score={urgency_score}")
+        _log_intel_payload(thread_id, final_intel, source="full")
 
         # â”€â”€ 6.5 Embed thread into ChromaDB if valuable â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         from core.intelligence.embedding_strategy import embed_thread_if_valuable
@@ -318,6 +321,32 @@ async def _load_thread(thread_id: str, user_id: str, db: AsyncSession) -> Option
         .options(selectinload(Thread.tags))
     )
     return (await db.execute(stmt)).scalars().first()
+
+
+def _log_intel_payload(thread_id: str, intel: dict, source: str) -> None:
+    """Log a compact summary plus payload snapshot after intel generation."""
+    if not isinstance(intel, dict):
+        logger.info("Intel payload: thread=%s source=%s payload_type=%s", thread_id, source, type(intel).__name__)
+        return
+
+    summary = (intel.get("summary") or "").strip().replace("\n", " ")[:220]
+    payload = json.dumps(intel, default=str, ensure_ascii=False)
+    max_chars = 8000
+    if len(payload) > max_chars:
+        payload = payload[:max_chars] + " ...<truncated>"
+
+    logger.info(
+        "Intel produced: thread=%s source=%s intent=%s urgency=%s action_items=%s tags=%s attachment_intel=%s summary=%s",
+        thread_id,
+        source,
+        intel.get("intent"),
+        intel.get("urgency_score"),
+        len(intel.get("action_items") or []),
+        len(intel.get("tags") or []),
+        len(intel.get("attachment_intel") or []),
+        summary,
+    )
+    logger.info("Intel payload: thread=%s source=%s data=%s", thread_id, source, payload)
 
 
 async def _load_messages(thread_id: str, db: AsyncSession) -> list[dict]:
