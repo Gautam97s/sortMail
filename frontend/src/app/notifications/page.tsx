@@ -33,7 +33,14 @@ export default function NotificationsPage() {
         },
         staleTime: 1000 * 30,
         refetchOnWindowFocus: true,
+        refetchInterval: 15000,
     });
+
+    const syncNotificationQueries = () => {
+        queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        queryClient.invalidateQueries({ queryKey: ["notifications-unread-count"] });
+        queryClient.invalidateQueries({ queryKey: ["nav-counts"] });
+    };
 
     const { data: prefs } = useQuery({
         queryKey: ["notification-preferences"],
@@ -50,17 +57,65 @@ export default function NotificationsPage() {
 
     const markRead = useMutation({
         mutationFn: (id: string) => api.post(`${endpoints.notifications}/${id}/read`),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+        onMutate: async (id: string) => {
+            await queryClient.cancelQueries({ queryKey: ["notifications"] });
+            const previous = queryClient.getQueryData<Notification[]>(["notifications"]);
+            if (previous) {
+                queryClient.setQueryData<Notification[]>(
+                    ["notifications"],
+                    previous.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+                );
+            }
+            return { previous };
+        },
+        onError: (_err, _id, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(["notifications"], context.previous);
+            }
+        },
+        onSettled: () => syncNotificationQueries(),
     });
 
     const markAllRead = useMutation({
         mutationFn: () => api.post(`${endpoints.notifications}/read-all`),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+        onMutate: async () => {
+            await queryClient.cancelQueries({ queryKey: ["notifications"] });
+            const previous = queryClient.getQueryData<Notification[]>(["notifications"]);
+            if (previous) {
+                queryClient.setQueryData<Notification[]>(
+                    ["notifications"],
+                    previous.map((n) => ({ ...n, is_read: true }))
+                );
+            }
+            return { previous };
+        },
+        onError: (_err, _vars, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(["notifications"], context.previous);
+            }
+        },
+        onSettled: () => syncNotificationQueries(),
     });
 
     const dismiss = useMutation({
         mutationFn: (id: string) => api.delete(`${endpoints.notifications}/${id}`),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+        onMutate: async (id: string) => {
+            await queryClient.cancelQueries({ queryKey: ["notifications"] });
+            const previous = queryClient.getQueryData<Notification[]>(["notifications"]);
+            if (previous) {
+                queryClient.setQueryData<Notification[]>(
+                    ["notifications"],
+                    previous.filter((n) => n.id !== id)
+                );
+            }
+            return { previous };
+        },
+        onError: (_err, _id, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(["notifications"], context.previous);
+            }
+        },
+        onSettled: () => syncNotificationQueries(),
     });
 
     const updatePrefs = useMutation({
@@ -188,9 +243,15 @@ export default function NotificationsPage() {
                                         {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                                     </p>
                                 </div>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0 opacity-100">
                                     {!n.is_read && (
-                                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-xl" onClick={() => markRead.mutate(n.id)}>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-7 w-7 rounded-xl"
+                                            disabled={markRead.isPending}
+                                            onClick={() => markRead.mutate(n.id)}
+                                        >
                                             <CheckCheck className="h-3.5 w-3.5" />
                                         </Button>
                                     )}
@@ -199,7 +260,13 @@ export default function NotificationsPage() {
                                             <Link href={n.action_url}>View</Link>
                                         </Button>
                                     )}
-                                    <Button size="icon" variant="ghost" className="h-7 w-7 rounded-xl text-muted-foreground hover:text-danger" onClick={() => dismiss.mutate(n.id)}>
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-7 w-7 rounded-xl text-muted-foreground hover:text-danger"
+                                        disabled={dismiss.isPending}
+                                        onClick={() => dismiss.mutate(n.id)}
+                                    >
                                         <X className="h-3.5 w-3.5" />
                                     </Button>
                                 </div>

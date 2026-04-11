@@ -17,6 +17,10 @@ function CallbackContent() {
         const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
         tl.fromTo(".callback-card", { y: 20, opacity: 0, scale: 0.98 }, { y: 0, opacity: 1, scale: 1, duration: 0.8 });
 
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const fragmentToken = hashParams.get("access_token");
+        const queryToken = searchParams.get("access_token");
+        const token = fragmentToken || queryToken;
         const code = searchParams.get("code");
         const error = searchParams.get("error");
 
@@ -26,19 +30,38 @@ function CallbackContent() {
             return;
         }
 
-        if (code) {
-            // Simulate API call to exchange code for tokens
-            // In a real app, this would be a POST to /api/auth/v1/callback
+        if (token) {
+            localStorage.setItem("access_token", token);
+            // Clear fragment/query token from visible URL.
+            window.history.replaceState({}, "", "/callback");
+            setStatus("success");
+            setMessage("Session established. Redirecting to your dashboard...");
             setTimeout(() => {
-                setStatus("success");
-                setMessage("Account connected successfully!");
+                router.push("/dashboard");
+            }, 1200);
+            return;
+        }
 
-                gsap.to(".status-icon", { scale: 1.2, duration: 0.4, yoyo: true, repeat: 1 });
+        if (code) {
+            // Cookie-based fallback path: verify session then continue.
+            const verifySession = async () => {
+                try {
+                    const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://sortmail-production.up.railway.app";
+                    const res = await fetch(`${apiBase}/api/auth/me`, { credentials: "include" });
+                    if (!res.ok) throw new Error("session check failed");
+                    setStatus("success");
+                    setMessage("Account connected successfully!");
+                    gsap.to(".status-icon", { scale: 1.2, duration: 0.4, yoyo: true, repeat: 1 });
+                    setTimeout(() => {
+                        router.push("/dashboard");
+                    }, 1200);
+                } catch {
+                    setStatus("error");
+                    setMessage("Session could not be restored. Please sign in again.");
+                }
+            };
 
-                setTimeout(() => {
-                    router.push("/onboarding");
-                }, 1800);
-            }, 2500);
+            verifySession();
         } else {
             setStatus("error");
             setMessage("Invalid callback parameters.");
@@ -95,7 +118,7 @@ function CallbackContent() {
                 {status === "success" && (
                     <div className="flex items-center justify-center gap-2 text-xs text-muted font-mono animate-pulse">
                         <div className="w-1 h-1 rounded-full bg-success" />
-                        REDIRECTING TO ONBOARDING
+                        REDIRECTING TO DASHBOARD
                     </div>
                 )}
             </Card>

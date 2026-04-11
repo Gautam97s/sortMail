@@ -3,10 +3,15 @@ const API_URL = RAW_URL.replace(/^http:\/\/(?!localhost)/, 'https://');
 
 export const api = {
     async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
         const response = await fetch(`${API_URL}${endpoint}`, {
             ...options,
             credentials: 'include',
-            headers: { 'Content-Type': 'application/json', ...(options.headers ?? {}) },
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                ...(options.headers ?? {}),
+            },
         });
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
         return response.json();

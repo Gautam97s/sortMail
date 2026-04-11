@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
+import { useNotificationUnreadCount } from "@/hooks/useNotifications";
 
 interface TopNavigationBarProps {
     onMobileSidebarOpen?: () => void;
@@ -35,6 +36,7 @@ export default function TopNavigationBar({
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const { data: user } = useUser();
+    const { data: notificationCount } = useNotificationUnreadCount();
 
     useEffect(() => {
         const urlQuery = searchParams.get("q") || "";
@@ -103,7 +105,9 @@ export default function TopNavigationBar({
             <div className="flex items-center gap-1 ml-2.5 shrink-0">
                 <Link href="/notifications" className="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors relative" aria-label="Notifications">
                     <MaterialSymbol icon="notifications" className="text-xl" />
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full ring-2 ring-surface-container-lowest"></span>
+                    {(notificationCount?.unread || 0) > 0 && (
+                        <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full ring-2 ring-surface-container-lowest"></span>
+                    )}
                 </Link>
                 
                 <Link href="/settings" className="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors" aria-label="Settings">

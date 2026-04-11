@@ -8,6 +8,7 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import RedirectResponse
@@ -102,9 +103,9 @@ async def google_callback(
     if not state_json:
         logger.warning(f"⚠️ OAuth State Missing/Expired for key. Possible double-request.")
         from app.config import settings
-        # Gracefully handle double-request by forwarding to frontend. 
-        # If the first request worked, they'll have a cookie anyway.
-        return RedirectResponse(url=f"{settings.FRONTEND_URL}/dashboard")
+        # Gracefully handle double-request by forwarding to frontend callback.
+        # If the first request worked, session restoration will succeed there.
+        return RedirectResponse(url=f"{settings.FRONTEND_URL}/callback")
         
     state_data = json.loads(state_json)
     
@@ -216,8 +217,11 @@ async def google_callback(
     
     # 9. Redirect
     # Option 1: HttpOnly Cookie (Best Security)
+    # Option 2: Access token in URL fragment for browsers that block third-party cookies.
+    # Fragment is not sent to the server and is consumed client-side on /callback.
     from app.config import settings
-    redirect_url = f"{settings.FRONTEND_URL}/dashboard"
+    token_fragment = quote(token_pair.access_token, safe="")
+    redirect_url = f"{settings.FRONTEND_URL}/callback#access_token={token_fragment}"
     
     response = RedirectResponse(url=redirect_url)
     

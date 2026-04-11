@@ -108,6 +108,13 @@ export function useRealtimeEvents() {
             }
         });
 
+        // notification_updated: read/dismiss actions from this or other sessions
+        es.addEventListener('notification_updated', () => {
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+            queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+            queryClient.invalidateQueries({ queryKey: ['nav-counts'] });
+        });
+
         es.onerror = () => {
             // EventSource auto-reconnects — no need to handle manually
         };

@@ -348,6 +348,11 @@ async def mark_notification_read(
     )
     await db.execute(stmt)
     await db.commit()
+    try:
+        from api.routes.events import publish_event
+        await publish_event(str(current_user.id), {"type": "notification_updated", "id": notification_id})
+    except Exception:
+        pass
     return {"success": True}
 
 
@@ -367,6 +372,11 @@ async def mark_all_notifications_read(
     )
     await db.execute(stmt)
     await db.commit()
+    try:
+        from api.routes.events import publish_event
+        await publish_event(str(current_user.id), {"type": "notification_updated", "all": True})
+    except Exception:
+        pass
     return {"success": True}
 
 
@@ -387,6 +397,11 @@ async def dismiss_notification(
     )
     await db.execute(stmt)
     await db.commit()
+    try:
+        from api.routes.events import publish_event
+        await publish_event(str(current_user.id), {"type": "notification_updated", "id": notification_id, "dismissed": True})
+    except Exception:
+        pass
     return {"success": True}
 
 

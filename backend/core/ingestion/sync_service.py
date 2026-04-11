@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import datetime, timezone
 import logging
+import asyncio
 
 from contracts import EmailThreadV1
 from models.thread import Thread
@@ -360,7 +361,6 @@ class IngestionService:
             logger.warning(f"Reply detection failed for thread {thread.id}: {e}")
 
         # Trigger AI intelligence pipeline in background (non-blocking)
-        import asyncio
         import logging
         
         try:

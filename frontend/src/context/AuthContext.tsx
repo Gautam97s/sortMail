@@ -38,9 +38,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             console.log("🔍 Checking Session...");
             const url = getApiUrl("/api/auth/me");
+            const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
             const res = await fetch(url, {
                 method: "GET",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 credentials: "include"
             });
 
@@ -75,6 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const logout = async () => {
         try {
             await api.post('/api/auth/logout');
+            if (typeof window !== "undefined") {
+                localStorage.removeItem("access_token");
+            }
             setUser(null);
             router.push('/login');
         } catch (error) {

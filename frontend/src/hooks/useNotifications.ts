@@ -14,6 +14,7 @@ export function useNotificationUnreadCount() {
         },
         staleTime: 1000 * 30,
         refetchOnWindowFocus: true,
+        refetchInterval: 15000,
         retry: 1,
     });
 }

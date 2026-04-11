@@ -10,6 +10,17 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+    if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            config.headers = config.headers ?? {};
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+    }
+    return config;
+});
+
+api.interceptors.request.use((config) => {
     console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
     return config;
 });
