@@ -251,10 +251,12 @@ def setup_secure_logging(environment: str = "production", debug: bool = False):
         environment: The environment (development, staging, production).
         debug: Whether debug logging is enabled.
     """
-    # Determine log level
-    if debug or environment.lower() in ("development", "dev"):
+    env = (environment or "production").lower().strip()
+
+    # Determine app/root log level
+    if debug or env in ("development", "dev"):
         log_level = logging.DEBUG
-    elif environment.lower() in ("staging", "stage"):
+    elif env in ("staging", "stage"):
         log_level = logging.INFO
     else:  # production
         log_level = logging.WARNING
@@ -285,11 +287,28 @@ def setup_secure_logging(environment: str = "production", debug: bool = False):
     # Add handler to root logger
     root_logger.addHandler(console_handler)
     
-    # Suppress verbose third-party loggers in production
-    if environment.lower() == "production":
-        logging.getLogger("urllib3").setLevel(logging.WARNING)
-        logging.getLogger("botocore").setLevel(logging.WARNING)
-        logging.getLogger("boto3").setLevel(logging.WARNING)
-        logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
-        logging.getLogger("chromadb").setLevel(logging.WARNING)
-        logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    # Suppress verbose third-party loggers in production.
+    # Keep errors visible while preventing startup/query/network debug noise.
+    if env == "production":
+        warning_level_loggers = (
+            "urllib3",
+            "botocore",
+            "boto3",
+            "uvicorn.error",
+        )
+        error_level_loggers = (
+            "sqlalchemy",
+            "sqlalchemy.engine",
+            "sqlalchemy.engine.Engine",
+            "sqlalchemy.pool",
+            "httpx",
+            "httpcore",
+            "chromadb",
+            "uvicorn.access",
+        )
+
+        for logger_name in warning_level_loggers:
+            logging.getLogger(logger_name).setLevel(logging.WARNING)
+
+        for logger_name in error_level_loggers:
+            logging.getLogger(logger_name).setLevel(logging.ERROR)

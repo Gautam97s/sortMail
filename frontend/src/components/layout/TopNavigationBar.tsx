@@ -64,10 +64,10 @@ export default function TopNavigationBar({
                 </button>
 
                 <div className="hidden xl:flex flex-col min-w-0 mr-1.5">
-                    <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-outline">SortMail AI</span>
+                    <span className="text-xs font-bold uppercase tracking-[0.18em] text-outline">SortMail AI</span>
                     <div className="flex items-center gap-3 min-w-0">
-                        {title && <span className="font-headline text-xs font-bold text-on-surface truncate">{title}</span>}
-                        {subtitle && <span className="text-[11px] font-medium text-on-surface-variant truncate">{subtitle}</span>}
+                        {title && <span className="font-headline text-sm font-bold text-on-surface truncate">{title}</span>}
+                        {subtitle && <span className="text-xs font-medium text-on-surface-variant truncate">{subtitle}</span>}
                     </div>
                 </div>
 
@@ -116,8 +116,8 @@ export default function TopNavigationBar({
 
                 <div className="flex items-center gap-2 ml-1 pl-2.5 border-l border-outline-variant/20">
                     <div className="hidden md:flex flex-col items-end leading-tight mr-1">
-                        <span className="text-xs font-bold text-on-surface">{user?.name || 'Gautam'}</span>
-                        <span className="text-[9px] uppercase tracking-wider text-outline font-bold">{user?.plan || 'Pro'} Plan</span>
+                        <span className="text-sm font-bold text-on-surface">{user?.name || 'Gautam'}</span>
+                        <span className="text-xs uppercase tracking-[0.12em] text-outline font-semibold">{user?.plan || 'Pro'} Plan</span>
                     </div>
                     <div className="w-8 h-8 rounded-xl overflow-hidden ring-2 ring-outline-variant/15 border border-white cursor-pointer hover:ring-primary/30 transition-all bg-primary-fixed flex items-center justify-center">
                         {user?.avatar ? (

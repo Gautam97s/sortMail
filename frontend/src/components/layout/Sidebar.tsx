@@ -64,7 +64,7 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
                             <span className="font-headline font-bold text-[15px] leading-tight tracking-tight text-on-surface truncate">
                                 SortMail AI
                             </span>
-                            <span className="text-[9px] uppercase tracking-[0.22em] text-outline font-bold truncate">
+                            <span className="text-xs uppercase tracking-[0.16em] text-outline font-semibold truncate">
                                 Intelligent Canvas
                             </span>
                         </div>
@@ -118,11 +118,11 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
                             />
                             {!collapsed && (
                                 <>
-                                    <span className={`flex-1 text-[11px] ${isActive ? 'font-bold' : 'font-semibold'}`}>
+                                    <span className={`flex-1 text-sm ${isActive ? 'font-bold' : 'font-semibold'}`}>
                                         {item.label}
                                     </span>
                                     {item.badge && item.badge > 0 && (
-                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isActive ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isActive ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
                                             {item.badge}
                                         </span>
                                     )}
@@ -135,7 +135,7 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
                 {/* Utility Section */}
                 {!collapsed && (
                     <div className="mt-4 pt-2.5 border-t border-outline-variant/15 px-2.5">
-                        <div className="text-[9px] font-bold text-outline uppercase tracking-[0.22em] mb-3">
+                        <div className="text-xs font-semibold text-outline uppercase tracking-[0.16em] mb-3">
                             Utilities
                         </div>
                         <div className="space-y-1">
@@ -148,7 +148,7 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
                                     <MaterialSymbol icon={item.icon} className="text-[20px] group-hover:text-primary" />
                                     <span className="text-xs font-semibold flex-1">{item.label}</span>
                                     {'badge' in item && item.badge && item.badge > 0 && (
-                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant">
+                                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant">
                                             {item.badge}
                                         </span>
                                     )}
@@ -163,11 +163,11 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
             <div className="p-2.5 mt-auto border-t border-outline-variant/15 flex flex-col gap-1.5">
                 {!collapsed && (
                     <>
-                        <div className="flex items-center gap-2 px-2.5 py-1 text-[9px] font-bold text-primary tracking-[0.2em] uppercase bg-primary-fixed/30 rounded-full w-fit">
+                        <div className="flex items-center gap-2 px-2.5 py-1 text-xs font-semibold text-primary tracking-[0.16em] uppercase bg-primary-fixed/30 rounded-full w-fit">
                             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
                             AI Synchronized
                         </div>
-                        <div className="text-[9px] font-mono text-outline uppercase tracking-wider px-1">
+                        <div className="text-xs font-mono text-outline uppercase tracking-[0.12em] px-1">
                             v{RELEASE.version} · {RELEASE.channel}
                         </div>
                     </>

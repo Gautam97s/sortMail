@@ -28,9 +28,9 @@ elif original_url and original_url.startswith("postgresql://"):
 # Debug Logging (Mask password)
 try:
     u = make_url(original_url)
-    print(f"Connecting to DB Host: {u.host}:{u.port} | DB: {u.database}")
+    logger.info("Connecting to DB Host: %s:%s | DB: %s", u.host, u.port, u.database)
 except Exception as e:
-    print(f"⚠️ Could not parse DB URL for logging: {e}")
+    logger.warning("Could not parse DB URL for logging: %s", e)
 
 # Use make_url to safely manipulate the URL
 db_url_obj = make_url(original_url)
@@ -48,7 +48,7 @@ is_production = (
 )
 
 if is_production:
-    print("Configuring database for PRODUCTION/CLOUD environment")
+    logger.info("Configuring database for PRODUCTION/CLOUD environment")
     
     # 1. SSL Context (Necessary for Supabase/Railway)
     # We use a custom context to avoid "certificate verify failed" or hostname mismatches
@@ -61,15 +61,15 @@ if is_production:
     # If using port 6543, we MUST disable prepared statements.
     # If using port 5432 (Direct), we can keep them enabled for better performance.
     if db_url_obj.port == 6543:
-        print("Detected PgBouncer (Port 6543). Disabling prepared statements.")
+        logger.info("Detected PgBouncer (Port 6543). Disabling prepared statements.")
         connect_args["statement_cache_size"] = 0
     else:
-        print(f"Detected Direct Connection (Port {db_url_obj.port}). Prepared statements enabled.")
+        logger.info("Detected Direct Connection (Port %s). Prepared statements enabled.", db_url_obj.port)
 
     # 3. Strip 'sslmode' query param to avoid conflicts with our manual SSL context
     query_params = dict(db_url_obj.query)
     if "sslmode" in query_params:
-        print("Removing 'sslmode' query parameter (handled manually)")
+        logger.info("Removing 'sslmode' query parameter (handled manually)")
         del query_params["sslmode"]
     
     # Ensure no conflicting args in query if we set them in connect_args
@@ -79,15 +79,17 @@ if is_production:
     db_url_obj = db_url_obj._replace(query=query_params)
     
 else:
-    print("Configuring database for LOCAL environment")
+    logger.info("Configuring database for LOCAL environment")
 
 logger.debug(f"Connection configured with SSL (production)")
 
-# Create async engine
+# Never echo SQL in production even if DEBUG is accidentally set in env.
+sql_echo_enabled = bool(settings.DEBUG) and not is_production
+
 # Create async engine
 engine = create_async_engine(
     db_url_obj,
-    echo=settings.DEBUG,
+    echo=sql_echo_enabled,
     future=True,
     connect_args=connect_args,
     pool_pre_ping=True if not is_production else False, # Pre-ping might attempt prepared statements
