@@ -412,4 +412,3 @@ export default function FollowupsPage() {
         </AppShell>
     );
 }
-*** End Patch
