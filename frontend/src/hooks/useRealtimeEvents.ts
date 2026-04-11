@@ -14,6 +14,30 @@ import { useQueryClient } from '@tanstack/react-query';
 const RAW = process.env.NEXT_PUBLIC_API_URL || 'https://sortmail-production.up.railway.app';
 const API_BASE = RAW.replace(/^http:\/\/(?!localhost)/, 'https://');
 
+type NotificationPrefs = {
+    push_enabled?: boolean;
+    quiet_hours_start?: string | null;
+    quiet_hours_end?: string | null;
+};
+
+function inQuietHours(start?: string | null, end?: string | null): boolean {
+    if (!start || !end) return false;
+    const toMinutes = (value: string) => {
+        const [h, m] = value.split(':').map(Number);
+        if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+        return h * 60 + m;
+    };
+    const startMin = toMinutes(start);
+    const endMin = toMinutes(end);
+    if (startMin === null || endMin === null) return false;
+
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    if (startMin === endMin) return true;
+    if (startMin < endMin) return nowMin >= startMin && nowMin < endMin;
+    return nowMin >= startMin || nowMin < endMin;
+}
+
 export function useRealtimeEvents() {
     const queryClient = useQueryClient();
     const esRef = useRef<EventSource | null>(null);
@@ -64,8 +88,15 @@ export function useRealtimeEvents() {
                 const data = JSON.parse(e.data || '{}');
                 queryClient.invalidateQueries({ queryKey: ['notifications'] });
                 queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+                queryClient.invalidateQueries({ queryKey: ['notification-preferences'] });
+                queryClient.invalidateQueries({ queryKey: ['notification-prefs'] });
 
-                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                const prefs =
+                    (queryClient.getQueryData(['notification-prefs']) as NotificationPrefs | undefined) ||
+                    (queryClient.getQueryData(['notification-preferences']) as NotificationPrefs | undefined);
+                const canPush = (prefs?.push_enabled ?? false) && !inQuietHours(prefs?.quiet_hours_start, prefs?.quiet_hours_end);
+
+                if (canPush && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
                     const count = data?.count ?? 1;
                     new Notification('SortMail notifications', {
                         body: `${count} new notification${count > 1 ? 's' : ''} available.`,

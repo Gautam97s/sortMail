@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCheck, X, Mail, CheckSquare, Sparkles, Clock } from "lucide-react";
+import { Bell, CheckCheck, X, Mail, CheckSquare, Sparkles, Clock, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -84,6 +84,7 @@ export default function NotificationsPage() {
             case "TASK_DUE": return <CheckSquare className="w-4 h-4 text-amber-500" />;
             case "FOLLOW_UP_REMINDER": return <Clock className="w-4 h-4 text-blue-500" />;
             case "CREDIT_LOW": return <Sparkles className="w-4 h-4 text-purple-500" />;
+            case "ACCOUNT_UPDATE": return <ShieldAlert className="w-4 h-4 text-orange-500" />;
             default: return <Bell className="w-4 h-4 text-muted-foreground" />;
         }
     };

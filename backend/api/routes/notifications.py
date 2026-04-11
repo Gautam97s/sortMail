@@ -20,8 +20,27 @@ from models.email import Email
 from models.contact import Contact
 from models.task import Task, TaskStatus
 from models.credits import UserCredits
+from models.connected_account import ConnectedAccount, AccountStatus, SyncStatus
 
 router = APIRouter()
+
+
+DEFAULT_NOTIFICATION_CHANNELS = {
+    "email_urgent": True,
+    "follow_up_reminder": True,
+    "task_due": True,
+    "credit_low": True,
+    "account_update": True,
+}
+
+
+def _channel_enabled(prefs: Optional[NotificationPreferences], key: str) -> bool:
+    if not prefs:
+        return True
+    channels = prefs.channels or {}
+    if key not in channels:
+        return True
+    return bool(channels.get(key))
 
 
 async def _synthesize_notifications_for_user(current_user: User, db: AsyncSession) -> int:
@@ -80,6 +99,8 @@ async def _synthesize_notifications_for_user(current_user: User, db: AsyncSessio
     ).scalars().all()
 
     for t in urgent_threads:
+        if not _channel_enabled(prefs, "email_urgent"):
+            break
         key = (NotificationType.EMAIL_URGENT.value, "thread", t.id)
         if key in existing_keys:
             continue
@@ -115,6 +136,8 @@ async def _synthesize_notifications_for_user(current_user: User, db: AsyncSessio
     ).scalars().all()
 
     for task in due_tasks:
+        if not _channel_enabled(prefs, "task_due"):
+            break
         key = (NotificationType.TASK_DUE.value, "task", task.id)
         if key in existing_keys:
             continue
@@ -150,6 +173,8 @@ async def _synthesize_notifications_for_user(current_user: User, db: AsyncSessio
     ).scalars().all()
 
     for t in waiting_threads:
+        if not _channel_enabled(prefs, "follow_up_reminder"):
+            break
         key = (NotificationType.FOLLOW_UP_REMINDER.value, "thread", t.id)
         if key in existing_keys:
             continue
@@ -174,7 +199,7 @@ async def _synthesize_notifications_for_user(current_user: User, db: AsyncSessio
             select(UserCredits).where(UserCredits.user_id == current_user.id)
         )
     ).scalar_one_or_none()
-    if credits and int(credits.credits_balance or 0) <= 10:
+    if credits and int(credits.credits_balance or 0) <= 10 and _channel_enabled(prefs, "credit_low"):
         key = (NotificationType.CREDIT_LOW.value, "user", current_user.id)
         if key not in existing_keys:
             db.add(
@@ -187,6 +212,51 @@ async def _synthesize_notifications_for_user(current_user: User, db: AsyncSessio
                     action_text="Manage credits",
                     related_entity_type="user",
                     related_entity_id=current_user.id,
+                    priority=NotificationPriority.HIGH,
+                    created_at=now,
+                )
+            )
+            created += 1
+
+    if _channel_enabled(prefs, "account_update"):
+        account_issues = (
+            await db.execute(
+                select(ConnectedAccount)
+                .where(
+                    ConnectedAccount.user_id == current_user.id,
+                    ConnectedAccount.deleted_at.is_(None),
+                    (
+                        ConnectedAccount.status.in_([
+                            AccountStatus.ERROR,
+                            AccountStatus.EXPIRED,
+                            AccountStatus.REVOKED,
+                            AccountStatus.DISCONNECTED,
+                        ])
+                        | ConnectedAccount.sync_status.in_([SyncStatus.FAILED, SyncStatus.REVOKED])
+                        | ConnectedAccount.sync_error.is_not(None)
+                    ),
+                )
+                .order_by(desc(ConnectedAccount.updated_at))
+                .limit(5)
+            )
+        ).scalars().all()
+
+        for account in account_issues:
+            key = (NotificationType.ACCOUNT_UPDATE.value, "connected_account", account.id)
+            if key in existing_keys:
+                continue
+            provider = str(account.provider.value if hasattr(account.provider, "value") else account.provider)
+            email = account.provider_email or "your account"
+            db.add(
+                Notification(
+                    user_id=current_user.id,
+                    type=NotificationType.ACCOUNT_UPDATE,
+                    title=f"{provider} account needs attention",
+                    body=f"{email} needs reconnection or sync troubleshooting.",
+                    action_url="/settings/accounts",
+                    action_text="Manage account",
+                    related_entity_type="connected_account",
+                    related_entity_id=account.id,
                     priority=NotificationPriority.HIGH,
                     created_at=now,
                 )
@@ -361,6 +431,7 @@ async def get_notification_preferences(
         prefs = NotificationPreferences(
             id=str(_uuid.uuid4()),
             user_id=current_user.id,
+            channels=DEFAULT_NOTIFICATION_CHANNELS,
         )
         db.add(prefs)
         try:
@@ -376,7 +447,7 @@ async def get_notification_preferences(
         email_enabled=prefs.email_enabled,
         push_enabled=prefs.push_enabled,
         in_app_enabled=prefs.in_app_enabled,
-        channels=prefs.channels or {},
+        channels={**DEFAULT_NOTIFICATION_CHANNELS, **(prefs.channels or {})},
         quiet_hours_start=prefs.quiet_hours_start.strftime("%H:%M") if prefs.quiet_hours_start else None,
         quiet_hours_end=prefs.quiet_hours_end.strftime("%H:%M") if prefs.quiet_hours_end else None,
         quiet_hours_timezone=prefs.quiet_hours_timezone,
@@ -401,6 +472,7 @@ async def update_notification_preferences(
         prefs = NotificationPreferences(
             id=str(_uuid.uuid4()),
             user_id=current_user.id,
+            channels=DEFAULT_NOTIFICATION_CHANNELS,
         )
         db.add(prefs)
 
@@ -411,7 +483,7 @@ async def update_notification_preferences(
     if body.in_app_enabled is not None:
         prefs.in_app_enabled = body.in_app_enabled
     if body.channels is not None:
-        prefs.channels = body.channels
+        prefs.channels = {**DEFAULT_NOTIFICATION_CHANNELS, **body.channels}
     try:
         if body.quiet_hours_start is not None:
             h, m = map(int, body.quiet_hours_start.split(":"))
