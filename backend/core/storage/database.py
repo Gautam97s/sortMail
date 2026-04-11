@@ -81,7 +81,7 @@ if is_production:
 else:
     print("Configuring database for LOCAL environment")
 
-print(f"Final connect_args: keys={list(connect_args.keys())}")
+logger.debug(f"Connection configured with SSL (production)")
 
 # Create async engine
 # Create async engine

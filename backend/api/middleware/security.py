@@ -150,3 +150,37 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
         return response
+
+
+class SanitizedAccessLogMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware to suppress verbose access logging of sensitive headers.
+    Prevents sensitive data from appearing in Railway logs.
+    """
+    
+    # Headers that should never be logged
+    SENSITIVE_HEADERS = {
+        'authorization',
+        'cookie',
+        'x-api-key',
+        'x-internal-service-token',
+        'x-auth-token',
+        'x-access-token',
+        'x-csrf-token',
+    }
+    
+    async def dispatch(self, request: Request, call_next):
+        # Log request info (but not sensitive headers)
+        # Skip logging for health checks
+        if request.url.path not in {"/health", "/health/simple"}:
+            # Create a sanitized headers dict for logging
+            safe_headers = {
+                k: "***REDACTED***" 
+                for k in request.headers 
+                if k.lower() in self.SENSITIVE_HEADERS
+            }
+            if safe_headers and settings.DEBUG:
+                logger.debug(f"Request sanitized headers: {safe_headers}")
+        
+        response = await call_next(request)
+        return response

@@ -6,7 +6,10 @@ Handles AES-256-GCM encryption for sensitive data at rest (OAuth tokens).
 
 import os
 import base64
+import logging
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+logger = logging.getLogger(__name__)
 
 class DataEncryption:
     _cipher: AESGCM = None
@@ -23,9 +26,9 @@ class DataEncryption:
                 # Retrieve from secrets manager or fallback for dev
                 if settings.ENVIRONMENT == "production":
                     # In production, we should ideally fail, but for now we warn loudly to avoid boot loops if key is missing
-                    print("🚨 CRITICAL WARNING: ENCRYPTION_KEY missing in PRODUCTION. Generating temporary key (DATA LOSS ON RESTART).")
+                    logger.warning("CRITICAL WARNING: ENCRYPTION_KEY missing in PRODUCTION. Generating temporary key (DATA LOSS ON RESTART).")
                 else:
-                    print("⚠️ WARNING: No ENCRYPTION_KEY found (Dev). Generating temporary key.")
+                    logger.warning("No ENCRYPTION_KEY found (Dev). Generating temporary key.")
                     
                 key = AESGCM.generate_key(bit_length=256)
             else:

@@ -33,14 +33,13 @@ async def get_current_user(
     
     # 1. Try Bearer Header (Best for API Clients)
     # 2. Try Cookie (Best for Browser/Frontend)
-    print(f"🔑 Verifying Credentials. Header: {token is not None}, Cookie: {access_token is not None}")
-    if access_token:
-        print(f"🍪 Cookie Content (First 10 chars): {access_token[:10]}...")
-
+    logger = logging.getLogger(__name__)
+    logger.debug(f"Auth attempt: Header={token is not None}, Cookie={access_token is not None}")
+    
     token_to_validate = token or access_token
     
     if not token_to_validate:
-        print("❌ No token or cookie found. Raising 401.")
+        logger.debug("No token or cookie found. Raising 401.")
         raise credentials_exception
     
     try:

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # App
     VERSION: str = "0.1.0-beta"
     ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    DEBUG: bool = False  # SECURITY: Disabled by default in production
     DISABLE_API_DOCS_IN_PRODUCTION: bool = True
     INTERNAL_SERVICE_TOKEN: str = ""
     

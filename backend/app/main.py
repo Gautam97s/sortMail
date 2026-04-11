@@ -15,12 +15,13 @@ from api.dependencies import get_current_user
 from models.user import User
 
 from app.config import settings
+from core.logging.sanitizer import setup_secure_logging
 import logging
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+# Configure secure logging with sanitization
+setup_secure_logging(
+    environment=settings.ENVIRONMENT,
+    debug=settings.DEBUG
 )
 logger = logging.getLogger("api")
 
@@ -29,8 +30,8 @@ logger = logging.getLogger("api")
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     # Startup
-    print(f"🚀 Starting SortMail API v{settings.VERSION}")
-    print(f"📧 Environment: {settings.ENVIRONMENT}")
+    logger.info(f"Starting SortMail API v{settings.VERSION}")
+    logger.info(f"Environment: {settings.ENVIRONMENT}")
     from core.storage.database import init_db
     from core.storage.vector_store import vector_store
     await init_db()
@@ -59,7 +60,7 @@ async def lifespan(app: FastAPI):
         
     yield
     # Shutdown
-    print("👋 Shutting down SortMail API")
+    logger.info("Shutting down SortMail API")
 
 
 app = FastAPI(
@@ -104,9 +105,11 @@ from api.middleware.security import (
     OriginServiceGateMiddleware,
     SecurityHeadersMiddleware, 
     RateLimitMiddleware,
-    RequestIDMiddleware
+    RequestIDMiddleware,
+    SanitizedAccessLogMiddleware,
 )
 
+app.add_middleware(SanitizedAccessLogMiddleware)
 app.add_middleware(OriginServiceGateMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitMiddleware)
@@ -123,9 +126,16 @@ from fastapi.responses import JSONResponse
 async def global_exception_handler(request: Request, exc: Exception):
     origin = request.headers.get("origin", "")
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    
+    # Production: Hide internal errors; Development: Show details
+    if settings.ENVIRONMENT.lower() == "production":
+        error_detail = "Internal server error"
+    else:
+        error_detail = str(exc)
+    
     return JSONResponse(
         status_code=500,
-        content={"detail": str(exc)},
+        content={"detail": error_detail},
         headers={
             "Access-Control-Allow-Origin": origin or "*",
             "Access-Control-Allow-Credentials": "true",
