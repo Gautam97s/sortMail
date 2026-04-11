@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
 
 interface TopNavigationBarProps {
@@ -30,11 +31,24 @@ export default function TopNavigationBar({
     subtitle,
 }: TopNavigationBarProps) {
     const [search, setSearch] = useState("");
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { data: user } = useUser();
+
+    useEffect(() => {
+        const urlQuery = searchParams.get("q") || "";
+        setSearch(urlQuery);
+    }, [pathname, searchParams]);
 
     useEffect(() => {
         onSearchChange?.(search);
     }, [search, onSearchChange]);
+
+    const openSearchPage = () => {
+        const query = search.trim();
+        router.push(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
+    };
 
     return (
         <header className="h-tb border-b border-outline-variant/10 flex items-center justify-between px-3 md:px-4 shrink-0 bg-surface-container-lowest w-full sticky top-0 z-40">
@@ -65,21 +79,28 @@ export default function TopNavigationBar({
                         placeholder={searchPlaceholder}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                if (onSearchChange && pathname !== "/search") {
+                                    return;
+                                }
+                                openSearchPage();
+                            }
+                        }}
                         className="w-full h-9 pl-9 pr-10 bg-surface-container-low border border-outline-variant/20 focus:bg-white focus:ring-2 focus:ring-primary-fixed rounded-full text-xs transition-all outline-none text-on-surface placeholder:text-outline font-medium shadow-sm"
                     />
-                    <button className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-surface-container rounded-full transition-colors" aria-label="Search options">
-                        <MaterialSymbol icon="tune" className="text-outline text-lg" />
+                    <button
+                        onClick={openSearchPage}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 hover:bg-surface-container rounded-full transition-colors"
+                        aria-label="Open search"
+                    >
+                        <MaterialSymbol icon="travel_explore" className="text-outline text-lg" />
                     </button>
                 </div>
             </div>
 
             {/* Right Actions */}
             <div className="flex items-center gap-1 ml-2.5 shrink-0">
-                <Link href="/search" className="hidden lg:flex items-center gap-2 px-2.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors">
-                    <MaterialSymbol icon="travel_explore" className="text-lg" />
-                    Explore
-                </Link>
-
                 <Link href="/notifications" className="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors relative" aria-label="Notifications">
                     <MaterialSymbol icon="notifications" className="text-xl" />
                     <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full ring-2 ring-surface-container-lowest"></span>

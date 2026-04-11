@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Sidebar from "./Sidebar";
 import TopNavigationBar from "./TopNavigationBar";
 
@@ -9,13 +9,20 @@ interface AppShellProps {
     title?: string;
     subtitle?: string;
     onSearchChange?: (value: string) => void;
+    hideSearch?: boolean;
+}
+
+// Fallback for TopNavigationBar while loading
+function TopNavigationBarFallback() {
+    return <div className="h-16 bg-surface-container-low border-b border-outline/12" />;
 }
 
 export default function AppShell({ 
     children, 
     title, 
     subtitle, 
-    onSearchChange
+    onSearchChange,
+    hideSearch = false,
 }: AppShellProps) {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -36,13 +43,15 @@ export default function AppShell({
             />
 
             <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full min-w-0 bg-surface-container-lowest">
-                <TopNavigationBar
-                    onMobileSidebarOpen={() => setMobileSidebarOpen(true)}
-                    onSearchChange={onSearchChange}
-                    searchPlaceholder={title || "Search your intelligent workspace..."}
-                    title={title}
-                    subtitle={subtitle}
-                />
+                <Suspense fallback={<TopNavigationBarFallback />}>
+                    <TopNavigationBar
+                        onMobileSidebarOpen={() => setMobileSidebarOpen(true)}
+                        onSearchChange={onSearchChange}
+                        searchPlaceholder={hideSearch ? "Use the search page for discovery" : (title || "Search your intelligent workspace...")}
+                        title={title}
+                        subtitle={subtitle}
+                    />
+                </Suspense>
 
                 <div className="flex-1 overflow-auto w-full transition-all duration-300 custom-scrollbar">
                     <div className="w-full max-w-full min-h-full">

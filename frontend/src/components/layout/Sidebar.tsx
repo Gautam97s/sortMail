@@ -38,7 +38,6 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
     ];
 
     const utilityItems = [
-        { label: "Search", href: "/search", icon: "search", enabled: isFeatureEnabled('semantic_search', user) },
         { label: "Notifications", href: "/notifications", icon: "notifications", enabled: isFeatureEnabled('notifications_center', user) },
         { label: "Settings", href: "/settings", icon: "settings" },
     ];

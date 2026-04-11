@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api, endpoints } from "@/lib/api";
 import AppShell from "@/components/layout/AppShell";
@@ -88,15 +89,9 @@ function ResultCard({ result }: { result: SearchResult }) {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-export default function SearchPage() {
-    const [input, setInput] = useState("");
-    const [q, setQ] = useState("");
-
-    // Debounce: fire query 350ms after typing stops
-    React.useEffect(() => {
-        const t = setTimeout(() => setQ(input.trim()), 350);
-        return () => clearTimeout(t);
-    }, [input]);
+function SearchPageContent() {
+    const searchParams = useSearchParams();
+    const q = (searchParams.get("q") || "").trim();
 
     const { data, isLoading } = useUniversalSearch(q);
 
@@ -109,47 +104,26 @@ export default function SearchPage() {
     const noResults = q.length >= 2 && !isLoading && !hasResults;
 
     return (
-        <AppShell title="Search Intelligence" subtitle="Universal Discovery Engine">
+        <AppShell title="Search Intelligence" subtitle="Universal Discovery Engine" hideSearch>
             <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-12">
                 <section className="relative overflow-hidden rounded-[32px] bg-white border border-outline-variant/10 p-6 md:p-8 tonal-shadow">
                     <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-primary-fixed/25 blur-3xl -mr-12 -mt-12" />
+                    <div className="absolute left-0 bottom-0 h-40 w-40 rounded-full bg-tertiary-fixed/15 blur-3xl -ml-10 -mb-10" />
                     <div className="relative space-y-6">
                         <div className="space-y-2 max-w-2xl">
                             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-fixed/25 text-primary text-[10px] font-bold uppercase tracking-[0.24em] w-fit">
                                 <MaterialSymbol icon="travel_explore" className="text-sm" />
                                 Search Intelligence
                             </div>
-                            <h1 className="font-headline text-3xl md:text-4xl font-bold text-on-surface tracking-tight">Find threads, people, and actions faster</h1>
+                            <h1 className="font-headline text-3xl md:text-4xl font-bold text-on-surface tracking-tight">
+                                {q ? `Results for "${q}"` : "Find threads, people, and actions faster"}
+                            </h1>
                             <p className="text-on-surface-variant max-w-2xl">
-                                Use the search field as a command bar, then narrow the result set with the facets below.
+                                {q
+                                    ? "Search runs from the top bar now, so this page stays focused on results."
+                                    : "Use the top bar search to query across threads, contacts, and tasks."
+                                }
                             </p>
-                        </div>
-
-                        {/* Discovery Command Bar */}
-                        <div className="relative group">
-                            <div className="absolute inset-0 bg-primary-fixed/30 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity rounded-3xl" />
-                            <div className="relative">
-                                <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center gap-3">
-                                    <MaterialSymbol icon="search" className="text-2xl text-outline group-focus-within:text-primary transition-colors" />
-                                    <div className="h-4 w-px bg-outline-variant/30 hidden md:block" />
-                                </div>
-                                <input
-                                    autoFocus
-                                    type="text"
-                                    placeholder="Interrogate emails, entities, and actions..."
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    className="w-full h-16 md:h-20 pl-16 pr-16 bg-white border border-outline-variant/15 focus:ring-2 focus:ring-primary-fixed rounded-3xl text-lg md:text-xl font-headline font-medium transition-all shadow-xl shadow-black/5 placeholder:text-outline-variant placeholder:font-normal"
-                                />
-                                {input && (
-                                    <button
-                                        onClick={() => { setInput(""); setQ(""); }}
-                                        className="absolute right-5 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center bg-surface-container rounded-2xl text-outline hover:text-error transition-all"
-                                    >
-                                        <MaterialSymbol icon="close" className="text-xl" />
-                                    </button>
-                                )}
-                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -214,6 +188,17 @@ export default function SearchPage() {
                             <h2 className="text-xl font-headline font-bold text-on-surface">No Correlation Found</h2>
                             <p className="text-sm text-on-surface-variant font-medium">No results for &quot;{q}&quot; in the current context.</p>
                         </div>
+                        <div className="flex flex-wrap justify-center gap-3 pt-2">
+                            {[
+                                { label: "newsletter", href: "/search?q=newsletter" },
+                                { label: "invoice", href: "/search?q=invoice" },
+                                { label: "meeting", href: "/search?q=meeting" },
+                            ].map((item) => (
+                                <Link key={item.label} href={item.href} className="px-4 py-2 rounded-full bg-surface-container text-xs font-bold uppercase tracking-widest text-on-surface-variant hover:text-primary hover:bg-primary-fixed/15 transition-colors">
+                                    Try {item.label}
+                                </Link>
+                            ))}
+                        </div>
                     </div>
                 )}
 
@@ -248,8 +233,46 @@ export default function SearchPage() {
                         </div>
                     </div>
                 )}
+
+                {!q && !isLoading && (
+                    <div className="grid md:grid-cols-3 gap-4">
+                        {[
+                            { label: "Recent", query: "follow up" },
+                            { label: "Urgent", query: "urgent" },
+                            { label: "People", query: "from:" },
+                        ].map((item) => (
+                            <Link key={item.label} href={`/search?q=${encodeURIComponent(item.query)}`} className="p-4 rounded-3xl bg-white border border-outline-variant/10 hover:border-primary-fixed hover:shadow-md transition-all text-left">
+                                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-outline-variant mb-2">Quick start</div>
+                                <div className="font-headline font-bold text-on-surface text-lg">{item.label}</div>
+                                <div className="text-sm text-on-surface-variant mt-1">{item.query}</div>
+                            </Link>
+                        ))}
+                    </div>
+                )}
             </div>
         </AppShell>
+    );
+}
+
+// Loading fallback
+function SearchPageFallback() {
+    return (
+        <AppShell title="Search Intelligence" subtitle="Universal Discovery Engine" hideSearch>
+            <div className="max-w-4xl mx-auto p-6 md:p-10 space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="h-24 bg-surface-container-low animate-pulse rounded-2xl border border-outline-variant/10" />
+                ))}
+            </div>
+        </AppShell>
+    );
+}
+
+// Default export wrapped in Suspense
+export default function SearchPage() {
+    return (
+        <Suspense fallback={<SearchPageFallback />}>
+            <SearchPageContent />
+        </Suspense>
     );
 }
 
