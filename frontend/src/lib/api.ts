@@ -86,6 +86,8 @@ export const endpoints = {
     adminMetricsRedis: '/api/admin/metrics/redis',
     adminMetricsQueue: '/api/admin/metrics/queue',
     adminMetricsAIUsage: '/api/admin/metrics/ai-usage',
+    adminMetricsEconomics: '/api/admin/metrics/economics',
+    adminMetricsEconomicsTrends: '/api/admin/metrics/economics/trends',
     adminCreditsAdjust: '/api/admin/credits/adjust',
     adminCreditsSummary: '/api/admin/credits/summary',
     adminCreditsTransactions: '/api/admin/credits/transactions',

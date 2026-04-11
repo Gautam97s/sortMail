@@ -12,6 +12,9 @@ from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
 from models.ai import AIUsageLog
+from models.credits import UserCredits, PlanType, CreditTransaction, TransactionType
+from models.billing import Invoice, InvoiceStatus, Subscription, SubscriptionStatus
+from core.credits.token_pricing import milli_to_credits
 
 from api.dependencies import get_current_user
 from core.app_metrics import get_metrics_snapshot
@@ -213,7 +216,7 @@ async def ai_usage_metrics(
             "tokens_output": row.tokens_output,
             "tokens_total": row.tokens_total,
             "cost_cents": row.cost_cents,
-            "credits_charged": row.credits_charged,
+            "credits_charged": round(milli_to_credits(int(row.credits_charged or 0)), 3),
             "latency_ms": row.latency_ms,
             "related_entity_type": row.related_entity_type,
             "related_entity_id": row.related_entity_id,
@@ -294,4 +297,291 @@ async def ai_usage_metrics(
             for row in by_operation_rows
         ],
         "records": records,
+    }
+
+
+def _as_float(value: object, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return default
+        return float(value)
+    except Exception:
+        return default
+
+
+@router.get("/economics")
+async def economics_metrics(
+    days: int = 30,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_superuser),
+):
+    """Detailed burn/earn economics for AI usage and paid subscriptions."""
+    _ = admin
+    safe_days = min(max(int(days or 30), 1), 365)
+    since_ts = datetime.now(timezone.utc) - timedelta(days=safe_days)
+
+    # Build user->plan map for usage attribution.
+    credits_rows = (await db.execute(select(UserCredits.user_id, UserCredits.plan))).all()
+    user_plan_map = {
+        str(user_id): (plan.value if plan else PlanType.FREE.value)
+        for user_id, plan in credits_rows
+    }
+
+    usage_rows = (
+        await db.execute(
+            select(AIUsageLog).where(AIUsageLog.created_at >= since_ts).order_by(AIUsageLog.created_at.asc())
+        )
+    ).scalars().all()
+
+    totals = {
+        "calls": 0,
+        "tokens_input": 0,
+        "tokens_output": 0,
+        "tokens_total": 0,
+        "provider_cost_usd": 0.0,
+        "user_billable_usd": 0.0,
+        "implied_margin_usd": 0.0,
+        "credits_charged": 0,
+        "charge_failures": 0,
+    }
+
+    by_plan: dict[str, dict[str, float | int]] = {}
+    by_model: dict[str, dict[str, float | int]] = {}
+    by_operation: dict[str, dict[str, float | int]] = {}
+
+    for row in usage_rows:
+        md = row.metadata_json or {}
+        pricing = md.get("pricing") if isinstance(md.get("pricing"), dict) else {}
+
+        provider_cost_usd = _as_float(pricing.get("provider_cost_usd"), default=float((row.cost_cents or 0) / 100.0))
+        user_billable_usd = _as_float(pricing.get("user_billable_usd"), default=0.0)
+        credits_charged = int(row.credits_charged or 0)
+
+        plan = user_plan_map.get(str(row.user_id), PlanType.FREE.value)
+        model = row.model_name or "unknown"
+        operation = row.operation_type or "unknown"
+
+        totals["calls"] += 1
+        totals["tokens_input"] += int(row.tokens_input or 0)
+        totals["tokens_output"] += int(row.tokens_output or 0)
+        totals["tokens_total"] += int(row.tokens_total or 0)
+        totals["provider_cost_usd"] += provider_cost_usd
+        totals["user_billable_usd"] += user_billable_usd
+        totals["implied_margin_usd"] += (user_billable_usd - provider_cost_usd)
+        totals["credits_charged"] += credits_charged
+        if md.get("charge_error"):
+            totals["charge_failures"] += 1
+
+        if plan not in by_plan:
+            by_plan[plan] = {
+                "calls": 0,
+                "tokens_total": 0,
+                "provider_cost_usd": 0.0,
+                "user_billable_usd": 0.0,
+                "implied_margin_usd": 0.0,
+                "credits_charged": 0,
+            }
+        by_plan[plan]["calls"] += 1
+        by_plan[plan]["tokens_total"] += int(row.tokens_total or 0)
+        by_plan[plan]["provider_cost_usd"] += provider_cost_usd
+        by_plan[plan]["user_billable_usd"] += user_billable_usd
+        by_plan[plan]["implied_margin_usd"] += (user_billable_usd - provider_cost_usd)
+        by_plan[plan]["credits_charged"] += credits_charged
+
+        if model not in by_model:
+            by_model[model] = {
+                "calls": 0,
+                "tokens_total": 0,
+                "provider_cost_usd": 0.0,
+                "user_billable_usd": 0.0,
+                "implied_margin_usd": 0.0,
+            }
+        by_model[model]["calls"] += 1
+        by_model[model]["tokens_total"] += int(row.tokens_total or 0)
+        by_model[model]["provider_cost_usd"] += provider_cost_usd
+        by_model[model]["user_billable_usd"] += user_billable_usd
+        by_model[model]["implied_margin_usd"] += (user_billable_usd - provider_cost_usd)
+
+        if operation not in by_operation:
+            by_operation[operation] = {
+                "calls": 0,
+                "tokens_total": 0,
+                "provider_cost_usd": 0.0,
+                "user_billable_usd": 0.0,
+                "implied_margin_usd": 0.0,
+            }
+        by_operation[operation]["calls"] += 1
+        by_operation[operation]["tokens_total"] += int(row.tokens_total or 0)
+        by_operation[operation]["provider_cost_usd"] += provider_cost_usd
+        by_operation[operation]["user_billable_usd"] += user_billable_usd
+        by_operation[operation]["implied_margin_usd"] += (user_billable_usd - provider_cost_usd)
+
+    # Paid revenue signals: invoices and explicit purchase transactions.
+    paid_invoice_stmt = select(func.coalesce(func.sum(Invoice.amount_cents), 0)).where(
+        Invoice.status == InvoiceStatus.PAID,
+        Invoice.created_at >= since_ts,
+    )
+    paid_invoice_cents = int((await db.execute(paid_invoice_stmt)).scalar() or 0)
+
+    purchase_rows = (
+        await db.execute(
+            select(CreditTransaction).where(
+                CreditTransaction.created_at >= since_ts,
+                CreditTransaction.transaction_type == TransactionType.PURCHASE,
+            )
+        )
+    ).scalars().all()
+    purchase_revenue_usd = 0.0
+    for tx in purchase_rows:
+        md = tx.metadata_json or {}
+        purchase_revenue_usd += _as_float(md.get("purchase_usd"), default=0.0)
+
+    active_subscriptions_stmt = select(func.count(Subscription.id)).where(
+        Subscription.status.in_([SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING]),
+    )
+    active_subscriptions = int((await db.execute(active_subscriptions_stmt)).scalar() or 0)
+
+    free_provider_burn = _as_float(by_plan.get(PlanType.FREE.value, {}).get("provider_cost_usd"), 0.0)
+    paid_provider_cost = 0.0
+    paid_implied_margin = 0.0
+    for plan_name, values in by_plan.items():
+        if plan_name != PlanType.FREE.value:
+            paid_provider_cost += _as_float(values.get("provider_cost_usd"), 0.0)
+            paid_implied_margin += _as_float(values.get("implied_margin_usd"), 0.0)
+
+    return {
+        "window": {
+            "days": safe_days,
+            "since": since_ts.isoformat(),
+        },
+        "unit_economics": {
+            "credit_unit_usd": 0.001,
+            "token_pricing": {
+                "provider_input_per_million_usd": 0.30,
+                "provider_output_per_million_usd": 2.50,
+                "user_input_per_million_usd": 1.20,
+                "user_output_per_million_usd": 10.00,
+            },
+        },
+        "totals": {
+            **totals,
+            "credits_charged": round(milli_to_credits(int(totals["credits_charged"])), 3),
+            "provider_cost_usd": round(float(totals["provider_cost_usd"]), 6),
+            "user_billable_usd": round(float(totals["user_billable_usd"]), 6),
+            "implied_margin_usd": round(float(totals["implied_margin_usd"]), 6),
+        },
+        "financials": {
+            "active_subscriptions": active_subscriptions,
+            "subscription_revenue_usd": round(paid_invoice_cents / 100.0, 6),
+            "credit_purchase_revenue_usd": round(purchase_revenue_usd, 6),
+            "free_plan_burn_usd": round(free_provider_burn, 6),
+            "paid_plan_provider_cost_usd": round(paid_provider_cost, 6),
+            "paid_plan_implied_usage_margin_usd": round(paid_implied_margin, 6),
+        },
+        "by_plan": {
+            plan: {
+                "calls": int(values.get("calls", 0)),
+                "tokens_total": int(values.get("tokens_total", 0)),
+                "credits_charged": round(milli_to_credits(int(values.get("credits_charged", 0))), 3),
+                "provider_cost_usd": round(_as_float(values.get("provider_cost_usd"), 0.0), 6),
+                "user_billable_usd": round(_as_float(values.get("user_billable_usd"), 0.0), 6),
+                "implied_margin_usd": round(_as_float(values.get("implied_margin_usd"), 0.0), 6),
+            }
+            for plan, values in by_plan.items()
+        },
+        "by_model": {
+            model: {
+                "calls": int(values.get("calls", 0)),
+                "tokens_total": int(values.get("tokens_total", 0)),
+                "provider_cost_usd": round(_as_float(values.get("provider_cost_usd"), 0.0), 6),
+                "user_billable_usd": round(_as_float(values.get("user_billable_usd"), 0.0), 6),
+                "implied_margin_usd": round(_as_float(values.get("implied_margin_usd"), 0.0), 6),
+            }
+            for model, values in by_model.items()
+        },
+        "by_operation": {
+            op: {
+                "calls": int(values.get("calls", 0)),
+                "tokens_total": int(values.get("tokens_total", 0)),
+                "provider_cost_usd": round(_as_float(values.get("provider_cost_usd"), 0.0), 6),
+                "user_billable_usd": round(_as_float(values.get("user_billable_usd"), 0.0), 6),
+                "implied_margin_usd": round(_as_float(values.get("implied_margin_usd"), 0.0), 6),
+            }
+            for op, values in by_operation.items()
+        },
+    }
+
+
+@router.get("/economics/trends")
+async def economics_trends(
+    days: int = 30,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_superuser),
+):
+    """Daily trend series grouped by day and plan for charting burn/earn dynamics."""
+    _ = admin
+    safe_days = min(max(int(days or 30), 1), 365)
+    since_ts = datetime.now(timezone.utc) - timedelta(days=safe_days)
+
+    credits_rows = (await db.execute(select(UserCredits.user_id, UserCredits.plan))).all()
+    user_plan_map = {
+        str(user_id): (plan.value if plan else PlanType.FREE.value)
+        for user_id, plan in credits_rows
+    }
+
+    usage_rows = (
+        await db.execute(
+            select(AIUsageLog).where(AIUsageLog.created_at >= since_ts).order_by(AIUsageLog.created_at.asc())
+        )
+    ).scalars().all()
+
+    trend: dict[tuple[str, str], dict[str, float | int]] = {}
+    for row in usage_rows:
+        md = row.metadata_json or {}
+        pricing = md.get("pricing") if isinstance(md.get("pricing"), dict) else {}
+        provider_cost_usd = _as_float(pricing.get("provider_cost_usd"), default=float((row.cost_cents or 0) / 100.0))
+        user_billable_usd = _as_float(pricing.get("user_billable_usd"), default=0.0)
+        plan = user_plan_map.get(str(row.user_id), PlanType.FREE.value)
+        day = row.created_at.date().isoformat() if row.created_at else datetime.now(timezone.utc).date().isoformat()
+        key = (day, plan)
+
+        if key not in trend:
+            trend[key] = {
+                "calls": 0,
+                "tokens_total": 0,
+                "provider_cost_usd": 0.0,
+                "user_billable_usd": 0.0,
+                "implied_margin_usd": 0.0,
+                "credits_charged_milli": 0,
+            }
+
+        trend[key]["calls"] += 1
+        trend[key]["tokens_total"] += int(row.tokens_total or 0)
+        trend[key]["provider_cost_usd"] += provider_cost_usd
+        trend[key]["user_billable_usd"] += user_billable_usd
+        trend[key]["implied_margin_usd"] += (user_billable_usd - provider_cost_usd)
+        trend[key]["credits_charged_milli"] += int(row.credits_charged or 0)
+
+    series = []
+    for (day, plan), values in sorted(trend.items(), key=lambda item: (item[0][0], item[0][1])):
+        milli = int(values.get("credits_charged_milli", 0))
+        series.append(
+            {
+                "date": day,
+                "plan": plan,
+                "calls": int(values.get("calls", 0)),
+                "tokens_total": int(values.get("tokens_total", 0)),
+                "credits_charged": round(milli_to_credits(milli), 3),
+                "provider_cost_usd": round(_as_float(values.get("provider_cost_usd"), 0.0), 6),
+                "user_billable_usd": round(_as_float(values.get("user_billable_usd"), 0.0), 6),
+                "implied_margin_usd": round(_as_float(values.get("implied_margin_usd"), 0.0), 6),
+            }
+        )
+
+    return {
+        "window": {
+            "days": safe_days,
+            "since": since_ts.isoformat(),
+        },
+        "series": series,
     }

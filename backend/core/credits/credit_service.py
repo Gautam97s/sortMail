@@ -21,6 +21,7 @@ from models.credits import (
     TransactionType, PlanType, TransactionStatus, UserCreditLimits
 )
 from models.user import User
+from core.credits.token_pricing import calculate_embedding_billing, calculate_token_billing, credits_to_milli, milli_to_credits
 
 class InsufficientCreditsError(Exception):
     pass
@@ -42,9 +43,9 @@ class CreditService:
             user_credits = UserCredits(
                 id=str(uuid.uuid4()),
                 user_id=user_id,
-                credits_balance=50, # Free tier default
+                credits_balance=credits_to_milli(2000),
                 plan=PlanType.FREE,
-                monthly_credits_allowance=50,
+                monthly_credits_allowance=credits_to_milli(2000),
                 billing_cycle_start=datetime.now(timezone.utc).date(),
                 version=1
             )
@@ -55,8 +56,8 @@ class CreditService:
             transaction = CreditTransaction(
                 id=str(uuid.uuid4()),
                 user_id=user_id,
-                amount=50,
-                balance_after=50,
+                amount=credits_to_milli(2000),
+                balance_after=credits_to_milli(2000),
                 transaction_type=TransactionType.BONUS,
                 status=TransactionStatus.COMPLETED,
                 metadata_json={"reason": "initial_account_setup"}
@@ -284,9 +285,185 @@ class CreditService:
         credits = result.scalar_one_or_none()
         
         if not credits:
-            return 50 >= cost # Free tier implicit assumption for uninstantiated users
+            return credits_to_milli(2000) >= cost
 
         return credits.credits_balance >= cost
+
+    @staticmethod
+    async def has_credit_amount(db: AsyncSession, user_id: str, required_credits: int) -> bool:
+        if required_credits <= 0:
+            return True
+        credits = await CreditService.get_or_create_user_credits(db, user_id)
+        return int(credits.credits_balance or 0) >= int(required_credits)
+
+    @staticmethod
+    async def charge_token_usage(
+        db: AsyncSession,
+        *,
+        user_id: str,
+        operation_type: str,
+        input_tokens: int,
+        output_tokens: int,
+        model_name: Optional[str] = None,
+        provider: Optional[str] = None,
+        related_entity_id: Optional[str] = None,
+        related_entity_type: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Charge credits from real token usage and write a completed deduction transaction."""
+        breakdown = calculate_token_billing(input_tokens=input_tokens, output_tokens=output_tokens)
+        return await CreditService._charge_milli_credits(
+            db,
+            user_id=user_id,
+            operation_type=operation_type,
+            charged_milli_credits=int(max(breakdown.milli_credits_exact, 0)),
+            metadata={
+                **(metadata or {}),
+                "token_usage": {
+                    "input_tokens": int(breakdown.input_tokens),
+                    "output_tokens": int(breakdown.output_tokens),
+                },
+                "pricing": {
+                    "credits_exact": float(round(breakdown.credits_exact, 6)),
+                    "provider_cost_usd": float(round(breakdown.provider_cost_usd, 8)),
+                    "user_billable_usd": float(round(breakdown.user_billable_usd, 8)),
+                    "charged_credits": float(round(milli_to_credits(breakdown.milli_credits_exact), 6)),
+                    "charged_milli_credits": int(max(breakdown.milli_credits_exact, 0)),
+                    "credit_unit_usd": 0.001,
+                },
+            },
+            model_name=model_name,
+            provider=provider,
+            related_entity_id=related_entity_id,
+            related_entity_type=related_entity_type,
+        )
+
+    @staticmethod
+    async def charge_embedding_usage(
+        db: AsyncSession,
+        *,
+        user_id: str,
+        operation_type: str,
+        input_tokens: int,
+        model_name: Optional[str] = None,
+        provider: Optional[str] = None,
+        related_entity_id: Optional[str] = None,
+        related_entity_type: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Charge credits for embedding generation using embedding-specific rates."""
+        breakdown = calculate_embedding_billing(input_tokens=input_tokens)
+        return await CreditService._charge_milli_credits(
+            db,
+            user_id=user_id,
+            operation_type=operation_type,
+            charged_milli_credits=int(max(breakdown.milli_credits_exact, 0)),
+            metadata={
+                **(metadata or {}),
+                "embedding_usage": {
+                    "input_tokens": int(breakdown.input_tokens),
+                },
+                "pricing": {
+                    "credits_exact": float(round(breakdown.credits_exact, 6)),
+                    "provider_cost_usd": float(round(breakdown.provider_cost_usd, 8)),
+                    "user_billable_usd": float(round(breakdown.user_billable_usd, 8)),
+                    "charged_credits": float(round(milli_to_credits(breakdown.milli_credits_exact), 6)),
+                    "charged_milli_credits": int(max(breakdown.milli_credits_exact, 0)),
+                    "credit_unit_usd": 0.001,
+                },
+            },
+            model_name=model_name,
+            provider=provider,
+            related_entity_id=related_entity_id,
+            related_entity_type=related_entity_type,
+        )
+
+    @staticmethod
+    async def _charge_milli_credits(
+        db: AsyncSession,
+        *,
+        user_id: str,
+        operation_type: str,
+        charged_milli_credits: int,
+        metadata: Optional[Dict[str, Any]] = None,
+        model_name: Optional[str] = None,
+        provider: Optional[str] = None,
+        related_entity_id: Optional[str] = None,
+        related_entity_type: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        if charged_milli_credits <= 0:
+            return {
+                "charged_milli_credits": 0,
+                "credits_exact": 0.0,
+                "provider_cost_usd": 0.0,
+                "user_billable_usd": 0.0,
+                "balance_after": None,
+            }
+
+        for attempt in range(3):
+            user_credits = await CreditService.get_or_create_user_credits(db, user_id)
+            if attempt > 0:
+                await db.refresh(user_credits)
+
+            current_balance = int(user_credits.credits_balance or 0)
+            if current_balance < charged_milli_credits:
+                raise InsufficientCreditsError(
+                    f"Insufficient credits for token usage. Required_milli={charged_milli_credits}, Balance_milli={current_balance}"
+                )
+
+            current_version = int(user_credits.version or 0)
+            new_balance = current_balance - charged_milli_credits
+
+            stmt = (
+                update(UserCredits)
+                .where(
+                    UserCredits.id == user_credits.id,
+                    UserCredits.version == current_version,
+                )
+                .values(
+                    credits_balance=new_balance,
+                    credits_total_spent=UserCredits.credits_total_spent + charged_milli_credits,
+                    credits_used_this_month=UserCredits.credits_used_this_month + charged_milli_credits,
+                    operations_count_last_minute=UserCredits.operations_count_last_minute + 1,
+                    operations_count_last_hour=UserCredits.operations_count_last_hour + 1,
+                    last_operation_at=datetime.now(timezone.utc),
+                    version=current_version + 1,
+                    updated_at=datetime.now(timezone.utc),
+                )
+                .execution_options(synchronize_session=False)
+            )
+            result = await db.execute(stmt)
+            if result.rowcount == 1:
+                tx_metadata = {
+                    **(metadata or {}),
+                    "model_name": model_name,
+                    "provider": provider,
+                    "related_entity_type": related_entity_type,
+                }
+                transaction = CreditTransaction(
+                    id=str(uuid.uuid4()),
+                    user_id=user_id,
+                    amount=-charged_milli_credits,
+                    balance_after=new_balance,
+                    transaction_type=TransactionType.DEDUCTION,
+                    operation_type=operation_type,
+                    related_entity_id=related_entity_id,
+                    status=TransactionStatus.COMPLETED,
+                    metadata_json=tx_metadata,
+                )
+                db.add(transaction)
+                await db.flush()
+
+                return {
+                    "charged_milli_credits": charged_milli_credits,
+                    "credits_exact": float((metadata or {}).get("pricing", {}).get("credits_exact", charged_milli_credits / 1000.0)),
+                    "provider_cost_usd": float((metadata or {}).get("pricing", {}).get("provider_cost_usd", 0.0)),
+                    "user_billable_usd": float((metadata or {}).get("pricing", {}).get("user_billable_usd", 0.0)),
+                    "balance_after": new_balance,
+                    "transaction_id": transaction.id,
+                }
+
+        raise Exception("Concurrency limit exceeded while charging token usage.")
 
     # Old method for backward compatibility (wraps reserve+commit)
     @staticmethod

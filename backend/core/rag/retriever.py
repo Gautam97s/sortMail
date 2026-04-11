@@ -19,7 +19,14 @@ async def get_similar_context(query_text: str, user_id: str, limit: int = 5, exc
     """
     try:
         # Generate the embedding query vector
-        query_embedding = await generate_embedding(query_text)
+        query_embedding = await generate_embedding(
+            query_text,
+            user_id=user_id,
+            operation_type="rag_query_embedding",
+            related_entity_type="search",
+            related_entity_id=None,
+            metadata={"source_type": "rag_query"},
+        )
 
         # Strict where filter — enforces user-level tenant isolation
         where_filter = {"user_id": user_id}

@@ -17,7 +17,6 @@ from models.attachment import Attachment, AttachmentStatus
 import re
 import asyncio
 from core.intelligence.llama_engine import _call_llama
-from core.credits.credit_service import CreditService, InsufficientCreditsError
 from core.intelligence.prompts import (
     ATTACHMENT_ANALYSIS_SYSTEM_PROMPT,
     ATTACHMENT_ANALYSIS_USER_PROMPT_TEMPLATE,
@@ -99,30 +98,6 @@ async def analyze_attachment(attachment_id: str, db: AsyncSession) -> Optional[D
     # 2. Build Deep Analysis Prompt
     prompt = ATTACHMENT_ANALYSIS_USER_PROMPT_TEMPLATE.format(document_text=safe_text)
 
-    operation_type = "attachment_intel"
-    reservation_id = None
-    try:
-        if not await CreditService.check_balance(db, attachment.user_id, operation_type):
-            attachment.status = AttachmentStatus.FAILED
-            attachment.skip_reason = "insufficient_credits"
-            await db.commit()
-            logger.info("Attachment %s skipped due to insufficient credits", attachment_id)
-            return None
-        charged_credits = await CreditService.get_operation_cost(db, operation_type)
-        reservation_id = await CreditService.reserve_credits(
-            db,
-            attachment.user_id,
-            operation_type,
-            related_entity_id=attachment_id,
-            metadata={"source": "attachment_intel"},
-        )
-    except InsufficientCreditsError:
-        attachment.status = AttachmentStatus.FAILED
-        attachment.skip_reason = "insufficient_credits"
-        await db.commit()
-        logger.info("Attachment %s skipped due to insufficient credits", attachment_id)
-        return None
-
     messages = [
         {"role": "system", "content": ATTACHMENT_ANALYSIS_SYSTEM_PROMPT},
         {"role": "user", "content": prompt}
@@ -139,7 +114,6 @@ async def analyze_attachment(attachment_id: str, db: AsyncSession) -> Optional[D
                     "user_id": attachment.user_id,
                     "related_entity_type": "attachment",
                     "related_entity_id": attachment_id,
-                    "credits_charged": charged_credits,
                 },
             )
             
@@ -160,7 +134,6 @@ async def analyze_attachment(attachment_id: str, db: AsyncSession) -> Optional[D
             attachment.intel_json = intel_dict
             attachment.extracted_text = safe_text[:2000] # Save a snippet
             attachment.status = AttachmentStatus.INDEXED
-            await CreditService.commit_reservation(db, reservation_id)
             
             await db.commit()
             logger.info(f"✅ Generated intelligence for attachment {attachment.id}")
@@ -188,8 +161,6 @@ async def analyze_attachment(attachment_id: str, db: AsyncSession) -> Optional[D
             
     # Fallback / Failure
     logger.error(f"Failed to analyze attachment {attachment.id} after 4 attempts.")
-    if reservation_id:
-        await CreditService.rollback_reservation(db, reservation_id)
     attachment.status = AttachmentStatus.FAILED
     await db.commit()
     return None

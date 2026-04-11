@@ -42,7 +42,6 @@ from models.contact import Contact
 from models.tag import Tag
 from models.draft import Draft, DraftStatus, DraftTone
 from core.app_metrics import record_metric
-from core.credits.credit_service import CreditService, InsufficientCreditsError
 
 logger = logging.getLogger(__name__)
 
@@ -198,29 +197,11 @@ async def process_thread_intelligence(
             await _publish_intel_ready(user_id, thread_id, final_intel)
             return final_intel
 
-        # Charge credits only for full model-based intelligence runs.
-        intel_operation_type = "thread_intel"
-        charged_credits = await CreditService.get_operation_cost(db, intel_operation_type)
-        reservation_id = None
-        try:
-            reservation_id = await CreditService.reserve_credits(
-                db,
-                user_id,
-                intel_operation_type,
-                related_entity_id=thread_id,
-                metadata={"source": "thread_intel"},
-            )
-        except InsufficientCreditsError:
-            record_metric("intel_skipped_insufficient_credits")
-            logger.info("Intel skipped for insufficient credits thread=%s", thread_id)
-            return None
-
         try:
             # â”€â”€ 3. Single Gemini Flash call â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             raw_intel = await run_intelligence(
                 thread_id=thread_id,
                 user_id=user_id,
-                credits_charged=charged_credits,
                 subject=thread.subject or "",
                 participants=list(thread.participants or []),
                 messages=messages,
@@ -327,7 +308,6 @@ async def process_thread_intelligence(
             # Background intelligence must not auto-create reply drafts.
             # Drafts are generated only when the user explicitly requests them.
 
-            await CreditService.commit_reservation(db, reservation_id)
             await db.commit()
             logger.info(f"Intel saved: thread={thread_id} intent={intent} score={urgency_score}")
             _log_intel_payload(thread_id, final_intel, source="full")

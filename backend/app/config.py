@@ -69,6 +69,8 @@ class Settings(BaseSettings):
     BEDROCK_EMBED_MODEL_ID: str = "amazon.titan-embed-text-v2:0"
     BEDROCK_EMBED_DIMENSIONS: int = 1024
     BEDROCK_EMBED_NORMALIZE: bool = True
+    EMBEDDING_PROVIDER_INPUT_PER_MILLION_USD: float = 0.02
+    EMBEDDING_USER_INPUT_PER_MILLION_USD: float = 0.08
     
     # Chroma Cloud
     CHROMA_HOST: str = "api.trychroma.com"

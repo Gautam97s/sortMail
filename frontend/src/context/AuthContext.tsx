@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "@/types";
 import { api } from "../services/api";
@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
-    const redirectToLogin = () => {
+    const redirectToLogin = useCallback(() => {
         if (typeof window === "undefined") return;
 
         const currentPath = window.location.pathname;
@@ -32,9 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!publicPaths.some((path) => currentPath.startsWith(path)) && currentPath !== '/') {
             router.replace('/login');
         }
-    };
+    }, [router]);
 
-    const checkSession = async () => {
+    const checkSession = useCallback(async () => {
         try {
             console.log("🔍 Checking Session...");
             const url = getApiUrl("/api/auth/me");
@@ -66,11 +66,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [redirectToLogin]);
 
     useEffect(() => {
         checkSession();
-    }, []);
+    }, [checkSession]);
 
     const login = () => {
         window.location.href = getApiUrl("/api/auth/google");

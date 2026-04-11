@@ -90,7 +90,7 @@ class AIUsageLog(Base):
     tokens_output = Column(Integer, nullable=False)
     tokens_total = Column(Integer, nullable=False)
     cost_cents = Column(Integer, nullable=False)
-    credits_charged = Column(Integer, nullable=True)
+    credits_charged = Column(BigInteger, nullable=True)
     
     latency_ms = Column(Integer, nullable=True)
     cache_hit = Column(Boolean, default=False)

@@ -7,7 +7,7 @@ from core.storage.database import get_db
 from models.user import User
 from api.dependencies import get_current_user
 from models.thread import Thread
-from core.credits.credit_service import CreditService, InsufficientCreditsError
+from core.credits.credit_service import InsufficientCreditsError
 from core.rag.retriever import get_similar_context
 from core.intelligence.llama_engine import llama_chat
 from app.config import settings
@@ -58,18 +58,6 @@ async def ai_chat(
     if not query:
         raise HTTPException(status_code=400, detail="Missing chat message")
 
-    operation_type = "ai_chat"
-    if not await CreditService.check_balance(db, current_user.id, operation_type):
-        raise HTTPException(status_code=402, detail="Insufficient credits.")
-
-    charged_credits = await CreditService.get_operation_cost(db, operation_type)
-    reservation_id = await CreditService.reserve_credits(
-        db,
-        current_user.id,
-        operation_type,
-        metadata={"source": "ai_chat"},
-    )
-
     # 1. Fetch RAG context for this user
     similar_items = await get_similar_context(
         query_text=query,
@@ -103,11 +91,8 @@ Be concise, helpful, and professional. If context is provided, reference it spec
                     "user_id": current_user.id,
                     "related_entity_type": "chat",
                     "related_entity_id": None,
-                    "credits_charged": charged_credits,
                 },
             )
-            await CreditService.commit_reservation(db, reservation_id)
-            await db.commit()
             # Emit in word-sized chunks to simulate streaming UX
             words = response_text.split(" ")
             chunk_size = 5
@@ -120,8 +105,9 @@ Be concise, helpful, and professional. If context is provided, reference it spec
 
             yield "data: [DONE]\n\n"
         except Exception as e:
-            await CreditService.rollback_reservation(db, reservation_id)
-            await db.commit()
+            if isinstance(e, InsufficientCreditsError):
+                yield "data: Error: Insufficient credits.\n\n"
+                return
             logger.error(f"Chat stream failed: {e}")
             yield f"data: Error: {str(e)}\n\n"
 

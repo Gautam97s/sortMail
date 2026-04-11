@@ -7,11 +7,15 @@ Provides LLM-agnostic embedding generation for RAG pipelines.
 import logging
 import asyncio
 import json
-from typing import List, Dict
+from typing import List, Dict, Optional, Any
 import boto3
 from botocore.config import Config
 
 from core.app_metrics import record_ai_usage, record_metric
+from core.credits.credit_service import CreditService, InsufficientCreditsError
+from core.credits.token_pricing import calculate_embedding_billing, milli_to_credits
+from core.storage.database import async_session_factory
+from models.ai import AIProvider, AIUsageLog
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +33,51 @@ def _estimate_tokens(text: str) -> int:
 def _token_source(provider: str, exact: bool) -> str:
     return f"{provider}:{'exact' if exact else 'estimated'}"
 
-async def generate_embedding(text: str) -> List[float]:
+async def generate_embedding(
+    text: str,
+    *,
+    user_id: Optional[str] = None,
+    operation_type: str = "embedding",
+    related_entity_type: Optional[str] = None,
+    related_entity_id: Optional[str] = None,
+    metadata: Optional[dict[str, Any]] = None,
+) -> List[float]:
     """Generate embedding using configured provider with a fixed output dimensionality."""
+    return await generate_embedding_with_billing(
+        text,
+        user_id=user_id,
+        operation_type=operation_type,
+        related_entity_type=related_entity_type,
+        related_entity_id=related_entity_id,
+        metadata=metadata,
+    )
+
+
+async def generate_embedding_with_billing(
+    text: str,
+    *,
+    user_id: Optional[str] = None,
+    operation_type: str = "embedding",
+    related_entity_type: Optional[str] = None,
+    related_entity_id: Optional[str] = None,
+    metadata: Optional[dict[str, Any]] = None,
+) -> List[float]:
+    """Generate an embedding and charge/persist it when a user context is available."""
     from app.config import settings
 
     target_dims = max(int(getattr(settings, "BEDROCK_EMBED_DIMENSIONS", 1024) or 1024), 1)
     provider = (getattr(settings, "EMBEDDING_PROVIDER", "bedrock") or "bedrock").strip().lower()
+
+    billing_input_tokens = _estimate_tokens(text)
+    if user_id:
+        estimated_billing = calculate_embedding_billing(billing_input_tokens)
+        estimated_milli_credits = max(int(estimated_billing.milli_credits_exact), 1)
+        async with async_session_factory() as precheck_db:
+            has_budget = await CreditService.has_credit_amount(precheck_db, user_id, estimated_milli_credits)
+        if not has_budget:
+            raise InsufficientCreditsError(
+                f"Insufficient credits for embedding request budget. required_milli~{estimated_milli_credits}"
+            )
 
     if provider == "bedrock":
         model_id = settings.BEDROCK_EMBED_MODEL_ID
@@ -65,20 +108,50 @@ async def generate_embedding(text: str) -> List[float]:
             embedding, input_tokens, token_source = await asyncio.to_thread(_embed_bedrock)
             fitted = _fit_dimensions(embedding, target_dims)
             record_metric("embedding_call_success")
+            actual_input_tokens = int(input_tokens or billing_input_tokens)
+            usage_metadata = {"dimension": len(fitted), "provider": "bedrock", "token_source": token_source}
+            if user_id:
+                await _charge_and_persist_embedding_usage(
+                    user_id=user_id,
+                    operation_type=operation_type,
+                    model_id=model_id,
+                    provider="bedrock",
+                    input_tokens=actual_input_tokens,
+                    token_source=token_source,
+                    metadata={**(metadata or {}), **usage_metadata},
+                    related_entity_type=related_entity_type,
+                    related_entity_id=related_entity_id,
+                )
             record_ai_usage(
-                operation="embedding",
+                operation=operation_type,
                 model_id=model_id,
-                input_tokens=input_tokens or _estimate_tokens(text),
+                input_tokens=actual_input_tokens,
                 output_tokens=0,
                 token_source=token_source,
-                metadata={"dimension": len(fitted), "provider": "bedrock", "token_source": token_source},
+                metadata={**usage_metadata, **(metadata or {})},
             )
             return fitted
+        except InsufficientCreditsError:
+            raise
         except Exception as e:
             logger.error(f"Failed embedding generation via Bedrock Titan: {e}")
             record_metric("embedding_call_error")
+            if user_id:
+                await _persist_embedding_usage_row(
+                    user_id=user_id,
+                    operation_type=operation_type,
+                    model_id=model_id,
+                    provider="bedrock",
+                    input_tokens=0,
+                    token_source="error",
+                    status="error",
+                    error_type=str(e)[:300],
+                    metadata={**(metadata or {}), "provider": "bedrock", "error": str(e)[:300], "token_source": "error"},
+                    related_entity_type=related_entity_type,
+                    related_entity_id=related_entity_id,
+                )
             record_ai_usage(
-                operation="embedding",
+                operation=operation_type,
                 model_id=model_id,
                 input_tokens=0,
                 output_tokens=0,
@@ -104,20 +177,49 @@ async def generate_embedding(text: str) -> List[float]:
             result = await asyncio.to_thread(_embed)
             fitted = _fit_dimensions(result, target_dims)
             record_metric("embedding_call_success")
+            token_source = _token_source("gemini", False)
+            if user_id:
+                await _charge_and_persist_embedding_usage(
+                    user_id=user_id,
+                    operation_type=operation_type,
+                    model_id="gemini-embedding-001",
+                    provider="gemini",
+                    input_tokens=billing_input_tokens,
+                    token_source=token_source,
+                    metadata={**(metadata or {}), "dimension": len(fitted), "provider": "gemini", "token_source": token_source},
+                    related_entity_type=related_entity_type,
+                    related_entity_id=related_entity_id,
+                )
             record_ai_usage(
-                operation="embedding",
+                operation=operation_type,
                 model_id="gemini-embedding-001",
-                input_tokens=_estimate_tokens(text),
+                input_tokens=billing_input_tokens,
                 output_tokens=0,
-                token_source=_token_source("gemini", False),
-                metadata={"dimension": len(fitted), "provider": "gemini", "token_source": _token_source("gemini", False)},
+                token_source=token_source,
+                metadata={"dimension": len(fitted), "provider": "gemini", "token_source": token_source, **(metadata or {})},
             )
             return fitted
+        except InsufficientCreditsError:
+            raise
         except Exception as e:
             logger.error(f"Failed embedding generation via Gemini SDK: {e}")
             record_metric("embedding_call_error")
+            if user_id:
+                await _persist_embedding_usage_row(
+                    user_id=user_id,
+                    operation_type=operation_type,
+                    model_id="gemini-embedding-001",
+                    provider="gemini",
+                    input_tokens=0,
+                    token_source="error",
+                    status="error",
+                    error_type=str(e)[:300],
+                    metadata={**(metadata or {}), "provider": "gemini", "error": str(e)[:300], "token_source": "error"},
+                    related_entity_type=related_entity_type,
+                    related_entity_id=related_entity_id,
+                )
             record_ai_usage(
-                operation="embedding",
+                operation=operation_type,
                 model_id="gemini-embedding-001",
                 input_tokens=0,
                 output_tokens=0,
@@ -138,20 +240,49 @@ async def generate_embedding(text: str) -> List[float]:
             )
             fitted = _fit_dimensions(response.data[0].embedding, target_dims)
             record_metric("embedding_call_success")
+            token_source = _token_source("openai", False)
+            if user_id:
+                await _charge_and_persist_embedding_usage(
+                    user_id=user_id,
+                    operation_type=operation_type,
+                    model_id="text-embedding-3-small",
+                    provider="openai",
+                    input_tokens=billing_input_tokens,
+                    token_source=token_source,
+                    metadata={**(metadata or {}), "dimension": len(fitted), "provider": "openai", "token_source": token_source},
+                    related_entity_type=related_entity_type,
+                    related_entity_id=related_entity_id,
+                )
             record_ai_usage(
-                operation="embedding",
+                operation=operation_type,
                 model_id="text-embedding-3-small",
-                input_tokens=_estimate_tokens(text),
+                input_tokens=billing_input_tokens,
                 output_tokens=0,
-                token_source=_token_source("openai", False),
-                metadata={"dimension": len(fitted), "provider": "openai", "token_source": _token_source("openai", False)},
+                token_source=token_source,
+                metadata={"dimension": len(fitted), "provider": "openai", "token_source": token_source, **(metadata or {})},
             )
             return fitted
+        except InsufficientCreditsError:
+            raise
         except Exception as e:
             logger.error(f"Failed embedding generation via OpenAI: {e}")
             record_metric("embedding_call_error")
+            if user_id:
+                await _persist_embedding_usage_row(
+                    user_id=user_id,
+                    operation_type=operation_type,
+                    model_id="text-embedding-3-small",
+                    provider="openai",
+                    input_tokens=0,
+                    token_source="error",
+                    status="error",
+                    error_type=str(e)[:300],
+                    metadata={**(metadata or {}), "provider": "openai", "error": str(e)[:300], "token_source": "error"},
+                    related_entity_type=related_entity_type,
+                    related_entity_id=related_entity_id,
+                )
             record_ai_usage(
-                operation="embedding",
+                operation=operation_type,
                 model_id="text-embedding-3-small",
                 input_tokens=0,
                 output_tokens=0,
@@ -162,7 +293,137 @@ async def generate_embedding(text: str) -> List[float]:
             return [0.0] * target_dims
             
     # Dev mock fallback if APIs unconfigured
+    if user_id:
+        raise InsufficientCreditsError("Embedding provider is not configured for user-scoped billing path.")
     return [0.0] * target_dims
+
+
+async def _charge_and_persist_embedding_usage(
+    *,
+    user_id: str,
+    operation_type: str,
+    model_id: str,
+    provider: str,
+    input_tokens: int,
+    token_source: str,
+    metadata: Optional[dict[str, Any]] = None,
+    related_entity_type: Optional[str] = None,
+    related_entity_id: Optional[str] = None,
+) -> dict[str, Any]:
+    breakdown = calculate_embedding_billing(input_tokens)
+
+    async with async_session_factory() as charge_db:
+        charge_result = await CreditService.charge_embedding_usage(
+            charge_db,
+            user_id=user_id,
+            operation_type=operation_type,
+            input_tokens=input_tokens,
+            model_name=model_id,
+            provider=provider,
+            related_entity_id=related_entity_id,
+            related_entity_type=related_entity_type,
+            metadata={
+                **(metadata or {}),
+                "token_source": token_source,
+                "pricing": {
+                    "provider_cost_usd": round(float(breakdown.provider_cost_usd), 8),
+                    "user_billable_usd": round(float(breakdown.user_billable_usd), 8),
+                    "credits_exact": round(float(breakdown.credits_exact), 6),
+                    "charged_milli_credits": int(max(breakdown.milli_credits_exact, 0)),
+                    "charged_credits": round(milli_to_credits(breakdown.milli_credits_exact), 6),
+                    "credit_unit_usd": 0.001,
+                },
+            },
+        )
+        await charge_db.commit()
+
+    try:
+        async with async_session_factory() as db:
+            row = AIUsageLog(
+                user_id=user_id,
+                operation_type=operation_type.upper(),
+                provider=AIProvider.CUSTOM,
+                model_name=model_id,
+                tokens_input=input_tokens,
+                tokens_output=0,
+                tokens_total=input_tokens,
+                cost_cents=max(int(round(breakdown.provider_cost_usd * 100)), 0),
+                credits_charged=max(int(charge_result.get("charged_milli_credits") or 0), 0),
+                latency_ms=None,
+                related_entity_type=related_entity_type,
+                related_entity_id=related_entity_id,
+                request_id=None,
+                error_occurred=False,
+                error_type=None,
+                metadata_json={
+                    **(metadata or {}),
+                    "token_source": token_source,
+                    "pricing": {
+                        "provider_cost_usd": round(float(breakdown.provider_cost_usd), 8),
+                        "user_billable_usd": round(float(breakdown.user_billable_usd), 8),
+                        "credits_exact": round(float(breakdown.credits_exact), 6),
+                        "charged_milli_credits": int(max(charge_result.get("charged_milli_credits") or 0, 0)),
+                    },
+                    "balance_after": charge_result.get("balance_after"),
+                },
+            )
+            db.add(row)
+            await db.commit()
+    except Exception as exc:
+        logger.warning("Failed to persist embedding usage row for op=%s user=%s: %s", operation_type, user_id, exc)
+
+    return charge_result
+
+
+async def _persist_embedding_usage_row(
+    *,
+    user_id: str,
+    operation_type: str,
+    model_id: str,
+    provider: str,
+    input_tokens: int,
+    token_source: str,
+    status: str,
+    error_type: Optional[str] = None,
+    metadata: Optional[dict[str, Any]] = None,
+    related_entity_type: Optional[str] = None,
+    related_entity_id: Optional[str] = None,
+) -> None:
+    try:
+        async with async_session_factory() as db:
+            row = AIUsageLog(
+                user_id=user_id,
+                operation_type=operation_type.upper(),
+                provider=AIProvider.CUSTOM,
+                model_name=model_id,
+                tokens_input=max(int(input_tokens or 0), 0),
+                tokens_output=0,
+                tokens_total=max(int(input_tokens or 0), 0),
+                cost_cents=0,
+                credits_charged=0,
+                latency_ms=None,
+                related_entity_type=related_entity_type,
+                related_entity_id=related_entity_id,
+                request_id=None,
+                error_occurred=status.lower() != "success",
+                error_type=error_type,
+                metadata_json={
+                    **(metadata or {}),
+                    "token_source": token_source,
+                    "pricing": {
+                        "provider_cost_usd": 0.0,
+                        "user_billable_usd": 0.0,
+                        "credits_exact": 0.0,
+                        "charged_milli_credits": 0,
+                        "charged_credits": 0.0,
+                    },
+                    "charge_error": error_type,
+                },
+            )
+            db.add(row)
+            await db.commit()
+    except Exception as exc:
+        logger.warning("Failed to persist embedding error row for op=%s user=%s: %s", operation_type, user_id, exc)
 
 
 def _fit_dimensions(values: List[float], target_dims: int) -> List[float]:

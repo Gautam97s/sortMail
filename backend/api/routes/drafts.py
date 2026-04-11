@@ -18,7 +18,7 @@ from api.dependencies import get_current_user
 from models.user import User
 from models.draft import Draft, DraftStatus, DraftTone
 from models.email import Email
-from core.credits.credit_service import CreditService, InsufficientCreditsError, RateLimitExceededError
+from core.credits.credit_service import InsufficientCreditsError
 from sqlalchemy import select, desc, and_, or_, func, exists
 import logging
 import uuid
@@ -181,21 +181,9 @@ async def generate_freeform_draft(
     current_user: User = Depends(get_current_user),
 ):
     """Generate draft body for a new email without requiring an existing thread."""
-    operation_type = "smart_compose"
-    if not await CreditService.check_balance(db, current_user.id, operation_type):
-        raise HTTPException(status_code=402, detail="Insufficient credits.")
-
-    charged_credits = await CreditService.get_operation_cost(db, operation_type)
     tone_val = payload.tone.value if hasattr(payload.tone, 'value') else payload.tone
     target = ", ".join(_normalize_email_list(payload.to)) if payload.to else "a recipient"
     try:
-        reservation_id = await CreditService.reserve_credits(
-            db,
-            current_user.id,
-            operation_type,
-            related_entity_id="freeform",
-            metadata={"source": "freeform_draft"},
-        )
         prompt = FREEFORM_DRAFT_USER_PROMPT_TEMPLATE.format(
             recipient_context=target,
             subject=payload.subject or "General outreach",
@@ -213,13 +201,10 @@ async def generate_freeform_draft(
                     "user_id": current_user.id,
                     "related_entity_type": "draft",
                     "related_entity_id": "freeform",
-                    "credits_charged": charged_credits,
                 },
                 allow_auth_fallback=False,
             )
         ).strip()
-        await CreditService.commit_reservation(db, reservation_id)
-        await db.commit()
         return {
             "subject": payload.subject or "",
             "body": generated_text,
@@ -289,16 +274,6 @@ async def generate_draft(
     """
     Generate a draft reply for a thread. (Cost: 3 credits)
     """
-    OPERATION_TYPE = "draft_reply"
-    
-    # 1. Check Balance
-    has_credits = await CreditService.check_balance(db, current_user.id, OPERATION_TYPE)
-    if not has_credits:
-         raise HTTPException(
-             status_code=402, 
-             detail="Insufficient credits. Please upgrade or purchase more credits."
-         )
-
     try:
         # Load real thread and context
         thread = await _load_thread(request.thread_id, current_user.id, db)
@@ -308,15 +283,7 @@ async def generate_draft(
         messages = await _load_messages(request.thread_id, db)
             
         tone_val = request.tone.value if hasattr(request.tone, 'value') else request.tone
-        charged_credits = await CreditService.get_operation_cost(db, OPERATION_TYPE)
         draft_id = str(uuid.uuid4())
-        reservation_id = await CreditService.reserve_credits(
-            db,
-            current_user.id,
-            OPERATION_TYPE,
-            related_entity_id=draft_id,
-            metadata={"thread_id": request.thread_id, "tone": request.tone, "source": "thread_draft"},
-        )
         prompt = DRAFT_REPLY_USER_PROMPT_TEMPLATE.format(
             tone=tone_val,
             instruction=request.additional_context or "No additional instruction",
@@ -332,7 +299,6 @@ async def generate_draft(
                 "user_id": current_user.id,
                 "related_entity_type": "thread",
                 "related_entity_id": request.thread_id,
-                "credits_charged": charged_credits,
             },
             allow_auth_fallback=False,
         )
@@ -357,9 +323,7 @@ async def generate_draft(
         )
         db.add(draft)
         
-        # 2. Commit reserved credits only after the draft is persisted.
-        await CreditService.commit_reservation(db, reservation_id)
-        await db.commit() # Commit deduction and draft insertion
+        await db.commit()
         
         return {
             "id": draft.id,
@@ -375,9 +339,6 @@ async def generate_draft(
     except InsufficientCreditsError:
         await db.rollback()
         raise HTTPException(status_code=402, detail="Insufficient credits.")
-    except RateLimitExceededError as e:
-        await db.rollback()
-        raise HTTPException(status_code=429, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
@@ -419,12 +380,6 @@ async def regenerate_draft(
     current_user: User = Depends(get_current_user),
 ):
     """Regenerate a draft. (Cost: 3 credits)"""
-    OPERATION_TYPE = "draft_reply"
-
-    # 1. Check Balance
-    if not await CreditService.check_balance(db, current_user.id, OPERATION_TYPE):
-         raise HTTPException(status_code=402, detail="Insufficient credits.")
-
     try:
         # 1. Fetch existing draft to get thread_id reference
         stmt = select(Draft).where(Draft.id == draft_id, Draft.user_id == current_user.id)
@@ -443,14 +398,6 @@ async def regenerate_draft(
 
         target_tone = tone or draft.tone
         tone_val = target_tone.value if hasattr(target_tone, 'value') else target_tone
-        charged_credits = await CreditService.get_operation_cost(db, OPERATION_TYPE)
-        reservation_id = await CreditService.reserve_credits(
-            db,
-            current_user.id,
-            OPERATION_TYPE,
-            related_entity_id=draft_id,
-            metadata={"draft_id": draft_id, "action": "regenerate", "tone": tone_val, "source": "draft_regenerate"},
-        )
         prompt = DRAFT_REPLY_USER_PROMPT_TEMPLATE.format(
             tone=tone_val,
             instruction="Rewrite the existing draft with the same intent and clearer wording.",
@@ -467,7 +414,6 @@ async def regenerate_draft(
                 "user_id": current_user.id,
                 "related_entity_type": "draft",
                 "related_entity_id": draft_id,
-                "credits_charged": charged_credits,
             },
             allow_auth_fallback=False,
         )
@@ -486,8 +432,6 @@ async def regenerate_draft(
         draft.tokens_used = int(llm_result.get("input_tokens", 0)) + int(llm_result.get("output_tokens", 0))
         draft.cost_cents = 0
 
-        # 6. Commit the reservation now that the updated draft is ready.
-        await CreditService.commit_reservation(db, reservation_id)
         await db.commit()
         
         return {
@@ -504,9 +448,6 @@ async def regenerate_draft(
     except InsufficientCreditsError as e:
         await db.rollback()
         raise HTTPException(status_code=402, detail=str(e))
-    except RateLimitExceededError as e:
-        await db.rollback()
-        raise HTTPException(status_code=429, detail=str(e))
     except Exception as e:
         await db.rollback()
         raise e

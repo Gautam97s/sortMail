@@ -29,6 +29,8 @@ from core.intelligence.prompts import (
     THREAD_INTEL_USER_PROMPT_TEMPLATE,
 )
 from models.ai import AIProvider, AIUsageLog
+from core.credits.credit_service import CreditService, InsufficientCreditsError
+from core.credits.token_pricing import calculate_token_billing
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +146,22 @@ def _extract_usage(response: dict[str, Any]) -> tuple[int, int, str]:
     return int(input_tokens or 0), int(output_tokens or 0), token_source
 
 
+def _estimate_input_tokens_from_messages(messages: list[dict]) -> int:
+    approx_chars = 0
+    for message in messages:
+        content = message.get("content")
+        if isinstance(content, str):
+            approx_chars += len(content)
+        elif isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("text"):
+                    approx_chars += len(str(block.get("text")))
+        elif content is not None:
+            approx_chars += len(str(content))
+    # Heuristic: ~4 chars/token for English-heavy prompts.
+    return max(int(approx_chars / 4), 1)
+
+
 def _truncate_messages(messages: list[dict], max_message_count: int = 4, max_chars_per_message: int = 1200) -> list[dict]:
     if len(messages) <= max_message_count:
         selected = messages
@@ -198,6 +216,24 @@ async def _call_llama_with_usage(
     record_metric(f"ai_call_attempt_{operation}")
     start = time.perf_counter()
     fallback_allowed = _auth_fallback_allowed(operation) if allow_auth_fallback is None else bool(allow_auth_fallback)
+
+    # Guardrail pre-check to avoid expensive provider calls when balance is clearly insufficient.
+    user_id = str((metadata or {}).get("user_id") or "").strip()
+    if user_id:
+        estimated_input_tokens = _estimate_input_tokens_from_messages(messages)
+        estimated = calculate_token_billing(estimated_input_tokens, max(int(max_tokens or 0), 0))
+        estimated_milli_credits = max(int(estimated.milli_credits_exact), 1)
+        try:
+            async with async_session_factory() as precheck_db:
+                has_budget = await CreditService.has_credit_amount(precheck_db, user_id, estimated_milli_credits)
+            if not has_budget:
+                raise InsufficientCreditsError(
+                    f"Insufficient credits for estimated request budget. required_milli~{estimated_milli_credits}"
+                )
+        except InsufficientCreditsError:
+            raise
+        except Exception as exc:
+            logger.warning("Credit precheck failed for op=%s user=%s: %s", operation, user_id, exc)
 
     try:
         system_blocks, bedrock_messages = _split_messages(messages)
@@ -461,8 +497,35 @@ async def _persist_ai_usage_log(
 
     related_entity_type = (metadata or {}).get("related_entity_type")
     related_entity_id = (metadata or {}).get("related_entity_id")
-    credits_charged = (metadata or {}).get("credits_charged")
     error_text = str((metadata or {}).get("error") or "")
+
+    breakdown = calculate_token_billing(input_tokens=max(int(input_tokens or 0), 0), output_tokens=max(int(output_tokens or 0), 0))
+    provider_cost_cents = int(round(breakdown.provider_cost_usd * 100))
+    charged_milli_credits = 0
+    balance_after = None
+    charge_error = None
+
+    if (status or "success").lower() == "success" and (input_tokens or 0) + (output_tokens or 0) > 0:
+        try:
+            async with async_session_factory() as charge_db:
+                charge_result = await CreditService.charge_token_usage(
+                    charge_db,
+                    user_id=user_id,
+                    operation_type=(operation or "unknown").lower(),
+                    input_tokens=max(int(input_tokens or 0), 0),
+                    output_tokens=max(int(output_tokens or 0), 0),
+                    model_name=model_id,
+                    provider=AIProvider.CUSTOM.value,
+                    related_entity_id=str(related_entity_id) if related_entity_id else None,
+                    related_entity_type=str(related_entity_type) if related_entity_type else None,
+                    metadata={"source": "ai_usage_auto_charge", "request_id": call_ref},
+                )
+                await charge_db.commit()
+                charged_milli_credits = int(charge_result.get("charged_milli_credits") or 0)
+                balance_after = charge_result.get("balance_after")
+        except Exception as exc:
+            charge_error = str(exc)
+            logger.warning("Token usage charge failed op=%s user=%s: %s", operation, user_id, exc)
 
     try:
         async with async_session_factory() as db:
@@ -474,15 +537,26 @@ async def _persist_ai_usage_log(
                 tokens_input=max(int(input_tokens or 0), 0),
                 tokens_output=max(int(output_tokens or 0), 0),
                 tokens_total=max(int(input_tokens or 0), 0) + max(int(output_tokens or 0), 0),
-                cost_cents=0,
-                credits_charged=max(int(credits_charged or 0), 0),
+                cost_cents=max(int(provider_cost_cents), 0),
+                credits_charged=max(int(charged_milli_credits or 0), 0),
                 latency_ms=latency_ms,
                 related_entity_type=str(related_entity_type) if related_entity_type else None,
                 related_entity_id=str(related_entity_id) if related_entity_id else None,
                 request_id=call_ref,
                 error_occurred=(status or "success").lower() != "success",
                 error_type=error_text[:120] if error_text else None,
-                metadata_json={**(metadata or {}), "token_source": token_source},
+                metadata_json={
+                    **(metadata or {}),
+                    "token_source": token_source,
+                    "pricing": {
+                        "provider_cost_usd": round(float(breakdown.provider_cost_usd), 8),
+                        "user_billable_usd": round(float(breakdown.user_billable_usd), 8),
+                        "credits_exact": round(float(breakdown.credits_exact), 6),
+                        "charged_milli_credits": max(int(charged_milli_credits or 0), 0),
+                    },
+                    "balance_after": balance_after,
+                    "charge_error": charge_error,
+                },
             )
             db.add(row)
             await db.commit()

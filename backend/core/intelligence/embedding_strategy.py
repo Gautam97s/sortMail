@@ -43,7 +43,14 @@ Participants: {', '.join(thread.participants or [])}
 """
 
         # 3. Generate Embedding
-        embedding = await generate_embedding(document)
+        embedding = await generate_embedding(
+            document,
+            user_id=user_id,
+            operation_type="thread_embedding",
+            related_entity_type="thread",
+            related_entity_id=thread.id,
+            metadata={"source_type": "thread", "source_id": thread.id},
+        )
         if not embedding or all(v == 0.0 for v in embedding):
             logger.error(f"Embedding failed. Skipping ChromaDB insertion for thread {thread.id}")
             return False

@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from core.storage.database import get_db
 from core.credits.credit_service import CreditService
+from core.credits.token_pricing import credits_to_milli, milli_to_credits
 from models.credits import CreditPricing, TransactionType, UserCredits, CreditTransaction
 from models.user import User
 from api.dependencies import get_current_user
@@ -33,27 +34,27 @@ async def get_superuser(current_user: User = Depends(get_current_user)) -> User:
 
 class PricingUpdate(BaseModel):
     operation_type: str
-    credits_cost: int
+    credits_cost: float
     is_active: Optional[bool] = None
     description: Optional[str] = None
 
 class CreditAdjustment(BaseModel):
     user_id: UUID
-    amount: int  # Positive to add, Negative to deduct
+    amount: float  # Positive to add, Negative to deduct (credits)
     reason: str
 
 class UserCreditInfo(BaseModel):
     user_id: UUID
-    balance: int
-    total_earned: int
-    total_spent: int
+    balance: float
+    total_earned: float
+    total_spent: float
     plan: str
 
 
 class AdminCreditSummary(BaseModel):
-    total_credits_issued: int
-    active_consumption_30d: int
-    purchase_credits_30d: int
+    total_credits_issued: float
+    active_consumption_30d: float
+    purchase_credits_30d: float
     pending_refunds: int
 
 
@@ -62,8 +63,8 @@ class AdminCreditTransactionOut(BaseModel):
     user_id: str
     user_email: Optional[str] = None
     user_name: Optional[str] = None
-    amount: int
-    balance_after: int
+    amount: float
+    balance_after: float
     transaction_type: str
     operation_type: Optional[str] = None
     status: str
@@ -83,7 +84,7 @@ async def get_pricing(
     return [
         PricingUpdate(
             operation_type=p.operation_type, 
-            credits_cost=p.credits_cost,
+            credits_cost=round(milli_to_credits(p.credits_cost), 3),
             is_active=p.is_active,
             description=p.description
         ) for p in pricing
@@ -101,7 +102,7 @@ async def update_pricing(
     pricing = result.scalar_one_or_none()
     
     if pricing:
-        pricing.credits_cost = update_data.credits_cost
+        pricing.credits_cost = credits_to_milli(update_data.credits_cost)
         if update_data.is_active is not None:
             pricing.is_active = update_data.is_active
         if update_data.description:
@@ -109,7 +110,7 @@ async def update_pricing(
     else:
         pricing = CreditPricing(
             operation_type=update_data.operation_type,
-            credits_cost=update_data.credits_cost,
+            credits_cost=credits_to_milli(update_data.credits_cost),
             is_active=update_data.is_active if update_data.is_active is not None else True,
             description=update_data.description
         )
@@ -127,15 +128,16 @@ async def adjust_user_credits(
     """Manually add or deduct credits from a user."""
     
     # Use CreditService for safety
-    if adjustment.amount > 0:
+    milli_amount = credits_to_milli(adjustment.amount)
+    if milli_amount > 0:
         new_balance = await CreditService.add_credits(
             db, 
             adjustment.user_id, 
-            adjustment.amount, 
+            milli_amount, 
             TransactionType.ADMIN_ADJUSTMENT,
             metadata={"reason": adjustment.reason, "admin_id": str(admin.id)}
         )
-    elif adjustment.amount < 0:
+    elif milli_amount < 0:
         # Deduct (amount is negative, but deduct_credits expects positive cost usually, 
         # but here we can just add negative amount via add_credits logic OR use deduct logic.
         # CreditService.deduct_credits logs as DEDUCTION.
@@ -144,7 +146,7 @@ async def adjust_user_credits(
         new_balance = await CreditService.add_credits(
             db, 
             adjustment.user_id, 
-            adjustment.amount, # Negative
+            milli_amount,
             TransactionType.ADMIN_ADJUSTMENT,
             metadata={"reason": adjustment.reason, "admin_id": str(admin.id)}
         )
@@ -152,7 +154,7 @@ async def adjust_user_credits(
         return {"status": "no_change"}
         
     await db.commit()
-    return {"status": "success", "new_balance": new_balance}
+    return {"status": "success", "new_balance": round(milli_to_credits(new_balance), 3)}
 
 @router.get("/users/{user_id}", response_model=UserCreditInfo)
 async def get_user_credits(
@@ -164,10 +166,10 @@ async def get_user_credits(
     credits = await CreditService.get_or_create_user_credits(db, user_id)
     return UserCreditInfo(
         user_id=credits.user_id,
-        balance=credits.credits_balance,
-        total_earned=credits.credits_total_earned,
-        total_spent=credits.credits_total_spent,
-        plan=credits.plan
+        balance=round(milli_to_credits(credits.credits_balance), 3),
+        total_earned=round(milli_to_credits(credits.credits_total_earned), 3),
+        total_spent=round(milli_to_credits(credits.credits_total_spent), 3),
+        plan=credits.plan.value if credits.plan else "FREE"
     )
 
 
@@ -216,9 +218,9 @@ async def get_credit_summary(
     pending_refunds = int((await db.execute(pending_refunds_stmt)).scalar() or 0)
 
     return AdminCreditSummary(
-        total_credits_issued=total_credits_issued,
-        active_consumption_30d=active_consumption_30d,
-        purchase_credits_30d=purchase_credits_30d,
+        total_credits_issued=round(milli_to_credits(total_credits_issued), 3),
+        active_consumption_30d=round(milli_to_credits(active_consumption_30d), 3),
+        purchase_credits_30d=round(milli_to_credits(purchase_credits_30d), 3),
         pending_refunds=pending_refunds,
     )
 
@@ -268,8 +270,8 @@ async def get_credit_transactions(
             user_id=tx.user_id,
             user_email=user.email,
             user_name=user.name,
-            amount=tx.amount,
-            balance_after=tx.balance_after,
+            amount=round(milli_to_credits(tx.amount), 3),
+            balance_after=round(milli_to_credits(tx.balance_after), 3),
             transaction_type=tx.transaction_type.value if tx.transaction_type else "",
             operation_type=tx.operation_type,
             status=tx.status.value if tx.status else "",

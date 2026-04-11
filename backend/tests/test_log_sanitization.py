@@ -83,7 +83,7 @@ def test_sanitization():
     
     print(f"\n📊 Results: {passed} passed, {failed} failed")
     
-    return failed == 0
+    assert failed == 0
 
 def test_logging_levels():
     """Test logging level configuration for different environments."""

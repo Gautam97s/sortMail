@@ -46,14 +46,14 @@ class UserCredits(Base):
     user_id = Column(String, ForeignKey("users.id"), unique=True, nullable=False, index=True)
     
     # Balances
-    credits_balance = Column(Integer, default=0, nullable=False)
+    credits_balance = Column(BigInteger, default=0, nullable=False)
     credits_total_earned = Column(BigInteger, default=0)
     credits_total_spent = Column(BigInteger, default=0)
     
     # Plan Info
     plan = Column(Enum(PlanType), default=PlanType.FREE, nullable=False)
-    monthly_credits_allowance = Column(Integer, default=50, nullable=False)
-    credits_used_this_month = Column(Integer, default=0)
+    monthly_credits_allowance = Column(BigInteger, default=2_000_000, nullable=False)
+    credits_used_this_month = Column(BigInteger, default=0)
     billing_cycle_start = Column(Date, nullable=False)
     
     # Expiry & versioning
@@ -84,8 +84,8 @@ class CreditTransaction(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
     
-    amount = Column(Integer, nullable=False) # + or -
-    balance_after = Column(Integer, nullable=False)
+    amount = Column(BigInteger, nullable=False) # + or - (milli-credits)
+    balance_after = Column(BigInteger, nullable=False)
     
     transaction_type = Column(Enum(TransactionType), nullable=False)
     operation_type = Column(String(50), nullable=True)
@@ -116,7 +116,7 @@ class CreditPricing(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     operation_type = Column(String(100), unique=True, nullable=False)
-    credits_cost = Column(Integer, nullable=False)
+    credits_cost = Column(BigInteger, nullable=False)
     
     is_active = Column(Boolean, default=True)
     description = Column(Text, nullable=True)
@@ -153,8 +153,8 @@ class UserCreditLimits(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String, ForeignKey("users.id"), unique=True, nullable=False)
     
-    max_credits_per_day = Column(Integer, nullable=True)
-    max_credits_per_operation = Column(Integer, nullable=True)
+    max_credits_per_day = Column(BigInteger, nullable=True)
+    max_credits_per_operation = Column(BigInteger, nullable=True)
     allowed_operations = Column(ARRAY(String), nullable=True)
     blocked_operations = Column(ARRAY(String), nullable=True)
     
@@ -173,7 +173,7 @@ class CreditUsageDaily(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     operation_type = Column(String, nullable=False)
     
-    credits_used = Column(Integer, default=0)
+    credits_used = Column(BigInteger, default=0)
     operations_count = Column(Integer, default=0)
     actual_cost_cents = Column(Integer, default=0)
     

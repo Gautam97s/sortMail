@@ -16,28 +16,29 @@ from api.dependencies import get_current_user
 from models.user import User
 from models.credits import UserCredits, CreditTransaction, TransactionType, TransactionStatus
 from core.credits.credit_service import CreditService
+from core.credits.token_pricing import milli_to_credits, credits_to_milli
 
 router = APIRouter()
 
 
 class CreditBalanceResponse(BaseModel):
-    balance: int
+    balance: float
     plan: str
-    monthly_allowance: int
-    used_this_month: int
+    monthly_allowance: float
+    used_this_month: float
     resets_on: Optional[str]  # ISO date string
-    bonus_available: int = 0
-    bonus_consumed_this_cycle: int = 0
-    monthly_remaining: int = 0
-    total_spent_this_cycle: int = 0
-    raw_used_this_month: int = 0
+    bonus_available: float = 0
+    bonus_consumed_this_cycle: float = 0
+    monthly_remaining: float = 0
+    total_spent_this_cycle: float = 0
+    raw_used_this_month: float = 0
     consumption_policy: str = "bonus_first_then_monthly"
 
 
 class TransactionOut(BaseModel):
     id: str
-    amount: int
-    balance_after: int
+    amount: float
+    balance_after: float
     transaction_type: str
     operation_type: Optional[str]
     status: str
@@ -57,17 +58,17 @@ async def get_my_credits(
 
     plan_name = credits.plan.value if credits.plan else "FREE"
     plan_defaults = {
-        "FREE": 50,
-        "PRO": 500,
-        "TEAM": 2000,
-        "ENTERPRISE": 10000,
+        "FREE": credits_to_milli(2000),
+        "PRO": credits_to_milli(8000),
+        "TEAM": credits_to_milli(2000),
+        "ENTERPRISE": credits_to_milli(10000),
     }
     stored_allowance = int(credits.monthly_credits_allowance or 0)
     plan_allowance = int(plan_defaults.get(plan_name.upper(), stored_allowance or 50))
 
     # If allowance is unset (or stale default for non-free plans), derive from plan.
-    monthly_allowance = stored_allowance
-    if monthly_allowance <= 0 or (plan_name.upper() != "FREE" and monthly_allowance == 50):
+    monthly_allowance = int(stored_allowance)
+    if monthly_allowance <= 0 or (plan_name.upper() != "FREE" and monthly_allowance in {50, 500}):
         monthly_allowance = plan_allowance
 
     # Compute monthly usage from transaction ledger for current billing cycle.
@@ -118,16 +119,16 @@ async def get_my_credits(
         resets_on = reset_date.isoformat()
 
     return CreditBalanceResponse(
-        balance=credits.credits_balance,
+        balance=round(milli_to_credits(credits.credits_balance), 3),
         plan=plan_name,
-        monthly_allowance=monthly_allowance,
-        used_this_month=monthly_used_after_bonus,
+        monthly_allowance=round(milli_to_credits(monthly_allowance), 3),
+        used_this_month=round(milli_to_credits(monthly_used_after_bonus), 3),
         resets_on=resets_on,
-        bonus_available=bonus_available,
-        bonus_consumed_this_cycle=bonus_consumed_this_cycle,
-        monthly_remaining=monthly_remaining,
-        total_spent_this_cycle=total_spent_this_cycle,
-        raw_used_this_month=raw_used_this_month,
+        bonus_available=round(milli_to_credits(bonus_available), 3),
+        bonus_consumed_this_cycle=round(milli_to_credits(bonus_consumed_this_cycle), 3),
+        monthly_remaining=round(milli_to_credits(monthly_remaining), 3),
+        total_spent_this_cycle=round(milli_to_credits(total_spent_this_cycle), 3),
+        raw_used_this_month=round(milli_to_credits(raw_used_this_month), 3),
         consumption_policy="bonus_first_then_monthly",
     )
 
@@ -153,4 +154,15 @@ async def get_my_transactions(
 
     result = await db.execute(stmt)
     transactions = result.scalars().all()
-    return transactions
+    return [
+        TransactionOut(
+            id=tx.id,
+            amount=round(milli_to_credits(tx.amount), 3),
+            balance_after=round(milli_to_credits(tx.balance_after), 3),
+            transaction_type=tx.transaction_type.value if tx.transaction_type else "",
+            operation_type=tx.operation_type,
+            status=tx.status.value if tx.status else "",
+            created_at=tx.created_at,
+        )
+        for tx in transactions
+    ]

@@ -49,7 +49,14 @@ class AttachmentContextStrategy:
         chunks = chunk_text_for_rag(text, max_chunk_tokens=512)
 
         for i, chunk in enumerate(chunks):
-            embedding = await generate_embedding(chunk["text"])
+            embedding = await generate_embedding(
+                chunk["text"],
+                user_id=user_id,
+                operation_type="attachment_embedding",
+                related_entity_type="attachment",
+                related_entity_id=attachment_id,
+                metadata={"source_type": "attachment", "source_id": attachment_id, "chunk_index": i},
+            )
             await vector_store.add(
                 id=f"{attachment_id}_chunk_{i}",
                 document=chunk["text"][:16000],
@@ -83,7 +90,14 @@ class AttachmentContextStrategy:
         chunks = chunk_text_for_rag(key_excerpts, max_chunk_tokens=512)
 
         for i, chunk in enumerate(chunks):
-            embedding = await generate_embedding(chunk["text"])
+            embedding = await generate_embedding(
+                chunk["text"],
+                user_id=user_id,
+                operation_type="attachment_embedding",
+                related_entity_type="attachment",
+                related_entity_id=attachment_id,
+                metadata={"source_type": "attachment", "source_id": attachment_id, "chunk_index": i},
+            )
             await vector_store.add(
                 id=f"{attachment_id}_chunk_{i}",
                 document=chunk["text"][:16000],
@@ -119,7 +133,14 @@ class AttachmentContextStrategy:
             f"Large document ({len(text)} chars) stored in object storage."
         )
 
-        embedding = await generate_embedding(summary_text)
+        embedding = await generate_embedding(
+            summary_text,
+            user_id=user_id,
+            operation_type="attachment_summary_embedding",
+            related_entity_type="attachment",
+            related_entity_id=attachment_id,
+            metadata={"source_type": "attachment_summary", "source_id": attachment_id},
+        )
         await vector_store.add(
             id=f"{attachment_id}_summary",
             document=summary_text,
