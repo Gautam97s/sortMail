@@ -10,6 +10,7 @@ from .document import Document
 from .reminder import Reminder
 from .vip_domain import VIPDomain
 from .calendar_suggestion import CalendarSuggestion
+from .follow_up import FollowUp, FollowUpStatus
 from .credits import UserCredits, CreditTransaction, CreditPricing, CreditPackage
 from .contact import Contact
 from .tag import Tag, thread_tags
@@ -38,6 +39,8 @@ __all__ = [
     "ToneType",
     # Follow-ups
     "Reminder",
+    "FollowUp",
+    "FollowUpStatus",
     "VIPDomain",
     "CalendarSuggestion",
     # Credits

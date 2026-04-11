@@ -17,6 +17,7 @@ from models.connected_account import ConnectedAccount, ProviderType
 from core.intelligence.attachment_security import precheck_attachment_metadata
 from core.ingestion.email_fetcher import fetch_threads
 from core.ingestion.attachment_extractor import extract_attachments
+from core.ingestion.followup_closure_hook import detect_and_close_follow_ups
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -348,6 +349,15 @@ class IngestionService:
                     await index_attachment(att_id, user_id, getattr(self, "db", None) or self.db)
                 except Exception as e:
                     logger.error(f"Failed to safe-trigger vector indexer for {att_id}: {e}")
+
+        # 4. Detect and close follow-ups if inbound reply detected (non-blocking)
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(detect_and_close_follow_ups(self.db, thread.id, user_id))
+        except RuntimeError:
+            logger.debug(f"No event loop for reply detection on thread {thread.id}")
+        except Exception as e:
+            logger.warning(f"Reply detection failed for thread {thread.id}: {e}")
 
         # Trigger AI intelligence pipeline in background (non-blocking)
         import asyncio

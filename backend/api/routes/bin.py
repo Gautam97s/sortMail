@@ -19,6 +19,7 @@ from models.recycle_bin import RecycleBinItem
 from models.thread import Thread
 from models.task import Task
 from models.draft import Draft
+from models.follow_up import FollowUp, FollowUpStatus
 from models.email import Email
 from models.attachment import Attachment
 from models.tag import thread_tags
@@ -114,15 +115,56 @@ async def restore_bin_item(
         draft.deleted_at = None
 
     elif item.entity_type == "workflow_reminder":
-        thread = (await db.execute(select(Thread).where(Thread.id == item.entity_id, Thread.user_id == current_user.id))).scalars().first()
+        payload = item.payload_json or {}
+        thread_id = payload.get("thread_id") or item.entity_id
+
+        thread = (await db.execute(select(Thread).where(Thread.id == thread_id, Thread.user_id == current_user.id))).scalars().first()
         if not thread:
             raise HTTPException(status_code=404, detail="Thread not found for restore")
+
+        follow_up = (await db.execute(
+            select(FollowUp).where(
+                FollowUp.id == item.entity_id,
+                FollowUp.user_id == current_user.id,
+            )
+        )).scalars().first()
+
+        expected_reply_raw = payload.get("expected_reply_by")
+        expected_reply_dt = None
+        if expected_reply_raw:
+            try:
+                expected_reply_dt = datetime.fromisoformat(str(expected_reply_raw).replace("Z", "+00:00"))
+                if expected_reply_dt.tzinfo is None:
+                    expected_reply_dt = expected_reply_dt.replace(tzinfo=timezone.utc)
+            except ValueError:
+                expected_reply_dt = None
+
+        if follow_up:
+            follow_up.deleted_at = None
+            follow_up.status = FollowUpStatus.WAITING
+            follow_up.expected_reply_by = expected_reply_dt
+            follow_up.snoozed_until = None
+            follow_up.updated_at = now
+        else:
+            follow_up = FollowUp(
+                user_id=current_user.id,
+                thread_id=thread.id,
+                expected_reply_by=expected_reply_dt,
+                status=FollowUpStatus.WAITING,
+                auto_detected=True,
+                detection_confidence=80,
+                metadata_json={},
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(follow_up)
+
         intel = dict(thread.intel_json or {})
         intel["follow_up_needed"] = True
-        expected_reply_by = (item.payload_json or {}).get("expected_reply_by")
-        if expected_reply_by:
-            intel["expected_reply_by"] = expected_reply_by
+        if expected_reply_raw:
+            intel["expected_reply_by"] = expected_reply_raw
         thread.intel_json = intel
+        thread.updated_at = now
 
     else:
         raise HTTPException(status_code=400, detail="Unsupported bin entity")
@@ -179,8 +221,14 @@ async def purge_bin_item(
         await db.execute(delete(Draft).where(Draft.id == item.entity_id, Draft.user_id == current_user.id))
 
     elif item.entity_type == "workflow_reminder":
-        # Reminder is logical state on thread intel; nothing else to purge.
-        pass
+        follow_up = (await db.execute(
+            select(FollowUp).where(
+                FollowUp.id == item.entity_id,
+                FollowUp.user_id == current_user.id,
+            )
+        )).scalars().first()
+        if follow_up:
+            await db.execute(delete(FollowUp).where(FollowUp.id == follow_up.id, FollowUp.user_id == current_user.id))
 
     item.purged_at = datetime.now(timezone.utc)
     await db.commit()

@@ -6,7 +6,7 @@ SQLAlchemy model for follow-up tracking.
 
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, DateTime, Integer, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, String, DateTime, Integer, Boolean, ForeignKey, UniqueConstraint, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import JSONB
 import enum
 
@@ -29,12 +29,17 @@ class FollowUp(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
     thread_id = Column(String, ForeignKey("threads.id"), nullable=False, index=True)
     email_id = Column(String, ForeignKey("emails.id"), nullable=True) # specific message
+
+    # Backward-compatible fields already present in production schema.
+    last_sent_at = Column(DateTime(timezone=True), nullable=False)
+    days_waiting = Column(Integer, nullable=True)
+    reminded = Column(Boolean, default=False)
     
     expected_reply_by = Column(DateTime(timezone=True), nullable=True)
     reminder_at = Column(DateTime(timezone=True), nullable=True)
     reminder_sent = Column(Boolean, default=False)
     
-    status = Column(Enum(FollowUpStatus), default=FollowUpStatus.WAITING, nullable=False)
+    status = Column(SQLEnum(FollowUpStatus, native_enum=False), default=FollowUpStatus.WAITING, nullable=False)
     snoozed_until = Column(DateTime(timezone=True), nullable=True)
     reply_received_at = Column(DateTime(timezone=True), nullable=True)
     

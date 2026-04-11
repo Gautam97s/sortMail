@@ -72,6 +72,11 @@ def _fallback_text_for_operation(operation: str) -> str:
     return ""
 
 
+def _auth_fallback_allowed(operation: str) -> bool:
+    """Allow auth fallback only for non-draft operations."""
+    return operation not in {"draft_reply", "draft_regenerate", "draft_freeform"}
+
+
 def _get_bedrock_client():
     region = settings.BEDROCK_REGION_NAME or settings.AWS_REGION_NAME or "us-east-1"
     return boto3.client(
@@ -166,12 +171,33 @@ async def _call_llama(
     temperature: float = 0.2,
     operation: str = "general",
     metadata: dict[str, Any] | None = None,
+    allow_auth_fallback: bool | None = None,
 ) -> str:
+    result = await _call_llama_with_usage(
+        messages,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        operation=operation,
+        metadata=metadata,
+        allow_auth_fallback=allow_auth_fallback,
+    )
+    return result["text"]
+
+
+async def _call_llama_with_usage(
+    messages: list[dict],
+    max_tokens: int = 2048,
+    temperature: float = 0.2,
+    operation: str = "general",
+    metadata: dict[str, Any] | None = None,
+    allow_auth_fallback: bool | None = None,
+) -> dict[str, Any]:
     """Call Amazon Bedrock Nova via the Converse API."""
     model_id = settings.BEDROCK_MODEL_ID
     record_metric("ai_call_attempt")
     record_metric(f"ai_call_attempt_{operation}")
     start = time.perf_counter()
+    fallback_allowed = _auth_fallback_allowed(operation) if allow_auth_fallback is None else bool(allow_auth_fallback)
 
     try:
         system_blocks, bedrock_messages = _split_messages(messages)
@@ -222,7 +248,14 @@ async def _call_llama(
             output_tokens,
             latency_ms,
         )
-        return text
+        return {
+            "text": text,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "model_id": model_id,
+            "latency_ms": latency_ms,
+            "token_source": token_source,
+        }
     except Exception as exc:
         latency_ms = int((time.perf_counter() - start) * 1000)
         record_metric("ai_call_error")
@@ -254,9 +287,16 @@ async def _call_llama(
             record_metric("ai_call_auth_error")
             record_metric(f"ai_call_auth_error_{operation}")
             fallback_text = _fallback_text_for_operation(operation)
-            if fallback_text:
+            if fallback_allowed and fallback_text:
                 logger.warning("Bedrock auth/authorization issue; returning fallback text for op=%s", operation)
-                return fallback_text
+                return {
+                    "text": fallback_text,
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "model_id": model_id,
+                    "latency_ms": latency_ms,
+                    "token_source": "fallback",
+                }
 
         raise
 

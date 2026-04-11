@@ -27,6 +27,7 @@ from contracts import (
     DashboardData
 )
 from models.task import Task, TaskStatus
+from models.follow_up import FollowUp, FollowUpStatus
 from core.intelligence.dashboard_briefing import get_dashboard_briefing
 
 router = APIRouter()
@@ -211,12 +212,15 @@ async def get_dashboard_stats(
     tasks_due_count = (await db.execute(tasks_due_stmt)).scalar() or 0
     
     # Awaiting Reply (follow_up_needed in intel_json)
-    awaiting_reply_stmt = select(func.count(Thread.id)).where(
-        Thread.user_id == current_user.id,
+    awaiting_reply_stmt = select(func.count(FollowUp.id)).join(
+        Thread, Thread.id == FollowUp.thread_id
+    ).where(
+        FollowUp.user_id == current_user.id,
+        FollowUp.deleted_at.is_(None),
+        FollowUp.status.in_([FollowUpStatus.WAITING, FollowUpStatus.OVERDUE]),
         Thread.is_archived == False,
         Thread.is_trash == False,
         ~unsubscribed_thread_exists,
-        Thread.intel_json['follow_up_needed'].astext == 'true'
     )
     awaiting_reply_count = (await db.execute(awaiting_reply_stmt)).scalar() or 0
 

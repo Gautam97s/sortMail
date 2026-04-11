@@ -24,8 +24,9 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from core.intelligence.pipeline import _load_thread, _load_messages
-from core.intelligence.llama_engine import _call_llama
+from core.intelligence.llama_engine import _call_llama, _call_llama_with_usage
 from api.routes.bin import create_bin_item
+from app.config import settings
 from core.intelligence.prompts import (
     DRAFT_REPLY_SYSTEM_PROMPT,
     DRAFT_REPLY_USER_PROMPT_TEMPLATE,
@@ -133,6 +134,10 @@ def _build_thread_context(messages: list[dict], max_messages: int = 3, max_chars
     return "\n\n".join(context_parts)
 
 
+def _is_no_reply_needed(text: str) -> bool:
+    return (text or "").strip().upper() == "NO_REPLY_NEEDED"
+
+
 async def _resolve_reply_target(db: AsyncSession, draft: Draft, current_user: User) -> str:
     """Find a recipient email for the draft send action."""
     latest_stmt = (
@@ -210,6 +215,7 @@ async def generate_freeform_draft(
                     "related_entity_id": "freeform",
                     "credits_charged": charged_credits,
                 },
+                allow_auth_fallback=False,
             )
         ).strip()
         await CreditService.commit_reservation(db, reservation_id)
@@ -293,7 +299,6 @@ async def generate_draft(
              detail="Insufficient credits. Please upgrade or purchase more credits."
          )
 
-    # TODO: Implement real draft generation with LLM
     try:
         # Load real thread and context
         thread = await _load_thread(request.thread_id, current_user.id, db)
@@ -301,11 +306,6 @@ async def generate_draft(
             raise HTTPException(status_code=404, detail="Thread not found")
             
         messages = await _load_messages(request.thread_id, db)
-        messages_text = ""
-        for m in messages:
-            sender = m.get("from", "Unknown")
-            body = m.get("body", "").strip()[:500]
-            messages_text += f"From: {sender}\n{body}\n\n"
             
         tone_val = request.tone.value if hasattr(request.tone, 'value') else request.tone
         charged_credits = await CreditService.get_operation_cost(db, OPERATION_TYPE)
@@ -324,19 +324,23 @@ async def generate_draft(
         )
 
         chat_messages = [{"role": "system", "content": DRAFT_REPLY_SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
-        generated_text = (
-            await _call_llama(
-                chat_messages,
-                max_tokens=900,
-                operation="draft_reply",
-                metadata={
-                    "user_id": current_user.id,
-                    "related_entity_type": "thread",
-                    "related_entity_id": request.thread_id,
-                    "credits_charged": charged_credits,
-                },
-            )
-        ).strip()
+        llm_result = await _call_llama_with_usage(
+            chat_messages,
+            max_tokens=900,
+            operation="draft_reply",
+            metadata={
+                "user_id": current_user.id,
+                "related_entity_type": "thread",
+                "related_entity_id": request.thread_id,
+                "credits_charged": charged_credits,
+            },
+            allow_auth_fallback=False,
+        )
+        generated_text = (llm_result.get("text") or "").strip()
+
+        if _is_no_reply_needed(generated_text):
+            await db.rollback()
+            raise HTTPException(status_code=409, detail="NO_REPLY_NEEDED")
         
         draft = Draft(
             id=draft_id,
@@ -346,7 +350,9 @@ async def generate_draft(
             content=generated_text,
             body=generated_text,
             tone=request.tone,
-            generation_model="llama-3.3-70b-instruct",
+            generation_model=llm_result.get("model_id") or settings.BEDROCK_MODEL_ID,
+            tokens_used=int(llm_result.get("input_tokens", 0)) + int(llm_result.get("output_tokens", 0)),
+            cost_cents=0,
             status=DraftStatus.GENERATED.value
         )
         db.add(draft)
@@ -372,6 +378,8 @@ async def generate_draft(
     except RateLimitExceededError as e:
         await db.rollback()
         raise HTTPException(status_code=429, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Draft generation failed: {str(e)}")
@@ -451,25 +459,32 @@ async def regenerate_draft(
 
         # 4. Generate
         chat_messages = [{"role": "system", "content": DRAFT_REPLY_SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
-        generated_text = (
-            await _call_llama(
-                chat_messages,
-                max_tokens=900,
-                operation="draft_regenerate",
-                metadata={
-                    "user_id": current_user.id,
-                    "related_entity_type": "draft",
-                    "related_entity_id": draft_id,
-                    "credits_charged": charged_credits,
-                },
-            )
-        ).strip()
+        llm_result = await _call_llama_with_usage(
+            chat_messages,
+            max_tokens=900,
+            operation="draft_regenerate",
+            metadata={
+                "user_id": current_user.id,
+                "related_entity_type": "draft",
+                "related_entity_id": draft_id,
+                "credits_charged": charged_credits,
+            },
+            allow_auth_fallback=False,
+        )
+        generated_text = (llm_result.get("text") or "").strip()
+
+        if _is_no_reply_needed(generated_text):
+            await db.rollback()
+            raise HTTPException(status_code=409, detail="NO_REPLY_NEEDED")
         
         # 5. Update draft
         draft.content = generated_text
         draft.body = generated_text
         if tone:
             draft.tone = tone
+        draft.generation_model = llm_result.get("model_id") or settings.BEDROCK_MODEL_ID
+        draft.tokens_used = int(llm_result.get("input_tokens", 0)) + int(llm_result.get("output_tokens", 0))
+        draft.cost_cents = 0
 
         # 6. Commit the reservation now that the updated draft is ready.
         await CreditService.commit_reservation(db, reservation_id)

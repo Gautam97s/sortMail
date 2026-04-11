@@ -28,6 +28,7 @@ from sqlalchemy import select
 
 from models.thread import Thread
 from models.task import Task, TaskStatus, TaskType, PriorityLevel
+from models.follow_up import FollowUp, FollowUpStatus
 from models.email import Email
 from models.attachment import Attachment
 
@@ -183,6 +184,14 @@ async def process_thread_intelligence(
             thread.intel_generated_at = datetime.now(timezone.utc)
 
             await _process_contacts(user_id, messages, db)
+            await _sync_follow_up(
+                user_id=user_id,
+                thread=thread,
+                follow_up_needed=False,
+                expected_reply_by=None,
+                messages=messages,
+                db=db,
+            )
             await db.commit()
             logger.info(f"Intel skipped for low-value thread={thread_id} reason={low_value_reason}")
             _log_intel_payload(thread_id, final_intel, source="low_value")
@@ -306,6 +315,14 @@ async def process_thread_intelligence(
 
             # â”€â”€ 6b. Process Tags (Gemini tags + Contact tags) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             await _process_tags(user_id, thread, tags_list, db)
+            await _sync_follow_up(
+                user_id=user_id,
+                thread=thread,
+                follow_up_needed=bool(follow_up),
+                expected_reply_by=reply_by,
+                messages=messages,
+                db=db,
+            )
 
             # Background intelligence must not auto-create reply drafts.
             # Drafts are generated only when the user explicitly requests them.
@@ -421,6 +438,112 @@ async def _load_messages(thread_id: str, db: AsyncSession) -> list[dict]:
         }
         for m in rows
     ]
+
+
+def _parse_message_datetime(raw_value: str | None) -> Optional[datetime]:
+    if not raw_value:
+        return None
+    try:
+        value = datetime.fromisoformat(raw_value.replace("Z", "+00:00"))
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
+    except ValueError:
+        return None
+
+
+def _derive_follow_up_context(thread: Thread, messages: list[dict], user_email: Optional[str] = None) -> tuple[datetime, str]:
+    last_sent_at = thread.last_email_at or datetime.now(timezone.utc)
+    recipient = "Unknown"
+
+    for msg in reversed(messages):
+        if msg.get("is_from_user"):
+            sent_at = _parse_message_datetime(msg.get("date"))
+            if sent_at:
+                last_sent_at = sent_at
+            break
+
+    user_email_lower = (user_email or "").lower()
+    for participant in list(thread.participants or []):
+        candidate = (participant or "").strip()
+        if not candidate:
+            continue
+        if user_email_lower and user_email_lower in candidate.lower():
+            continue
+        recipient = candidate
+        break
+
+    return last_sent_at, recipient
+
+
+def _parse_expected_reply_by(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        if len(value) == 10:
+            parsed_date = datetime.strptime(value, "%Y-%m-%d").date()
+            return datetime(parsed_date.year, parsed_date.month, parsed_date.day, 23, 59, tzinfo=timezone.utc)
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed
+    except ValueError:
+        return None
+
+
+async def _sync_follow_up(
+    user_id: str,
+    thread: Thread,
+    follow_up_needed: bool,
+    expected_reply_by: Optional[str],
+    messages: list[dict],
+    db: AsyncSession,
+) -> None:
+    stmt = select(FollowUp).where(
+        FollowUp.user_id == user_id,
+        FollowUp.thread_id == thread.id,
+        FollowUp.deleted_at.is_(None),
+    )
+    follow_up = (await db.execute(stmt)).scalars().first()
+
+    if not follow_up_needed:
+        if follow_up:
+            follow_up.status = FollowUpStatus.CANCELLED
+            follow_up.deleted_at = datetime.now(timezone.utc)
+            follow_up.updated_at = datetime.now(timezone.utc)
+        return
+
+    last_sent_at, recipient = _derive_follow_up_context(thread, messages)
+    metadata = dict((follow_up.metadata_json if follow_up else {}) or {})
+    metadata["last_sent_at"] = last_sent_at.isoformat()
+    metadata["recipient"] = recipient
+
+    expected_reply_dt = _parse_expected_reply_by(expected_reply_by)
+
+    if not follow_up:
+        follow_up = FollowUp(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            thread_id=thread.id,
+            expected_reply_by=expected_reply_dt,
+            status=FollowUpStatus.WAITING,
+            auto_detected=True,
+            detection_confidence=85,
+            metadata_json=metadata,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+        db.add(follow_up)
+        return
+
+    follow_up.deleted_at = None
+    if follow_up.status in {FollowUpStatus.CANCELLED, FollowUpStatus.REPLIED}:
+        follow_up.status = FollowUpStatus.WAITING
+        follow_up.reply_received_at = None
+    follow_up.expected_reply_by = expected_reply_dt
+    follow_up.auto_detected = True
+    follow_up.metadata_json = metadata
+    follow_up.updated_at = datetime.now(timezone.utc)
 
 
 def _detect_low_value_thread(thread: Thread, messages: list[dict]) -> Optional[str]:

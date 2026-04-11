@@ -18,6 +18,8 @@ from contracts import (
     Placeholder,
 )
 from app.config import settings
+from core.intelligence.llama_engine import _call_llama
+from core.intelligence.prompts import DRAFT_REPLY_SYSTEM_PROMPT
 
 
 async def generate_draft(
@@ -94,35 +96,17 @@ Draft:"""
 
 async def _generate_with_llm(prompt: str, tone: ToneType) -> str:
     """Generate draft content with LLM."""
-    # TODO: Implement actual LLM call
-    # For now, return a template
-    
-    template = """Hi,
-
-Thank you for your email.
-
-[Confirm your response or decision here]
-
-Best regards"""
-    
-    if tone == ToneType.BRIEF:
-        template = """Thanks for this.
-
-[Your response]
-
-Best"""
-    elif tone == ToneType.FORMAL:
-        template = """Dear [Recipient],
-
-Thank you for your correspondence regarding this matter.
-
-[State your response or decision]
-
-We look forward to your response at your earliest convenience.
-
-Kind regards"""
-    
-    return template
+    return (
+        await _call_llama(
+            [
+                {"role": "system", "content": DRAFT_REPLY_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=900,
+            operation="draft_reply",
+            allow_auth_fallback=False,
+        )
+    ).strip()
 
 
 def _extract_placeholders(content: str) -> list:

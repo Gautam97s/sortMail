@@ -19,6 +19,7 @@ from models.thread import Thread
 from models.email import Email
 from models.contact import Contact
 from models.task import Task, TaskStatus
+from models.follow_up import FollowUp, FollowUpStatus
 from models.credits import UserCredits
 from models.connected_account import ConnectedAccount, AccountStatus, SyncStatus
 
@@ -157,25 +158,28 @@ async def _synthesize_notifications_for_user(current_user: User, db: AsyncSessio
         )
         created += 1
 
-    waiting_threads = (
+    waiting_followups = (
         await db.execute(
-            select(Thread)
+            select(FollowUp, Thread)
+            .join(Thread, Thread.id == FollowUp.thread_id)
             .where(
-                Thread.user_id == current_user.id,
+                FollowUp.user_id == current_user.id,
+                FollowUp.deleted_at.is_(None),
+                FollowUp.status.in_([FollowUpStatus.WAITING, FollowUpStatus.OVERDUE]),
                 Thread.is_archived == False,
                 Thread.is_trash == False,
                 ~unsubscribed_thread_exists,
-                Thread.intel_json['follow_up_needed'].astext == 'true',
+                (FollowUp.snoozed_until.is_(None) | (FollowUp.snoozed_until <= now)),
             )
-            .order_by(desc(Thread.last_email_at))
+            .order_by(desc(FollowUp.updated_at))
             .limit(10)
         )
-    ).scalars().all()
+    ).all()
 
-    for t in waiting_threads:
+    for follow_up, t in waiting_followups:
         if not _channel_enabled(prefs, "follow_up_reminder"):
             break
-        key = (NotificationType.FOLLOW_UP_REMINDER.value, "thread", t.id)
+        key = (NotificationType.FOLLOW_UP_REMINDER.value, "follow_up", follow_up.id)
         if key in existing_keys:
             continue
         db.add(
@@ -186,8 +190,8 @@ async def _synthesize_notifications_for_user(current_user: User, db: AsyncSessio
                 body=(t.subject or "A reply is pending")[:255],
                 action_url="/followups",
                 action_text="Review follow-ups",
-                related_entity_type="thread",
-                related_entity_id=t.id,
+                related_entity_type="follow_up",
+                related_entity_id=follow_up.id,
                 priority=NotificationPriority.NORMAL,
                 created_at=now,
             )
