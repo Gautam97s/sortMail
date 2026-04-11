@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --ui-scale: 0.92;
+    --ui-scale: 0.86;
 
     /* ─ Brand Palette (project-wide source of truth) ─────── */
     --primary: #1a73e8;

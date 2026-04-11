@@ -53,9 +53,9 @@ export default function TopNavigationBar({
     };
 
     return (
-        <header className="h-tb border-b border-outline-variant/10 flex items-center justify-between px-3 md:px-4 shrink-0 bg-surface-container-lowest w-full sticky top-0 z-40">
+        <header className="h-tb border-b border-outline-variant/10 flex items-center justify-between px-2.5 md:px-3.5 shrink-0 bg-surface-container-lowest w-full sticky top-0 z-40">
             {/* Mobile Menu Button & Search */}
-            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
                 <button 
                     onClick={onMobileSidebarOpen}
                     className="md:hidden p-1.5 hover:bg-surface-container rounded-xl transition-colors"
@@ -64,10 +64,10 @@ export default function TopNavigationBar({
                 </button>
 
                 <div className="hidden xl:flex flex-col min-w-0 mr-1.5">
-                    <span className="text-xs font-bold uppercase tracking-[0.18em] text-outline">SortMail AI</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-outline">SortMail AI</span>
                     <div className="flex items-center gap-3 min-w-0">
-                        {title && <span className="font-headline text-sm font-bold text-on-surface truncate">{title}</span>}
-                        {subtitle && <span className="text-xs font-medium text-on-surface-variant truncate">{subtitle}</span>}
+                        {title && <span className="font-headline text-xs font-bold text-on-surface truncate">{title}</span>}
+                        {subtitle && <span className="text-[11px] font-medium text-on-surface-variant truncate">{subtitle}</span>}
                     </div>
                 </div>
 
@@ -89,7 +89,7 @@ export default function TopNavigationBar({
                                 openSearchPage();
                             }
                         }}
-                        className="w-full h-9 pl-9 pr-10 bg-surface-container-low border border-outline-variant/20 focus:bg-white focus:ring-2 focus:ring-primary-fixed rounded-full text-xs transition-all outline-none text-on-surface placeholder:text-outline font-medium shadow-sm"
+                        className="w-full h-8 pl-8 pr-9 bg-surface-container-low border border-outline-variant/20 focus:bg-white focus:ring-2 focus:ring-primary-fixed rounded-full text-[11px] transition-all outline-none text-on-surface placeholder:text-outline font-medium shadow-sm"
                     />
                     <button
                         onClick={openSearchPage}
@@ -102,24 +102,24 @@ export default function TopNavigationBar({
             </div>
 
             {/* Right Actions */}
-            <div className="flex items-center gap-1 ml-2.5 shrink-0">
+            <div className="flex items-center gap-1 ml-2 shrink-0">
                 <Link href="/notifications" className="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors relative" aria-label="Notifications">
-                    <MaterialSymbol icon="notifications" className="text-xl" />
+                    <MaterialSymbol icon="notifications" className="text-lg" />
                     {(notificationCount?.unread || 0) > 0 && (
                         <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full ring-2 ring-surface-container-lowest"></span>
                     )}
                 </Link>
                 
                 <Link href="/settings" className="p-1.5 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors" aria-label="Settings">
-                    <MaterialSymbol icon="settings" className="text-xl" />
+                    <MaterialSymbol icon="settings" className="text-lg" />
                 </Link>
 
-                <div className="flex items-center gap-2 ml-1 pl-2.5 border-l border-outline-variant/20">
+                <div className="flex items-center gap-2 ml-1 pl-2 border-l border-outline-variant/20">
                     <div className="hidden md:flex flex-col items-end leading-tight mr-1">
-                        <span className="text-sm font-bold text-on-surface">{user?.name || 'Gautam'}</span>
-                        <span className="text-xs uppercase tracking-[0.12em] text-outline font-semibold">{user?.plan || 'Pro'} Plan</span>
+                        <span className="text-xs font-bold text-on-surface">{user?.name || 'Gautam'}</span>
+                        <span className="text-[10px] uppercase tracking-[0.1em] text-outline font-semibold">{user?.plan || 'Pro'} Plan</span>
                     </div>
-                    <div className="w-8 h-8 rounded-xl overflow-hidden ring-2 ring-outline-variant/15 border border-white cursor-pointer hover:ring-primary/30 transition-all bg-primary-fixed flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-lg overflow-hidden ring-2 ring-outline-variant/15 border border-white cursor-pointer hover:ring-primary/30 transition-all bg-primary-fixed flex items-center justify-center">
                         {user?.avatar ? (
                             <Image 
                                 src={user.avatar} 
