@@ -42,6 +42,7 @@ from models.contact import Contact
 from models.tag import Tag
 from models.draft import Draft, DraftStatus, DraftTone
 from core.app_metrics import record_metric
+from core.redis import RedisClient
 
 logger = logging.getLogger(__name__)
 
@@ -161,6 +162,7 @@ async def process_thread_intelligence(
             if age < 24:
                 record_metric("intel_skipped_fresh")
                 logger.debug(f"Thread {thread_id} intel fresh, skipping")
+                await _remove_from_processing_queue(thread_id)
                 return None
 
         # â”€â”€ 2. Load messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -169,12 +171,14 @@ async def process_thread_intelligence(
         if messages and bool(messages[-1].get("is_from_user")):
             record_metric("intel_skipped_latest_outbound")
             logger.info("Intel skipped for outbound-latest thread=%s", thread_id)
+            await _remove_from_processing_queue(thread_id)
             return None
 
         # Do not run AI intel for unsubscribed contacts.
         if await _is_unsubscribed_sender_thread(user_id, thread, messages, db):
             record_metric("intel_skipped_unsubscribed")
             logger.info("Intel skipped for unsubscribed sender thread=%s", thread_id)
+            await _remove_from_processing_queue(thread_id)
             return None
 
         low_value_reason = _detect_low_value_thread(thread, messages)
@@ -200,6 +204,7 @@ async def process_thread_intelligence(
             logger.info(f"Intel skipped for low-value thread={thread_id} reason={low_value_reason}")
             _log_intel_payload(thread_id, final_intel, source="low_value")
             await _publish_intel_ready(user_id, thread_id, final_intel)
+            await _remove_from_processing_queue(thread_id)
             return final_intel
 
         try:
@@ -350,6 +355,7 @@ async def process_thread_intelligence(
             # â”€â”€ 8. Publish SSE event â†’ frontend invalidates cache â”€â”€â”€â”€â”€â”€â”€â”€â”€
             await _publish_intel_ready(user_id, thread_id, final_intel)
             record_metric("intel_completed")
+            await _remove_from_processing_queue(thread_id)
 
             return final_intel
 

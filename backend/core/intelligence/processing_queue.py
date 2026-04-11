@@ -48,6 +48,15 @@ class IntelligenceQueue:
     async def size(self) -> int:
         """Get pending queue length"""
         return await self.redis.zcard(self.queue_key)
+    
+    async def remove(self, thread_id: str) -> bool:
+        """Remove a thread from the processing queue after completion."""
+        removed = await self.redis.zrem(self.queue_key, thread_id)
+        if removed > 0:
+            record_metric("queue_item_removed")
+            logger.debug(f"[Queue] Removed thread {thread_id} from queue")
+            return True
+        return False
 
 
 async def generate_intelligence_for_thread(thread_id: str):
