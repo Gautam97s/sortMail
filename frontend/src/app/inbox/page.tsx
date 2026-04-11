@@ -8,6 +8,7 @@ import { api, endpoints } from '@/lib/api';
 import { useThreads } from '@/hooks/useThreads';
 import { useSmartSync } from '@/hooks/useSmartSync';
 import { useRealtimeEvents } from '@/hooks/useRealtimeEvents';
+import { useSearchParams } from 'next/navigation';
 import { ThreadListItem } from '@/types/dashboard';
 
 const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
@@ -39,6 +40,7 @@ function findScrollParent(start: HTMLElement | null): HTMLElement | null {
 }
 
 function InboxContent() {
+    const searchParams = useSearchParams();
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [busyThreadId, setBusyThreadId] = useState<string | null>(null);
@@ -63,7 +65,14 @@ function InboxContent() {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null);
     const queryClient = useQueryClient();
+    const intentFilter = searchParams.get('intent') || undefined;
+    const initialSearch = searchParams.get('q') || '';
     
+    useEffect(() => {
+        setSearch(initialSearch);
+        setDebouncedSearch(initialSearch);
+    }, [initialSearch]);
+
     useEffect(() => {
         const t = setTimeout(() => setDebouncedSearch(search), 400);
         return () => clearTimeout(t);
@@ -78,7 +87,7 @@ function InboxContent() {
 
     // Use true offset paging: first fetch is larger, then load fixed-size pages.
     const currentLimit = currentOffset === 0 ? INITIAL_LIMIT : PAGE_SIZE;
-    const { data: threads, isLoading, error } = useThreads(undefined, debouncedSearch || undefined, currentOffset, currentLimit);
+    const { data: threads, isLoading, error } = useThreads(intentFilter, debouncedSearch || undefined, currentOffset, currentLimit);
     
     const { syncState, triggerSync } = useSmartSync();
     useRealtimeEvents();
@@ -204,6 +213,7 @@ function InboxContent() {
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: ['threads'] }),
                 queryClient.invalidateQueries({ queryKey: ['nav-counts'] }),
+                queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
             ]);
         } finally {
             setBusyThreadId((current) => (current === threadId ? null : current));

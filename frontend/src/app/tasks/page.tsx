@@ -117,6 +117,16 @@ export default function TasksPage() {
     };
 
     useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        setView((params.get('view') as 'board' | 'list' | null) || 'board');
+        setSearchQuery(params.get('q') || '');
+        setSourceFilter(params.get('source') || '');
+        setPriorityFilter(params.get('priority') || 'all');
+        setStatusFilter(params.get('status') || 'all');
+    }, []);
+
+    useEffect(() => {
         const loadSource = async () => {
             if (!selectedTask?.thread_id) {
                 setSourceContext(null);

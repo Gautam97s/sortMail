@@ -63,6 +63,8 @@ export function useCreateTask() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['tasks'] });
             qc.invalidateQueries({ queryKey: ['threads'] });
+            qc.invalidateQueries({ queryKey: ['dashboard'] });
+            qc.invalidateQueries({ queryKey: ['nav-counts'] });
         },
     });
 }
@@ -77,6 +79,8 @@ export function useUpdateTask() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['tasks'] });
             qc.invalidateQueries({ queryKey: ['threads'] });
+            qc.invalidateQueries({ queryKey: ['dashboard'] });
+            qc.invalidateQueries({ queryKey: ['nav-counts'] });
         },
     });
 }
@@ -90,6 +94,8 @@ export function useDeleteTask() {
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['tasks'] });
             qc.invalidateQueries({ queryKey: ['threads'] });
+            qc.invalidateQueries({ queryKey: ['dashboard'] });
+            qc.invalidateQueries({ queryKey: ['nav-counts'] });
         },
     });
 }

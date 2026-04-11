@@ -1,15 +1,19 @@
-"use client";
+'use client';
 
 import React, { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ArrowRight, Loader2, Shield, Eye, Github, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
+import { useAuth } from "@/context/AuthContext";
 import { DynamicIcon } from "@/components/ui/dynamic-icon";
 import { getApiUrl } from "@/lib/config";
 
 export default function LoginPage() {
     const containerRef = useRef<HTMLDivElement>(null);
+    const router = useRouter();
+    const { user, isLoading, checkSession } = useAuth();
     const [loading, setLoading] = useState<"google" | "outlook" | "magic" | null>(null);
     const [email, setEmail] = useState("");
 
@@ -37,6 +41,18 @@ export default function LoginPage() {
         tl.fromTo(".auth-card", { y: 30, opacity: 0, scale: 0.97 }, { y: 0, opacity: 1, scale: 1, duration: 0.7 }, "-=0.5");
         tl.fromTo(".auth-item", { y: 10, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.08, duration: 0.4 }, "-=0.3");
     }, []);
+
+    useEffect(() => {
+        if (!isLoading && user) {
+            router.replace("/dashboard");
+        }
+    }, [isLoading, user, router]);
+
+    useEffect(() => {
+        if (!user && !isLoading) {
+            checkSession().catch(() => undefined);
+        }
+    }, [checkSession, isLoading, user]);
 
     const handleLogin = (provider: "GMAIL" | "OUTLOOK") => {
         setLoading(provider === "GMAIL" ? "google" : "outlook");

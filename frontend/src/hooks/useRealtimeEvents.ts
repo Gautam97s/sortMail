@@ -33,6 +33,8 @@ export function useRealtimeEvents() {
                 console.log('[SSE] intel_ready:', data.thread_id, data.intent, `score=${data.urgency_score}`);
                 // Invalidate threads so updated summary/intent shows in inbox
                 queryClient.invalidateQueries({ queryKey: ['threads'] });
+                queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+                queryClient.invalidateQueries({ queryKey: ['nav-counts'] });
                 // Also invalidate the specific thread detail if cached
                 if (data.thread_id) {
                     queryClient.invalidateQueries({ queryKey: ['thread', data.thread_id] });
@@ -46,6 +48,8 @@ export function useRealtimeEvents() {
                 const data = JSON.parse(e.data);
                 console.log('[SSE] new_emails:', data.count);
                 queryClient.invalidateQueries({ queryKey: ['threads'] });
+                queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+                queryClient.invalidateQueries({ queryKey: ['nav-counts'] });
             } catch { /* ignore */ }
         });
 

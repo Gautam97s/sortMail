@@ -23,6 +23,7 @@ import {
     Sparkles
 } from "lucide-react";
 import { format } from "date-fns";
+import { useDeleteTask, useUpdateTask } from "@/hooks/useTasks";
 
 interface TaskDetailModalProps {
     isOpen: boolean;
@@ -52,6 +53,18 @@ const priorityConfig = {
 export default function TaskDetailModal({ isOpen, onClose, task }: TaskDetailModalProps) {
     const [isEditing, setIsEditing] = useState(false);
     const cfg = priorityConfig[task.priority as keyof typeof priorityConfig] || priorityConfig.medium;
+    const updateTask = useUpdateTask();
+    const deleteTask = useDeleteTask();
+
+    const handleMarkDone = async () => {
+        await updateTask.mutateAsync({ taskId: task.id, payload: { status: 'COMPLETED' } });
+        onClose();
+    };
+
+    const handleDelete = async () => {
+        await deleteTask.mutateAsync(task.id);
+        onClose();
+    };
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -120,7 +133,7 @@ export default function TaskDetailModal({ isOpen, onClose, task }: TaskDetailMod
 
                 <DialogFooter className="px-8 py-6 bg-paper-mid/40 border-t border-border/30 mt-4 flex items-center justify-between">
                     <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" className="text-danger hover:bg-danger/10 hover:text-danger rounded-lg">
+                        <Button variant="ghost" size="icon" className="text-danger hover:bg-danger/10 hover:text-danger rounded-lg" onClick={handleDelete} disabled={deleteTask.isPending}>
                             <Trash2 size={18} />
                         </Button>
                         <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-accent/10 hover:text-accent rounded-lg">
@@ -132,7 +145,7 @@ export default function TaskDetailModal({ isOpen, onClose, task }: TaskDetailMod
                         <Button variant="outline" onClick={onClose} className="border-border/60 hover:bg-paper-mid">
                             Close
                         </Button>
-                        <Button className="gap-2 shadow-lg shadow-success/20 bg-success hover:bg-success/90">
+                        <Button className="gap-2 shadow-lg shadow-success/20 bg-success hover:bg-success/90" onClick={handleMarkDone} disabled={updateTask.isPending}>
                             <CheckCircle2 size={16} />
                             Mark as Done
                         </Button>

@@ -77,6 +77,12 @@ function DashboardContent() {
     const firstName = userData?.name?.split(' ')[0] || 'there';
     const focusScore = deriveFocusScore(stats);
     const focusCopy = getFocusCopy(focusScore);
+    const metricLinks = [
+        { href: '/inbox', label: 'Unread Mails', value: stats.unread, delta: stats.unread_delta, icon: 'mail', color: 'primary' },
+        { href: '/inbox?intent=URGENT', label: 'Urgent Action', value: stats.urgent, icon: 'priority_high', color: 'error' },
+        { href: '/tasks?status=PENDING', label: 'Tasks Due', value: stats.tasks_due, icon: 'checklist', color: 'secondary' },
+        { href: '/followups', label: 'Waiting On', value: stats.awaiting_reply, icon: 'hourglass_empty', color: 'tertiary' },
+    ] as const;
     const statStyles = {
         primary: {
             chip: 'bg-primary-fixed/30 text-primary',
@@ -169,18 +175,17 @@ function DashboardContent() {
 
             {/* Metrics Grid */}
             <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {[
-                    { label: 'Unread Mails', value: stats.unread, delta: stats.unread_delta, icon: 'mail', color: 'primary' },
-                    { label: 'Urgent Action', value: stats.urgent, icon: 'priority_high', color: 'error' },
-                    { label: 'Tasks Due', value: stats.tasks_due, icon: 'checklist', color: 'secondary' },
-                    { label: 'Waiting On', value: stats.awaiting_reply, icon: 'hourglass_empty', color: 'tertiary' },
-                ].map((stat, i) => (
-                    <div key={i} className="bg-white rounded-xl p-3 border border-outline-variant/10 hover:border-primary/20 transition-all group cursor-pointer tonal-shadow">
+                {metricLinks.map((stat, i) => (
+                    <Link
+                        key={i}
+                        href={stat.href}
+                        className="bg-white rounded-xl p-3 border border-outline-variant/10 hover:border-primary/20 transition-all group cursor-pointer tonal-shadow block"
+                    >
                         <div className="flex items-start justify-between mb-3">
                             <div className={`p-2 rounded-xl ${statStyles[stat.color as StatColor].iconWrap} group-hover:scale-110 transition-transform`}>
                                 <MaterialSymbol icon={stat.icon} filled className="text-lg" />
                             </div>
-                            {stat.delta && (
+                            {'delta' in stat && stat.delta && (
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statStyles[stat.color as StatColor].chip}`}>
                                     {stat.delta}
                                 </span>
@@ -194,7 +199,7 @@ function DashboardContent() {
                                 {stat.label}
                             </span>
                         </div>
-                    </div>
+                    </Link>
                 ))}
             </section>
 
