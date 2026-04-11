@@ -37,7 +37,10 @@ class OriginServiceGateMiddleware(BaseHTTPMiddleware):
         self.allow_prefixes_no_origin = (
             "/api/webhooks/",
             "/api/events/",
+            "/api/auth/google",
+            "/api/auth/outlook",
             "/api/auth/google/callback",
+            "/api/auth/outlook/callback",
             "/api/auth/microsoft/callback",
         )
         self.vercel_regex = r"https://sortmail.*\.vercel\.app"
