@@ -12,8 +12,13 @@ Participants: {participants}
 Messages:
 {messages}
 
+Latest inbound message (highest priority for summary/main_ask when present):
+{latest_inbound_message}
+
 Rules:
 - Use only evidence in the thread.
+- Anchor the summary and main_ask to the latest inbound message when available.
+- Do not summarize outbound drafts/replies as the main thread summary unless there is no inbound message.
 - If the thread is promotional, newsletter, social, passive notification, webinar, event invite, or visit-site style mail: set should_create_reply=false and should_create_tasks=false.
 - Only set should_create_reply=true when a reply is clearly expected.
 - Only set should_create_tasks=true when there is a concrete action owned by YOU.

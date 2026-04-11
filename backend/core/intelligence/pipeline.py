@@ -24,7 +24,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from models.thread import Thread
 from models.task import Task, TaskStatus, TaskType, PriorityLevel
@@ -165,6 +165,11 @@ async def process_thread_intelligence(
 
         # â”€â”€ 2. Load messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         messages = await _load_messages(thread_id, db)
+
+        if messages and bool(messages[-1].get("is_from_user")):
+            record_metric("intel_skipped_latest_outbound")
+            logger.info("Intel skipped for outbound-latest thread=%s", thread_id)
+            return None
 
         # Do not run AI intel for unsubscribed contacts.
         if await _is_unsubscribed_sender_thread(user_id, thread, messages, db):
@@ -407,7 +412,9 @@ def _log_intel_payload(thread_id: str, intel: dict, source: str) -> None:
 
 async def _load_messages(thread_id: str, db: AsyncSession) -> list[dict]:
     from models.email import Email
-    stmt = select(Email).where(Email.thread_id == thread_id).order_by(Email.received_at)
+    stmt = select(Email).where(Email.thread_id == thread_id).order_by(
+        func.coalesce(Email.sent_at, Email.received_at, Email.created_at)
+    )
     rows = (await db.execute(stmt)).scalars().all()
     return [
         {

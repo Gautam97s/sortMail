@@ -178,9 +178,17 @@ def _truncate_messages(messages: list[dict], max_message_count: int = 4, max_cha
                 "from": message.get("from") or message.get("sender") or "",
                 "date": message.get("date") or "",
                 "body": str(body)[:max_chars_per_message],
+                "is_from_user": bool(message.get("is_from_user")),
             }
         )
     return truncated
+
+
+def _latest_inbound_message(messages: list[dict]) -> dict | None:
+    for message in reversed(messages):
+        if not bool(message.get("is_from_user")):
+            return message
+    return None
 
 
 async def _call_llama(
@@ -349,18 +357,33 @@ async def run_intelligence(
     selected_messages = _truncate_messages(messages, max_message_count=4, max_chars_per_message=1200)
     messages_text = ""
     for msg in selected_messages:
+        direction = "outbound" if msg.get("is_from_user") else "inbound"
         messages_text += (
             f"<message>\n"
+            f"  <direction>{direction}</direction>\n"
             f"  <from>{msg.get('from', '')}</from>\n"
             f"  <date>{msg.get('date', '')}</date>\n"
             f"  <body>{msg.get('body', '')}</body>\n"
             f"</message>\n"
         )
 
+    latest_inbound = _latest_inbound_message(messages)
+    latest_inbound_text = ""
+    if latest_inbound:
+        latest_inbound_text = (
+            f"<message>\n"
+            f"  <direction>inbound</direction>\n"
+            f"  <from>{latest_inbound.get('from', '')}</from>\n"
+            f"  <date>{latest_inbound.get('date', '')}</date>\n"
+            f"  <body>{(latest_inbound.get('body') or '')[:1600]}</body>\n"
+            f"</message>"
+        )
+
     user_content = THREAD_INTEL_USER_PROMPT_TEMPLATE.format(
         subject=subject or "(No Subject)",
         participants=", ".join(participants[:10]),
         messages=messages_text,
+        latest_inbound_message=latest_inbound_text,
     )
 
     chat_messages = [

@@ -24,6 +24,19 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
+def _latest_message_is_outbound(messages) -> bool:
+    if not messages:
+        return False
+
+    latest = max(
+        messages,
+        key=lambda m: (
+            m.sent_at or m.received_at or datetime.min.replace(tzinfo=timezone.utc)
+        ),
+    )
+    return bool(getattr(latest, "is_from_user", False))
+
+
 async def background_sync_user_emails(user_id: str):
     """
     Independent background task entry-point for syncing emails.
@@ -365,6 +378,14 @@ class IngestionService:
         import logging
         
         try:
+            if _latest_message_is_outbound(contract.messages):
+                logger.info(
+                    "Skipping intel enqueue for outbound-latest thread=%s user=%s",
+                    thread.id,
+                    user_id,
+                )
+                return
+
             # Check if there is a running event loop to attach the task to
             loop = asyncio.get_running_loop()
             if getattr(settings, "REDIS_URL", None):

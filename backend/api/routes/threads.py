@@ -109,11 +109,21 @@ async def list_threads(
         .correlate(Thread)
     )
 
+    inbound_email_exists = exists(
+        select(Email.id)
+        .where(
+            Email.thread_id == Thread.id,
+            Email.is_from_user == False,
+        )
+        .correlate(Thread)
+    )
+
     # Build WHERE filters
     filters = [
         Thread.user_id == current_user.id,
         Thread.is_archived == False,
         Thread.is_trash == False,
+        inbound_email_exists,
         ~unsubscribed_thread_exists,
     ]
 
@@ -219,6 +229,15 @@ async def get_nav_counts(
         .correlate(Thread)
     )
 
+    inbound_email_exists = exists(
+        select(Email.id)
+        .where(
+            Email.thread_id == Thread.id,
+            Email.is_from_user == False,
+        )
+        .correlate(Thread)
+    )
+
     result = await db.execute(
         select(
             func.count().filter(Thread.is_unread > 0, Thread.is_archived == False, Thread.is_trash == False).label("inbox"),
@@ -227,6 +246,7 @@ async def get_nav_counts(
             func.count().filter(Thread.intent == "fyi", Thread.is_archived == False, Thread.is_trash == False).label("fyi"),
         ).where(
             Thread.user_id == current_user.id,
+            inbound_email_exists,
             ~unsubscribed_thread_exists,
         )
     )
