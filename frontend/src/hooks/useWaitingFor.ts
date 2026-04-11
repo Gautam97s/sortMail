@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, endpoints } from '@/lib/api';
 import { WaitingForDTOv1 } from '@/types/dashboard';
 
@@ -11,5 +11,19 @@ export function useWaitingFor() {
             return data;
         },
         staleTime: 1000 * 60 * 5,
+    });
+}
+
+export function useDismissWaitingFor() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: async (waitingId: string): Promise<void> => {
+            await api.delete(`${endpoints.waitingFor}/${waitingId}`);
+        },
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['waiting-for'] });
+            qc.invalidateQueries({ queryKey: ['threads'] });
+            qc.invalidateQueries({ queryKey: ['dashboard'] });
+        },
     });
 }

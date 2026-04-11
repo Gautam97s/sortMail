@@ -20,7 +20,7 @@ import logging
 import json
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -87,6 +87,20 @@ ACTION_MARKERS = (
     "question",
     "follow up",
 )
+PAYMENT_MARKERS = (
+    "bill",
+    "invoice",
+    "payment",
+    "pay now",
+    "pay by",
+    "due amount",
+    "overdue",
+    "last date",
+    "service disruption",
+    "outstanding balance",
+    "renewal due",
+    "recharge",
+)
 SOCIAL_NOTIFICATION_MARKERS = (
     "linkedin",
     "invited you to connect",
@@ -107,6 +121,7 @@ SOCIAL_NOTIFICATION_MARKERS = (
     "view our website",
 )
 STALE_WORKFLOW_DAYS = 14
+PAYMENT_TASK_WINDOW_DAYS = 3
 
 
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -220,6 +235,15 @@ async def process_thread_intelligence(
             suggested_draft = extract_suggested_draft(raw_intel)
             should_create_reply = _coerce_optional_bool(raw_intel.get("should_create_reply"))
             should_create_tasks = _coerce_optional_bool(raw_intel.get("should_create_tasks"))
+
+            bill_task = _extract_bill_payment_task(thread, messages, raw_intel)
+            if bill_task:
+                action_items = [bill_task]
+                should_create_tasks = True
+                if urgency_score < 80:
+                    urgency_score = 80
+                if priority_level not in {"urgent", "high"}:
+                    priority_level = "urgent"
 
             if should_create_reply is None:
                 should_create_reply = intent in REPLY_INTENTS and not _is_low_value_intent(intent)
@@ -527,6 +551,129 @@ def _build_workflow_reason(
     if should_create_tasks:
         return f"Task-only thread with {action_items_count} task(s)."
     return "No workflow action needed."
+
+
+def _extract_bill_payment_task(thread: Thread, messages: list[dict], raw_intel: dict) -> Optional[dict]:
+    combined_parts = [
+        thread.subject or "",
+        thread.summary or "",
+        raw_intel.get("summary") or "",
+        raw_intel.get("workflow_reason") or "",
+    ]
+    for message in messages:
+        combined_parts.append(message.get("subject") or "")
+        combined_parts.append(message.get("body") or "")
+
+    combined_text = " ".join(part for part in combined_parts if part).lower()
+    if not combined_text:
+        return None
+
+    if not any(marker in combined_text for marker in PAYMENT_MARKERS):
+        return None
+
+    due_date = _extract_payment_due_date(combined_text)
+    today = datetime.now(timezone.utc).date()
+
+    due_in_days: Optional[int] = None
+    if due_date:
+        due_in_days = (due_date - today).days
+        if due_in_days > PAYMENT_TASK_WINDOW_DAYS:
+            return None
+    elif not any(marker in combined_text for marker in ("due today", "due tomorrow", "today", "tomorrow", "last date")):
+        return None
+
+    title = _build_bill_task_title(thread.subject, raw_intel.get("summary") or thread.summary or "")
+    if not title:
+        title = "Pay bill"
+
+    if due_in_days is None or due_in_days <= 1:
+        priority = "urgent"
+        task_type = "FOLLOWUP"
+    elif due_in_days == 2 or due_in_days == 3:
+        priority = "high"
+        task_type = "FOLLOWUP"
+    else:
+        priority = "high"
+        task_type = "FOLLOWUP"
+
+    description_bits = ["Auto-generated from bill/payment email."]
+    if due_date:
+        description_bits.append(f"Due date: {due_date.isoformat()}.")
+    summary_text = raw_intel.get("summary") or thread.summary
+    if summary_text:
+        description_bits.append(summary_text[:240])
+
+    return {
+        "title": title,
+        "description": " ".join(description_bits),
+        "due_date": due_date.isoformat() if due_date else today.isoformat(),
+        "priority": priority,
+        "task_type": task_type,
+        "confidence": 0.95,
+    }
+
+
+def _build_bill_task_title(subject: Optional[str], summary: str) -> str:
+    text = (subject or summary or "").strip()
+    if not text:
+        return "Pay bill"
+
+    lowered = text.lower()
+    if "bill" in lowered:
+        cleaned = re.sub(r"(?i)\b(urgent|overdue|bill|payment reminder|pay now|due today|due tomorrow|last date|service disruption|invoice)\b", "", text)
+        cleaned = re.sub(r"\s{2,}", " ", cleaned).strip(" -:|")
+        if cleaned:
+            return f"Pay {cleaned[:80]}"
+        return "Pay bill"
+
+    if "invoice" in lowered:
+        return "Pay invoice"
+
+    return "Pay bill"
+
+
+def _extract_payment_due_date(text: str) -> Optional[datetime.date]:
+    today = datetime.now(timezone.utc).date()
+    if "overdue" in text or "last date" in text or "due today" in text:
+        return today
+    if "due tomorrow" in text:
+        return today.replace(day=today.day) + timedelta(days=1)
+
+    patterns = [
+        r"\b\d{1,2}-[a-z]{3}-\d{2,4}\b",
+        r"\b\d{1,2}/\d{1,2}/\d{2,4}\b",
+        r"\b[a-z]{3,9}\s+\d{1,2}(?:,\s*\d{4})?\b",
+        r"\b\d{1,2}\s+[a-z]{3,9}\s+\d{2,4}\b",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if not match:
+            continue
+        parsed = _parse_bill_date(match.group(0))
+        if parsed:
+            return parsed
+    return None
+
+
+def _parse_bill_date(raw: str) -> Optional[datetime.date]:
+    candidates = (
+        "%d-%b-%y",
+        "%d-%b-%Y",
+        "%d/%m/%y",
+        "%d/%m/%Y",
+        "%d-%m-%y",
+        "%d-%m-%Y",
+        "%b %d %Y",
+        "%b %d, %Y",
+        "%B %d %Y",
+        "%B %d, %Y",
+    )
+    for fmt in candidates:
+        try:
+            return datetime.strptime(raw.title(), fmt).date()
+        except ValueError:
+            continue
+    return None
 
 
 def _stale_workflow_reason(thread: Thread) -> Optional[str]:

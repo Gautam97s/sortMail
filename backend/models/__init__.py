@@ -14,6 +14,7 @@ from .credits import UserCredits, CreditTransaction, CreditPricing, CreditPackag
 from .contact import Contact
 from .tag import Tag, thread_tags
 from .user_settings import UserSettings
+from .recycle_bin import RecycleBinItem
 
 __all__ = [
     # Users & Auth
@@ -49,4 +50,5 @@ __all__ = [
     "Tag",
     "thread_tags",
     "UserSettings",
+    "RecycleBinItem",
 ]

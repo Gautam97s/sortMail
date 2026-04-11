@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0-beta"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
+    DISABLE_API_DOCS_IN_PRODUCTION: bool = True
+    INTERNAL_SERVICE_TOKEN: str = ""
     
     # Server
     # CORS

@@ -4,7 +4,7 @@ import React from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { WaitingForDTOv1 } from '@/types/dashboard';
 import { formatDistanceToNow } from 'date-fns';
-import { useWaitingFor } from '@/hooks/useWaitingFor';
+import { useDismissWaitingFor, useWaitingFor } from '@/hooks/useWaitingFor';
 
 const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string; filled?: boolean; className?: string }) => (
     <span 
@@ -15,7 +15,19 @@ const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string
     </span>
 );
 
-function FollowUpGroup({ title, items, status }: { title: string; items: WaitingForDTOv1[]; status: 'OVERDUE' | 'PENDING' | 'SNOOZED' }) {
+function FollowUpGroup({
+    title,
+    items,
+    status,
+    onResolve,
+    resolvingId,
+}: {
+    title: string;
+    items: WaitingForDTOv1[];
+    status: 'OVERDUE' | 'PENDING' | 'SNOOZED';
+    onResolve: (waitingId: string) => void;
+    resolvingId?: string;
+}) {
     if (items.length === 0 && status !== 'SNOOZED') return null;
 
     const config = {
@@ -80,9 +92,13 @@ function FollowUpGroup({ title, items, status }: { title: string; items: Waiting
                                     <button className="h-10 w-10 bg-surface-container hover:bg-primary-fixed/20 hover:text-primary rounded-xl flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 border border-outline-variant/5 delay-75">
                                         <MaterialSymbol icon="snooze" className="text-lg" />
                                     </button>
-                                    <button className="h-10 px-4 bg-surface-container-high hover:bg-primary text-on-surface-variant hover:text-on-primary rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all border border-outline-variant/10 shadow-sm">
+                                    <button
+                                        onClick={() => onResolve(item.waiting_id)}
+                                        disabled={resolvingId === item.waiting_id}
+                                        className="h-10 px-4 bg-surface-container-high hover:bg-primary text-on-surface-variant hover:text-on-primary rounded-xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all border border-outline-variant/10 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
                                         <MaterialSymbol icon="check_circle" className="text-lg" />
-                                        <span className="hidden sm:inline">Resolve</span>
+                                        <span className="hidden sm:inline">{resolvingId === item.waiting_id ? 'Resolving...' : 'Resolve'}</span>
                                     </button>
                                 </div>
                             </div>
@@ -96,6 +112,7 @@ function FollowUpGroup({ title, items, status }: { title: string; items: Waiting
 
 export default function FollowupsPage() {
     const { data: waitingItems, isLoading, error } = useWaitingFor();
+    const dismissWaiting = useDismissWaitingFor();
 
     if (isLoading) {
         return (
@@ -154,9 +171,27 @@ export default function FollowupsPage() {
                 </section>
 
                 <div className="space-y-10">
-                    <FollowUpGroup title="Critical Nudges" items={overdue} status="OVERDUE" />
-                    <FollowUpGroup title="Active Monitoring" items={pending} status="PENDING" />
-                    <FollowUpGroup title="Suspended Persistent" items={snoozed} status="SNOOZED" />
+                    <FollowUpGroup
+                        title="Critical Nudges"
+                        items={overdue}
+                        status="OVERDUE"
+                        onResolve={(waitingId) => dismissWaiting.mutate(waitingId)}
+                        resolvingId={dismissWaiting.variables}
+                    />
+                    <FollowUpGroup
+                        title="Active Monitoring"
+                        items={pending}
+                        status="PENDING"
+                        onResolve={(waitingId) => dismissWaiting.mutate(waitingId)}
+                        resolvingId={dismissWaiting.variables}
+                    />
+                    <FollowUpGroup
+                        title="Suspended Persistent"
+                        items={snoozed}
+                        status="SNOOZED"
+                        onResolve={(waitingId) => dismissWaiting.mutate(waitingId)}
+                        resolvingId={dismissWaiting.variables}
+                    />
                 </div>
             </div>
         </AppShell>

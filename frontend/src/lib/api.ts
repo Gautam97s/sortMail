@@ -51,6 +51,7 @@ export const endpoints = {
     settings: '/api/settings',
     settingsAIPreferences: '/api/settings/preferences/ai',
     settingsPrivacyPreferences: '/api/settings/preferences/privacy',
+    bin: '/api/bin',
     creditsMe: '/api/credits/me',
     creditsTransactions: '/api/credits/me/transactions',
     contacts: '/api/contacts',

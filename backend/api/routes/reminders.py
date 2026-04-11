@@ -5,7 +5,7 @@ Follow-up reminder endpoints.
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -15,6 +15,7 @@ from core.storage.database import get_db
 from models.user import User
 from models.thread import Thread
 from api.dependencies import get_current_user
+from api.routes.bin import create_bin_item
 
 router = APIRouter()
 
@@ -29,6 +30,7 @@ async def list_reminders(
     """
     stmt = select(Thread).where(
         Thread.user_id == current_user.id,
+        Thread.is_trash == False,
         Thread.intel_json['follow_up_needed'].astext == 'true'
     ).order_by(Thread.last_email_at.desc().nullslast())
     
@@ -81,6 +83,34 @@ async def dismiss_reminder(
     current_user: User = Depends(get_current_user)
 ):
     """Dismiss a waiting-for entry."""
-    # Since we use intel_json to drive this, dismissing might mean updating the thread to follow_up_needed: false
-    # For now, just return success
+    stmt = select(Thread).where(
+        Thread.id == waiting_id,
+        Thread.user_id == current_user.id,
+    )
+    result = await db.execute(stmt)
+    thread = result.scalars().first()
+
+    if not thread:
+        raise HTTPException(status_code=404, detail="Reminder thread not found")
+
+    intel = dict(thread.intel_json or {})
+    db.add(
+        create_bin_item(
+            user_id=current_user.id,
+            entity_type="workflow_reminder",
+            entity_id=thread.id,
+            entity_label=thread.subject or "(No Subject)",
+            payload_json={
+                "follow_up_needed": bool(intel.get("follow_up_needed")),
+                "expected_reply_by": intel.get("expected_reply_by"),
+            },
+        )
+    )
+    intel["follow_up_needed"] = False
+    intel["expected_reply_by"] = None
+    intel["workflow_reason"] = "Reminder dismissed by user"
+    thread.intel_json = intel
+    thread.updated_at = datetime.now(timezone.utc)
+
+    await db.commit()
     return {"waiting_id": waiting_id, "dismissed": True}

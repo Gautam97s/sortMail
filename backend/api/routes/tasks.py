@@ -10,6 +10,7 @@ from api.dependencies import get_current_user
 from models.user import User
 from models.task import Task, TaskStatus as DBTaskStatus, TaskType as DBTaskType
 from contracts import TaskDTOv1, PriorityLevel, TaskStatus
+from api.routes.bin import create_bin_item
 
 router = APIRouter()
 
@@ -107,7 +108,7 @@ async def list_tasks(
     current_user: User = Depends(get_current_user),
 ):
     """List tasks for current user, sorted by priority_score descending."""
-    stmt = select(Task).where(Task.user_id == current_user.id)
+    stmt = select(Task).where(Task.user_id == current_user.id, Task.deleted_at.is_(None))
 
     mapped_status = _map_status(status)
     if status and not mapped_status:
@@ -260,7 +261,7 @@ async def get_task(
     current_user: User = Depends(get_current_user),
 ):
     """Get a specific task by ID."""
-    stmt = select(Task).where(Task.id == task_id, Task.user_id == current_user.id)
+    stmt = select(Task).where(Task.id == task_id, Task.user_id == current_user.id, Task.deleted_at.is_(None))
     result = await db.execute(stmt)
     task = result.scalars().first()
 
@@ -278,7 +279,7 @@ async def update_task(
     current_user: User = Depends(get_current_user),
 ):
     """Update editable task fields used by Kanban and workflow automation."""
-    stmt = select(Task).where(Task.id == task_id, Task.user_id == current_user.id)
+    stmt = select(Task).where(Task.id == task_id, Task.user_id == current_user.id, Task.deleted_at.is_(None))
     result = await db.execute(stmt)
     task = result.scalars().first()
 
@@ -323,19 +324,32 @@ async def dismiss_task(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Dismiss/cancel a task."""
-    stmt = select(Task).where(Task.id == task_id, Task.user_id == current_user.id)
+    """Delete a task permanently."""
+    stmt = select(Task).where(Task.id == task_id, Task.user_id == current_user.id, Task.deleted_at.is_(None))
     result = await db.execute(stmt)
     task = result.scalars().first()
 
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
+    db.add(
+        create_bin_item(
+            user_id=current_user.id,
+            entity_type="task",
+            entity_id=task.id,
+            entity_label=task.title,
+            payload_json={
+                "status": _to_enum_value(task.status),
+                "priority_level": task.priority_level,
+                "thread_id": task.source_thread_id,
+            },
+        )
+    )
+    task.deleted_at = datetime.now(timezone.utc)
     task.status = DBTaskStatus.DISMISSED
-    task.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
-    return {"task_id": task_id, "dismissed": True}
+    return {"task_id": task_id, "deleted": True, "restore_window_days": 30}
 
 
 

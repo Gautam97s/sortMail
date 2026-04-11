@@ -25,6 +25,7 @@ import uuid
 from datetime import datetime, timezone
 from core.intelligence.pipeline import _load_thread, _load_messages
 from core.intelligence.llama_engine import _call_llama
+from api.routes.bin import create_bin_item
 from core.intelligence.prompts import (
     DRAFT_REPLY_SYSTEM_PROMPT,
     DRAFT_REPLY_USER_PROMPT_TEMPLATE,
@@ -497,9 +498,33 @@ async def regenerate_draft(
 
 
 @router.delete("/{draft_id}")
-async def delete_draft(draft_id: str):
+async def delete_draft(
+    draft_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Delete a draft."""
-    return {"draft_id": draft_id, "deleted": True}
+    stmt = select(Draft).where(Draft.id == draft_id, Draft.user_id == current_user.id)
+    draft = (await db.execute(stmt)).scalars().first()
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    db.add(
+        create_bin_item(
+            user_id=current_user.id,
+            entity_type="draft",
+            entity_id=draft.id,
+            entity_label=draft.subject,
+            payload_json={
+                "status": draft.status,
+                "thread_id": draft.thread_id,
+            },
+        )
+    )
+    draft.deleted_at = datetime.now(timezone.utc)
+    draft.status = DraftStatus.DISCARDED.value
+    await db.commit()
+    return {"draft_id": draft_id, "deleted": True, "restore_window_days": 30}
 
 
 @router.patch("/{draft_id}", response_model=DraftResponse)
@@ -591,6 +616,7 @@ async def list_drafts(
         .join(Thread, Thread.id == Draft.thread_id)
         .where(
             Draft.user_id == current_user.id,
+            Draft.deleted_at.is_(None),
             Draft.status.in_([
                 DraftStatus.GENERATED.value,
                 DraftStatus.EDITED.value,

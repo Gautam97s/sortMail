@@ -38,6 +38,7 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
     ];
 
     const utilityItems = [
+        { label: "Bin", href: "/bin", icon: "delete_sweep" },
         { label: "Notifications", href: "/notifications", icon: "notifications", enabled: isFeatureEnabled('notifications_center', user) },
         { label: "Settings", href: "/settings", icon: "settings" },
     ];

@@ -17,7 +17,7 @@ from contracts.mocks import create_mock_thread_intel
 
 from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, delete
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
@@ -28,10 +28,15 @@ from api.dependencies import get_current_user
 from models.user import User
 from models.thread import Thread, IntelStatus
 from models.email import Email
+from models.draft import Draft
+from models.task import Task
+from models.attachment import Attachment
+from models.tag import thread_tags
 from models.contact import Contact
 from sqlalchemy import and_, or_, func, exists
 from core.credits.credit_service import CreditService, InsufficientCreditsError, RateLimitExceededError
 from core.app_metrics import record_metric
+from api.routes.bin import create_bin_item
 
 router = APIRouter(redirect_slashes=False)
 
@@ -267,6 +272,7 @@ async def archive_thread(
 @router.delete("/{thread_id}")
 async def trash_thread(
     thread_id: str,
+    permanent: bool = Query(default=False, description="When true, permanently delete thread and related local records"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -277,6 +283,62 @@ async def trash_thread(
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
 
+    if permanent:
+        email_ids = (
+            await db.execute(
+                select(Email.id).where(
+                    Email.thread_id == thread_id,
+                    Email.user_id == current_user.id,
+                )
+            )
+        ).scalars().all()
+
+        if email_ids:
+            await db.execute(
+                delete(Attachment).where(
+                    Attachment.user_id == current_user.id,
+                    Attachment.email_id.in_(list(email_ids)),
+                )
+            )
+
+        await db.execute(
+            delete(Draft).where(
+                Draft.thread_id == thread_id,
+                Draft.user_id == current_user.id,
+            )
+        )
+        await db.execute(
+            delete(Task).where(
+                Task.source_thread_id == thread_id,
+                Task.user_id == current_user.id,
+            )
+        )
+        await db.execute(
+            delete(Email).where(
+                Email.thread_id == thread_id,
+                Email.user_id == current_user.id,
+            )
+        )
+        await db.execute(delete(thread_tags).where(thread_tags.c.thread_id == thread_id))
+        await db.delete(thread)
+        await db.commit()
+        return {"thread_id": thread_id, "deleted": True}
+
+    # Soft-delete to universal bin (30-day restore window).
+    db.add(
+        create_bin_item(
+            user_id=current_user.id,
+            entity_type="thread",
+            entity_id=thread_id,
+            entity_label=thread.subject or "(No Subject)",
+            payload_json={
+                "previous_labels": list(thread.labels or []),
+                "is_archived": bool(thread.is_archived),
+                "is_trash": bool(thread.is_trash),
+            },
+        )
+    )
+
     labels = [label for label in (thread.labels or []) if label != "INBOX"]
     if "TRASH" not in labels:
         labels.append("TRASH")
@@ -285,7 +347,7 @@ async def trash_thread(
     thread.is_archived = True
     thread.is_unread = 0
     await db.commit()
-    return {"thread_id": thread_id, "trashed": True}
+    return {"thread_id": thread_id, "trashed": True, "restore_window_days": 30}
 
 
 

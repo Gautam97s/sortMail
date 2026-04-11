@@ -4,9 +4,15 @@ SortMail Backend - FastAPI Application Entry Point
 
 from contextlib import asynccontextmanager
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
+
+from api.dependencies import get_current_user
+from models.user import User
 
 from app.config import settings
 import logging
@@ -60,6 +66,9 @@ app = FastAPI(
     title="SortMail API",
     description="AI Intelligence Layer for Gmail & Outlook",
     version=settings.VERSION,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
     lifespan=lifespan,
 )
 
@@ -92,11 +101,13 @@ app.add_middleware(
 
 # Custom Security Middleware
 from api.middleware.security import (
+    OriginServiceGateMiddleware,
     SecurityHeadersMiddleware, 
     RateLimitMiddleware,
     RequestIDMiddleware
 )
 
+app.add_middleware(OriginServiceGateMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(RequestIDMiddleware)
@@ -207,7 +218,7 @@ async def simple_health():
 from api.routes import (
     auth, emails, threads, tasks, drafts, reminders,
     dashboard, admin_credits, notifications, credits, accounts, admin_users, admin_metrics, events, webhooks,
-    proxy, ai, attachments, contacts, tags, settings as app_settings, search
+    proxy, ai, attachments, contacts, tags, settings as app_settings, search, bin
 )
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
@@ -230,15 +241,43 @@ app.include_router(attachments.router, prefix="/api/attachments", tags=["attachm
 app.include_router(contacts.router, prefix="/api/contacts", tags=["contacts"])
 app.include_router(tags.router, prefix="/api/tags", tags=["tags"])
 app.include_router(search.router, prefix="/api/search", tags=["search"])
+app.include_router(bin.router, prefix="/api/bin", tags=["bin"])
 app.include_router(proxy.router, prefix="/api", tags=["proxy"])
 app.include_router(app_settings.router, prefix="/api/settings", tags=["settings"])
 
+
+def _docs_access_enabled() -> bool:
+    if settings.ENVIRONMENT.lower() == "production" and settings.DISABLE_API_DOCS_IN_PRODUCTION:
+        return False
+    return settings.DEBUG or settings.ENVIRONMENT.lower() != "production"
+
+
+async def _require_docs_superuser(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+
+if _docs_access_enabled():
+    @app.get("/docs", include_in_schema=False)
+    async def secure_docs(_: User = Depends(_require_docs_superuser)):
+        return get_swagger_ui_html(openapi_url="/openapi.json", title=f"{app.title} - Docs")
+
+
+    @app.get("/openapi.json", include_in_schema=False)
+    async def secure_openapi(_: User = Depends(_require_docs_superuser)):
+        return JSONResponse(
+            get_openapi(
+                title=app.title,
+                version=app.version,
+                description=app.description,
+                routes=app.routes,
+            )
+        )
+
 from pydantic import BaseModel
 from typing import Optional
-from fastapi import Depends, HTTPException
 from core.storage.vector_store import get_chroma_collection
-from api.dependencies import get_current_user
-from models.user import User
 
 class RequestBody(BaseModel):
     ids: list[str]

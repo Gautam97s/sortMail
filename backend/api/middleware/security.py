@@ -13,10 +13,68 @@ import logging
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from core.redis import InstrumentedRedis
+from app.config import settings
 
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
 redis_client = InstrumentedRedis.from_url(redis_url, encoding="utf-8", decode_responses=True)
 logger = logging.getLogger("security")
+
+
+class OriginServiceGateMiddleware(BaseHTTPMiddleware):
+    """
+    Blocks unknown cross-origin API calls and non-browser API calls without
+    a trusted internal service token.
+    """
+
+    def __init__(self, app):
+        super().__init__(app)
+        self.allowed_origins = set(settings.CORS_ORIGINS or [])
+        self.allow_exact_no_origin = {
+            "/",
+            "/health",
+            "/health/simple",
+        }
+        self.allow_prefixes_no_origin = (
+            "/api/webhooks/",
+            "/api/events/",
+            "/api/auth/google/callback",
+            "/api/auth/microsoft/callback",
+        )
+        self.vercel_regex = r"https://sortmail.*\.vercel\.app"
+
+    def _origin_allowed(self, origin: str) -> bool:
+        if origin in self.allowed_origins:
+            return True
+        try:
+            import re
+            return bool(re.fullmatch(self.vercel_regex, origin))
+        except Exception:
+            return False
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        method = request.method.upper()
+
+        if method == "OPTIONS" or not path.startswith("/api"):
+            return await call_next(request)
+
+        origin = request.headers.get("origin")
+        if origin:
+            if not self._origin_allowed(origin):
+                return Response("Forbidden origin", status_code=403)
+            return await call_next(request)
+
+        if path in self.allow_exact_no_origin or any(path.startswith(p) for p in self.allow_prefixes_no_origin):
+            return await call_next(request)
+
+        token = settings.INTERNAL_SERVICE_TOKEN
+        provided = request.headers.get("X-Internal-Service-Token", "")
+
+        if settings.ENVIRONMENT.lower() == "production":
+            if not token or provided != token:
+                return Response("Forbidden", status_code=403)
+
+        return await call_next(request)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
