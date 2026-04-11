@@ -75,6 +75,8 @@ export const endpoints = {
     adminMetricsQueue: '/api/admin/metrics/queue',
     adminMetricsAIUsage: '/api/admin/metrics/ai-usage',
     adminCreditsAdjust: '/api/admin/credits/adjust',
+    adminCreditsSummary: '/api/admin/credits/summary',
+    adminCreditsTransactions: '/api/admin/credits/transactions',
     helpCategories: '/api/help/categories',
     helpArticle: (slug: string) => `/api/help/articles/${slug}`,
     teamMembers: '/api/settings/team',

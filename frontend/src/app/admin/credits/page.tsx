@@ -1,38 +1,78 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-    CreditCard,
-    TrendingUp,
     ArrowLeft,
-    Plus,
     History,
-    User,
-    Zap,
     DollarSign,
     ShieldCheck,
     AlertCircle,
-    ArrowUpRight,
-    Search
+    Search,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { api, endpoints } from '@/lib/api';
 
-const creditSummary = [
-    { label: 'Total Credits Issued', value: '--', sub: 'No live data' },
-    { label: 'Active Consumption', value: '--', sub: 'No live data' },
-    { label: 'Revenue Generated', value: '--', sub: 'No live data' },
-    { label: 'Pending Refunds', value: '0', sub: 'No live data' },
-];
+type AdminCreditsSummary = {
+    total_credits_issued: number;
+    active_consumption_30d: number;
+    purchase_credits_30d: number;
+    pending_refunds: number;
+};
 
 const recentAdjustments: Array<{ id: string; user: string; amount: string; reason: string; date: string }> = [];
 
 export default function CreditsOverviewPage() {
+    const [summary, setSummary] = useState<AdminCreditsSummary | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const { data } = await api.get<AdminCreditsSummary>(endpoints.adminCreditsSummary);
+                if (!mounted) return;
+                setSummary(data);
+            } catch {
+                if (!mounted) return;
+                setSummary(null);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        })();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    const creditSummary = useMemo(() => ([
+        {
+            label: 'Total Credits Issued',
+            value: loading ? '--' : String(summary?.total_credits_issued ?? 0),
+            sub: 'All-time completed credit inflows',
+        },
+        {
+            label: 'Active Consumption (30d)',
+            value: loading ? '--' : String(summary?.active_consumption_30d ?? 0),
+            sub: 'Credits consumed in the last 30 days',
+        },
+        {
+            label: 'Purchases (30d)',
+            value: loading ? '--' : String(summary?.purchase_credits_30d ?? 0),
+            sub: 'Purchased credits in the last 30 days',
+        },
+        {
+            label: 'Pending Refunds',
+            value: loading ? '--' : String(summary?.pending_refunds ?? 0),
+            sub: 'Reserved refund transactions',
+        },
+    ]), [loading, summary]);
+
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div className="space-y-4">
                     <Link href="/admin" className="flex items-center gap-2 text-xs font-mono font-bold text-accent hover:opacity-70 transition-opacity uppercase tracking-widest">
@@ -52,7 +92,6 @@ export default function CreditsOverviewPage() {
                 </div>
             </div>
 
-            {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {creditSummary.map((stat, i) => (
                     <Card key={i} className="border-border-light shadow-sm">
@@ -66,7 +105,6 @@ export default function CreditsOverviewPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Manual Adjuster */}
                 <Card className="lg:col-span-2 border-border-light shadow-sm overflow-hidden">
                     <CardHeader className="bg-paper-mid/50 border-b border-border-light">
                         <CardTitle className="text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -98,7 +136,6 @@ export default function CreditsOverviewPage() {
                     </CardContent>
                 </Card>
 
-                {/* Recent Admin Actions */}
                 <div className="space-y-6">
                     <Card className="border-border-light shadow-sm">
                         <CardHeader className="pb-3 border-b border-border-light/50">
@@ -133,7 +170,7 @@ export default function CreditsOverviewPage() {
                             <div>
                                 <h5 className="text-[10px] font-bold text-info uppercase mb-1">Economy Threshold</h5>
                                 <p className="text-[11px] text-ink-light leading-relaxed">
-                                    Current platform liquidity is **above safe floor**. Automatic token scaling is enabled.
+                                    Current platform liquidity is above safe floor. Automatic token scaling is enabled.
                                 </p>
                             </div>
                         </CardContent>

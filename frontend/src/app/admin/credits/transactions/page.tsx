@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     History,
     Search,
@@ -9,23 +9,76 @@ import {
     Download,
     MoreHorizontal,
     User,
-    ArrowUpRight,
-    ArrowDownLeft,
     CreditCard,
     Zap,
-    LifeBuoy
+    LifeBuoy,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { api, endpoints } from '@/lib/api';
 
-const transactions: Array<{ id: string; user: string; type: string; amount: string; method: string; status: string; date: string }> = [];
+type LedgerTransaction = {
+    id: string;
+    user_id: string;
+    user_email?: string | null;
+    user_name?: string | null;
+    amount: number;
+    balance_after: number;
+    transaction_type: string;
+    operation_type?: string | null;
+    status: string;
+    created_at: string;
+};
 
 export default function CreditTransactionsPage() {
+    const [query, setQuery] = useState('');
+    const [typeFilter, setTypeFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [transactions, setTransactions] = useState<LedgerTransaction[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const { data } = await api.get<LedgerTransaction[]>(endpoints.adminCreditsTransactions, {
+                    params: {
+                        limit: 100,
+                        offset: 0,
+                        query: query || undefined,
+                        transaction_type: typeFilter || undefined,
+                        status: statusFilter || undefined,
+                    },
+                });
+                if (!mounted) return;
+                setTransactions(data || []);
+            } catch {
+                if (!mounted) return;
+                setTransactions([]);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        })();
+
+        return () => {
+            mounted = false;
+        };
+    }, [query, typeFilter, statusFilter]);
+
+    const rows = useMemo(() => transactions.map((tx) => {
+        const amountSigned = tx.amount >= 0 ? `+${tx.amount}` : `${tx.amount}`;
+        return {
+            ...tx,
+            amountSigned,
+            userLabel: tx.user_name || tx.user_email || tx.user_id,
+            method: tx.operation_type || tx.transaction_type,
+        };
+    }), [transactions]);
+
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div className="space-y-4">
                     <Link href="/admin/credits" className="flex items-center gap-2 text-xs font-mono font-bold text-accent hover:opacity-70 transition-opacity uppercase tracking-widest">
@@ -46,16 +99,39 @@ export default function CreditTransactionsPage() {
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                         <Input
-                            placeholder="Search by ID, User, or Amount..."
+                            placeholder="Search by ID, user, or amount..."
                             className="pl-9 h-9 text-xs border-border-light bg-white"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
                         />
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" size="sm" disabled title="Filters are not wired yet" className="h-9 gap-2 border-border-light text-ink text-[10px] font-bold uppercase tracking-widest bg-white">
-                            <Filter size={12} /> Type
-                        </Button>
-                        <Button variant="outline" size="sm" disabled title="Filters are not wired yet" className="h-9 gap-2 border-border-light text-ink text-[10px] font-bold uppercase tracking-widest bg-white">
-                            Status
+                        <select
+                            value={typeFilter}
+                            onChange={(e) => setTypeFilter(e.target.value)}
+                            className="h-9 px-3 rounded-md border border-border-light bg-white text-[10px] font-bold uppercase tracking-widest text-ink"
+                            aria-label="Filter transaction type"
+                        >
+                            <option value="">All Types</option>
+                            <option value="PURCHASE">Purchase</option>
+                            <option value="DEDUCTION">AI Usage</option>
+                            <option value="REFUND">Refund</option>
+                            <option value="ADMIN_ADJUSTMENT">Admin Adjustment</option>
+                            <option value="MONTHLY_ALLOWANCE">Monthly Allowance</option>
+                        </select>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="h-9 px-3 rounded-md border border-border-light bg-white text-[10px] font-bold uppercase tracking-widest text-ink"
+                            aria-label="Filter transaction status"
+                        >
+                            <option value="">All Statuses</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="RESERVED">Reserved</option>
+                            <option value="CANCELLED">Cancelled</option>
+                        </select>
+                        <Button variant="outline" size="sm" disabled title="Filter icon" className="h-9 gap-2 border-border-light text-ink text-[10px] font-bold uppercase tracking-widest bg-white">
+                            <Filter size={12} /> Filter
                         </Button>
                     </div>
                 </div>
@@ -74,7 +150,7 @@ export default function CreditTransactionsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border-light text-sm">
-                            {transactions.map((tx) => (
+                            {rows.map((tx) => (
                                 <tr key={tx.id} className="hover:bg-paper-mid/30 transition-colors group">
                                     <td className="px-6 py-4 font-mono text-[10px] text-ink-mid">{tx.id}</td>
                                     <td className="px-6 py-4">
@@ -82,20 +158,20 @@ export default function CreditTransactionsPage() {
                                             <div className="w-5 h-5 rounded-full bg-paper-mid flex items-center justify-center shrink-0 border border-border-light">
                                                 <User size={10} className="text-ink-light" />
                                             </div>
-                                            <span className="text-xs font-medium text-ink">{tx.user}</span>
+                                            <span className="text-xs font-medium text-ink">{tx.userLabel}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <TransactionTypeUI type={tx.type} />
+                                        <TransactionTypeUI type={tx.transaction_type} />
                                     </td>
-                                    <td className={`px-6 py-4 text-right font-mono font-bold text-xs ${tx.amount.startsWith('+') ? 'text-success' : 'text-danger'}`}>
-                                        {tx.amount}
+                                    <td className={`px-6 py-4 text-right font-mono font-bold text-xs ${tx.amount >= 0 ? 'text-success' : 'text-danger'}`}>
+                                        {tx.amountSigned}
                                     </td>
                                     <td className="px-6 py-4 text-[10px] font-mono text-ink-light uppercase">{tx.method}</td>
                                     <td className="px-6 py-4">
                                         <StatusBadge status={tx.status} />
                                     </td>
-                                    <td className="px-6 py-4 text-[10px] font-mono text-ink-light">{tx.date}</td>
+                                    <td className="px-6 py-4 text-[10px] font-mono text-ink-light">{new Date(tx.created_at).toLocaleString()}</td>
                                     <td className="px-6 py-4 text-right">
                                         <Button variant="ghost" size="icon" disabled title="Row actions are not wired yet" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                                             <MoreHorizontal size={14} />
@@ -103,16 +179,21 @@ export default function CreditTransactionsPage() {
                                     </td>
                                 </tr>
                             ))}
-                            {transactions.length === 0 && (
+                            {!loading && rows.length === 0 && (
                                 <tr>
                                     <td colSpan={8} className="px-6 py-10 text-center text-sm text-ink-light">No transaction ledger entries available.</td>
+                                </tr>
+                            )}
+                            {loading && (
+                                <tr>
+                                    <td colSpan={8} className="px-6 py-10 text-center text-sm text-ink-light">Loading transaction ledger...</td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
                 <div className="p-4 bg-paper-mid/10 border-t border-border-light flex justify-between items-center text-[10px] font-mono text-ink-light">
-                    <span>Showing 0 of 0 transactions</span>
+                    <span>Showing {rows.length} transactions</span>
                     <div className="flex gap-1">
                         <Button disabled size="sm" variant="outline" className="h-7 text-[9px] font-bold uppercase border-border-light bg-white">Previous</Button>
                         <Button disabled size="sm" variant="outline" className="h-7 text-[9px] font-bold uppercase border-border-light bg-white">Next</Button>
@@ -125,9 +206,9 @@ export default function CreditTransactionsPage() {
 
 function TransactionTypeUI({ type }: { type: string }) {
     const icons: Record<string, any> = {
-        'Purchase': CreditCard,
-        'AI Usage': Zap,
-        'Refund': LifeBuoy,
+        PURCHASE: CreditCard,
+        DEDUCTION: Zap,
+        REFUND: LifeBuoy,
     };
     const Icon = icons[type] || History;
     return (
@@ -139,7 +220,7 @@ function TransactionTypeUI({ type }: { type: string }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-    const active = status === 'Success';
+    const active = status === 'COMPLETED';
     return (
         <div className="flex items-center gap-1.5">
             <div className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-success' : 'bg-danger'}`} />
