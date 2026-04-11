@@ -7,6 +7,7 @@ Handles Google OAuth 2.0 flow for Gmail access.
 from typing import Optional
 import httpx
 from pydantic import BaseModel
+from urllib.parse import urlencode
 
 from app.config import settings
 
@@ -59,6 +60,9 @@ def generate_code_challenge(verifier: str) -> str:
 
 def get_google_auth_url(state: str, code_challenge: str) -> str:
     """Generate Google OAuth authorization URL with PKCE."""
+    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_REDIRECT_URI:
+        raise ValueError("Google OAuth is not configured: missing GOOGLE_CLIENT_ID or GOOGLE_REDIRECT_URI")
+
     params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
         "redirect_uri": settings.GOOGLE_REDIRECT_URI,
@@ -70,7 +74,7 @@ def get_google_auth_url(state: str, code_challenge: str) -> str:
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
     }
-    query = "&".join(f"{k}={v}" for k, v in params.items())
+    query = urlencode(params)
     return f"{GOOGLE_AUTH_URL}?{query}"
 
 

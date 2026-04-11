@@ -59,7 +59,11 @@ async def google_auth(request: Request):
     logger.info(f"✅ Immediate Verify Read: {'SUCCESS' if saved_val else 'FAILED'}")
     
     # 3. Generate URL
-    auth_url = oauth_google.get_google_auth_url(state, code_challenge)
+    try:
+        auth_url = oauth_google.get_google_auth_url(state, code_challenge)
+    except ValueError as e:
+        logger.error(f"Google OAuth config error: {e}")
+        raise HTTPException(status_code=500, detail="Google OAuth is not configured correctly")
 
     # Browser-first behavior: navigating to /api/auth/google should continue OAuth flow.
     # Keep optional JSON mode for programmatic callers.
@@ -182,7 +186,9 @@ async def google_callback(
     
     if account:
         account.access_token = enc_access_token
+        account.provider_user_id = user_info.id
         account.provider_email = user_info.email  # Explicitly sync the email
+        account.scopes = " ".join(oauth_google.GOOGLE_SCOPES)
         if enc_refresh_token:
             account.refresh_token = enc_refresh_token
         account.token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=tokens.expires_in)
@@ -192,8 +198,11 @@ async def google_callback(
             id=f"gmail_{user.id}",
             user_id=user.id,
             provider=ProviderType.GMAIL,
+            provider_user_id=user_info.id,
+            provider_email=user_info.email,
             access_token=enc_access_token,
             refresh_token=enc_refresh_token,
+            scopes=" ".join(oauth_google.GOOGLE_SCOPES),
             token_expires_at=datetime.now(timezone.utc) + timedelta(seconds=tokens.expires_in),
             last_sync_at=datetime.now(timezone.utc),
             created_at=datetime.now(timezone.utc)
