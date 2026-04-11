@@ -144,11 +144,16 @@ async def restore_bin_item(
             follow_up.status = FollowUpStatus.WAITING
             follow_up.expected_reply_by = expected_reply_dt
             follow_up.snoozed_until = None
+            follow_up.last_sent_at = follow_up.last_sent_at or thread.last_email_at or now
+            follow_up.days_waiting = max((now - follow_up.last_sent_at).days, 0)
             follow_up.updated_at = now
         else:
+            last_sent_at = thread.last_email_at or now
             follow_up = FollowUp(
                 user_id=current_user.id,
                 thread_id=thread.id,
+                last_sent_at=last_sent_at,
+                days_waiting=max((now - last_sent_at).days, 0),
                 expected_reply_by=expected_reply_dt,
                 status=FollowUpStatus.WAITING,
                 auto_detected=True,

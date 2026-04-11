@@ -508,17 +508,21 @@ async def _sync_follow_up(
     expected_reply_dt = _parse_expected_reply_by(expected_reply_by)
 
     if not follow_up:
+        now = datetime.now(timezone.utc)
+        days_waiting = max((now - last_sent_at).days, 0)
         follow_up = FollowUp(
             id=str(uuid.uuid4()),
             user_id=user_id,
             thread_id=thread.id,
+            last_sent_at=last_sent_at,
+            days_waiting=days_waiting,
             expected_reply_by=expected_reply_dt,
             status=FollowUpStatus.WAITING,
             auto_detected=True,
             detection_confidence=85,
             metadata_json=metadata,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=now,
+            updated_at=now,
         )
         db.add(follow_up)
         return
@@ -527,6 +531,8 @@ async def _sync_follow_up(
     if follow_up.status in {FollowUpStatus.CANCELLED, FollowUpStatus.REPLIED}:
         follow_up.status = FollowUpStatus.WAITING
         follow_up.reply_received_at = None
+    follow_up.last_sent_at = last_sent_at
+    follow_up.days_waiting = max((datetime.now(timezone.utc) - last_sent_at).days, 0)
     follow_up.expected_reply_by = expected_reply_dt
     follow_up.auto_detected = True
     follow_up.metadata_json = metadata
