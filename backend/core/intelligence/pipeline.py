@@ -416,6 +416,16 @@ def _log_intel_payload(thread_id: str, intel: dict, source: str) -> None:
     logger.info("Intel payload: thread=%s source=%s data=%s", thread_id, source, payload)
 
 
+async def _remove_from_processing_queue(thread_id: str) -> None:
+    """Remove thread from Redis queue after processing."""
+    try:
+        rc = RedisClient.get_instance()
+        await rc.zrem("intel:pending", thread_id)
+        record_metric("queue_item_removed")
+    except Exception:
+        pass
+
+
 async def _load_messages(thread_id: str, db: AsyncSession) -> list[dict]:
     from models.email import Email
     stmt = select(Email).where(Email.thread_id == thread_id).order_by(
