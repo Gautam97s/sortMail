@@ -115,6 +115,10 @@ async def detect_and_close_follow_ups(db: AsyncSession, thread_id: str, user_id:
         logger.info(f"✓ Committed reply-detected closure for thread {thread_id}")
         
     except Exception as e:
+        try:
+            await db.rollback()
+        except Exception:
+            pass
         logger.error(f"Error in reply detection for thread {thread_id}: {str(e)}", exc_info=True)
         # Don't raise; reply detection is non-critical
 

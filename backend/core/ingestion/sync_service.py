@@ -352,9 +352,10 @@ class IngestionService:
                     logger.error(f"Failed to safe-trigger vector indexer for {att_id}: {e}")
 
         # 4. Detect and close follow-ups if inbound reply detected (non-blocking)
+        # Use an isolated DB session to avoid concurrent operations on self.db.
         try:
             loop = asyncio.get_running_loop()
-            loop.create_task(detect_and_close_follow_ups(self.db, thread.id, user_id))
+            loop.create_task(_run_followup_closure_safe(thread.id, user_id))
         except RuntimeError:
             logger.debug(f"No event loop for reply detection on thread {thread.id}")
         except Exception as e:
@@ -394,6 +395,17 @@ async def _run_intel_safe(thread_id: str, user_id: str, db):
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"Background intel failed for {thread_id}: {e}")
+
+
+async def _run_followup_closure_safe(thread_id: str, user_id: str):
+    """Run follow-up closure hook with an isolated DB session."""
+    try:
+        from core.storage.database import async_session_factory
+        async with async_session_factory() as session:
+            await detect_and_close_follow_ups(session, thread_id, user_id)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Background follow-up closure failed for {thread_id}: {e}")
 
 async def _run_att_intel_safe(attachment_id: str, db):
     """Run attachment intelligence with its own DB session to avoid conflicts."""

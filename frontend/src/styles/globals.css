@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    --ui-scale: 0.92;
+
     /* ─ Brand Palette (project-wide source of truth) ─────── */
     --primary: #1a73e8;
     --primary-fixed: #d2e3fc;
@@ -50,28 +52,28 @@
     --ff-mono: var(--font-jetbrains), monospace;
 
     /* ─ Type Scale (global consistency) ───────────────────── */
-    --text-xs: 12px;
-    --text-sm: 14px;
-    --text-md: 16px;
-    --text-lg: 20px;
-    --text-xl: 28px;
+    --text-xs: calc(12px * var(--ui-scale));
+    --text-sm: calc(14px * var(--ui-scale));
+    --text-md: calc(16px * var(--ui-scale));
+    --text-lg: calc(20px * var(--ui-scale));
+    --text-xl: calc(28px * var(--ui-scale));
 
     --lh-tight: 1.25;
     --lh-normal: 1.5;
     --lh-relaxed: 1.65;
 
     /* ─ Spacing Scale (4pt rhythm) ───────────────────────── */
-    --space-1: 4px;
-    --space-2: 8px;
-    --space-3: 12px;
-    --space-4: 16px;
-    --space-5: 20px;
-    --space-6: 24px;
+    --space-1: calc(4px * var(--ui-scale));
+    --space-2: calc(8px * var(--ui-scale));
+    --space-3: calc(12px * var(--ui-scale));
+    --space-4: calc(16px * var(--ui-scale));
+    --space-5: calc(20px * var(--ui-scale));
+    --space-6: calc(24px * var(--ui-scale));
 
     /* ─ Layout ─────────────────────────────────────────────── */
-    --sb-w: 216px;
-    --tb-h: 56px;
-    --sidebar-mobile-w: 248px;
+    --sb-w: calc(216px * var(--ui-scale));
+    --tb-h: calc(56px * var(--ui-scale));
+    --sidebar-mobile-w: calc(248px * var(--ui-scale));
 
     /* ─ Shared Radius Tokens ─────────────────────────────── */
     --radius-sm: 0.25rem;
