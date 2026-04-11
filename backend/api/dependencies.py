@@ -4,6 +4,7 @@ API Dependencies
 Common dependencies like authentication and database sessions.
 """
 
+import logging
 from fastapi import Depends, HTTPException, status, Cookie
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
