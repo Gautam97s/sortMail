@@ -8,7 +8,7 @@ from time import monotonic
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import case, func, select
+from sqlalchemy import String, case, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
 from models.ai import AIUsageLog
@@ -418,7 +418,7 @@ async def economics_metrics(
 
     # Paid revenue signals: invoices and explicit purchase transactions.
     paid_invoice_stmt = select(func.coalesce(func.sum(Invoice.amount_cents), 0)).where(
-        Invoice.status == InvoiceStatus.PAID,
+        cast(Invoice.status, String) == InvoiceStatus.PAID.value,
         Invoice.created_at >= since_ts,
     )
     paid_invoice_cents = int((await db.execute(paid_invoice_stmt)).scalar() or 0)
@@ -437,7 +437,9 @@ async def economics_metrics(
         purchase_revenue_usd += _as_float(md.get("purchase_usd"), default=0.0)
 
     active_subscriptions_stmt = select(func.count(Subscription.id)).where(
-        Subscription.status.in_([SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING]),
+        cast(Subscription.status, String).in_(
+            [SubscriptionStatus.ACTIVE.value, SubscriptionStatus.TRIALING.value]
+        ),
     )
     active_subscriptions = int((await db.execute(active_subscriptions_stmt)).scalar() or 0)
 

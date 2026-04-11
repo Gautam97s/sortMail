@@ -1,4 +1,5 @@
 # Alembic migration environment
+import os
 
 from logging.config import fileConfig
 
@@ -34,18 +35,17 @@ from app.config import settings
 
 def run_migrations_online():
     """Run migrations in 'online' mode."""
-    # Override sqlalchemy.url with real DB URL
-    db_url = settings.DATABASE_URL
+    # Allow an explicit one-off migration URL override.
+    db_url = os.getenv("ALEMBIC_DATABASE_URL") or settings.DATABASE_URL
     if db_url.startswith("postgresql+asyncpg://"):
         db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
     elif db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql://")
-        
-    if "?" in db_url:
-        db_url = db_url.split("?")[0]
-        
-    db_url = db_url.replace(":6543/", ":5432/")
-    db_url += "?sslmode=require"
+
+    # Ensure TLS for remote databases while preserving existing query params.
+    if "sslmode=" not in db_url:
+        joiner = "&" if "?" in db_url else "?"
+        db_url = f"{db_url}{joiner}sslmode=require"
         
     config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
 
