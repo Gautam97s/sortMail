@@ -9,6 +9,8 @@ export function useDashboard() {
         queryFn: async (): Promise<DashboardData> => {
             return await dashboardApi.getStats();
         },
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 1000 * 30,
+        refetchOnWindowFocus: true,
+        retry: 1,
     });
 }

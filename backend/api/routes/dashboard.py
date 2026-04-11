@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, and_, or_
+from sqlalchemy import select, func, desc, and_, or_, exists
 
 from pydantic import BaseModel
 
@@ -98,30 +98,32 @@ async def get_dashboard_stats(
     """
     Get aggregated dashboard statistics and briefing.
     """
-    from sqlalchemy import exists, cast, Boolean
+    from sqlalchemy import cast, Boolean
     
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     current_date = datetime.now(timezone.utc).date()
     
-    # Common filter: Sender is unsubscribed
-    sender_is_unsubscribed = exists(
-        select(Contact.id).where(
-            Contact.user_id == current_user.id,
-            Contact.is_unsubscribed == True,
-            Email.sender.ilike(func.concat('%', Contact.email_address, '%'))
-        ).correlate(Email)
+    # Common filter: thread contains messages from unsubscribed contacts
+    unsubscribed_thread_exists = exists(
+        select(Email.id)
+        .join(
+            Contact,
+            and_(
+                Contact.user_id == current_user.id,
+                Contact.is_unsubscribed == True,
+                Email.sender.ilike(func.concat('%', Contact.email_address, '%')),
+            ),
+        )
+        .where(Email.thread_id == Thread.id)
+        .correlate(Thread)
     )
 
     # 1. Load Recent Threads
     threads_stmt = (
         select(Thread)
-        .outerjoin(Email, and_(Email.thread_id == Thread.id, Email.received_at == Thread.last_email_at))
         .where(
             Thread.user_id == current_user.id,
-            or_(
-                Email.id == None,        # thread has no emails yet
-                ~sender_is_unsubscribed  # sender is NOT an unsubscribed contact
-            )
+            ~unsubscribed_thread_exists,
         )
         .order_by(desc(Thread.last_email_at))
         .limit(5)
@@ -183,20 +185,18 @@ async def get_dashboard_stats(
         Thread.user_id == current_user.id,
         Thread.is_unread > 0,
         Thread.is_archived == False,
-        Thread.is_trash == False
+        Thread.is_trash == False,
+        ~unsubscribed_thread_exists,
     )
     unread_count = (await db.execute(unread_stmt)).scalar() or 0
     
     # Urgent count (excluding unsubscribed)
-    urgent_stmt = select(func.count(Thread.id)).outerjoin(Email, and_(Email.thread_id == Thread.id, Email.received_at == Thread.last_email_at)).where(
+    urgent_stmt = select(func.count(Thread.id)).where(
         Thread.user_id == current_user.id,
         Thread.urgency_score >= 80,
         Thread.is_archived == False,
         Thread.is_trash == False,
-        or_(
-            Email.id == None,
-            ~sender_is_unsubscribed
-        )
+        ~unsubscribed_thread_exists,
     )
     urgent_count = (await db.execute(urgent_stmt)).scalar() or 0
     
@@ -204,6 +204,7 @@ async def get_dashboard_stats(
     tasks_due_stmt = select(func.count()).where(
         Task.user_id == current_user.id,
         Task.status == TaskStatus.PENDING,
+        Task.deleted_at == None,
         Task.due_date != None,
         Task.due_date <= current_date
     )
@@ -214,17 +215,18 @@ async def get_dashboard_stats(
         Thread.user_id == current_user.id,
         Thread.is_archived == False,
         Thread.is_trash == False,
+        ~unsubscribed_thread_exists,
         Thread.intel_json['follow_up_needed'].astext == 'true'
     )
     awaiting_reply_count = (await db.execute(awaiting_reply_stmt)).scalar() or 0
 
     # Daily emails received count (excluding unsubscribed)
-    emails_today_stmt = select(func.count(Email.id)).outerjoin(Thread, Email.thread_id == Thread.id).where(
+    emails_today_stmt = select(func.count(Email.id)).join(Thread, Email.thread_id == Thread.id).where(
         Thread.user_id == current_user.id,
         Email.received_at >= today_start,
         Thread.is_archived == False,
         Thread.is_trash == False,
-        ~sender_is_unsubscribed
+        ~unsubscribed_thread_exists,
     )
     emails_today_count = (await db.execute(emails_today_stmt)).scalar() or 0
     

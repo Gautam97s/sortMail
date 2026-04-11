@@ -30,6 +30,7 @@ export interface NavCounts {
     urgent: number;
     fyi: number;
     drafts: number;
+    tasks_due: number;
 }
 
 export function useNavCounts() {

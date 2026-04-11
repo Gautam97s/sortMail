@@ -29,7 +29,7 @@ from models.user import User
 from models.thread import Thread, IntelStatus
 from models.email import Email
 from models.draft import Draft
-from models.task import Task
+from models.task import Task, TaskStatus
 from models.attachment import Attachment
 from models.tag import thread_tags
 from models.contact import Contact
@@ -193,6 +193,7 @@ class NavCounts(BaseModel):
     urgent: int = 0        # urgent threads
     fyi: int = 0           # fyi threads
     drafts: int = 0        # pending drafts
+    tasks_due: int = 0     # pending tasks due today or overdue
 
 
 @router.get("/counts", response_model=NavCounts)
@@ -240,12 +241,25 @@ async def get_nav_counts(
     )
     draft_count = draft_count_res.scalar() or 0
 
+    current_date = datetime.now(timezone.utc).date()
+    tasks_due_res = await db.execute(
+        select(func.count()).where(
+            Task.user_id == current_user.id,
+            Task.status == TaskStatus.PENDING.value,
+            Task.deleted_at.is_(None),
+            Task.due_date.is_not(None),
+            Task.due_date <= current_date,
+        )
+    )
+    tasks_due = tasks_due_res.scalar() or 0
+
     return NavCounts(
         inbox=row.inbox or 0,
         actions=row.actions or 0,
         urgent=row.urgent or 0,
         fyi=row.fyi or 0,
         drafts=draft_count,
+        tasks_due=tasks_due,
     )
 
 

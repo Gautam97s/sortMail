@@ -31,7 +31,7 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
     const navItems = [
         { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
         { label: "Inbox", href: "/inbox", icon: "inbox", badge: counts?.inbox },
-        { label: "Tasks", href: "/tasks", icon: "checklist" },
+        { label: "Tasks", href: "/tasks", icon: "checklist", badge: counts?.tasks_due },
         { label: "Contacts", href: "/contacts", icon: "group" },
         { label: "Drafts", href: "/drafts", icon: "edit_document", badge: counts?.drafts },
         { label: "Follow-ups", href: "/followups", icon: "schedule" },
