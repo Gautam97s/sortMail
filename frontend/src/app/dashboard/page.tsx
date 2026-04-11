@@ -18,6 +18,24 @@ const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string
     </span>
 );
 
+function deriveFocusScore(stats: { unread: number; urgent: number; tasks_due: number; awaiting_reply: number }) {
+    const loadPenalty = (Math.min(stats.unread, 40) * 1.2) + (stats.urgent * 11) + (stats.tasks_due * 9) + (stats.awaiting_reply * 5);
+    return Math.max(0, Math.min(100, Math.round(100 - loadPenalty)));
+}
+
+function getFocusCopy(score: number) {
+    if (score >= 80) {
+        return "Very clear inbox. Keep momentum on the urgent thread and today's tasks.";
+    }
+    if (score >= 60) {
+        return "Moderate load. Clear urgent threads first, then work down the task list.";
+    }
+    if (score >= 40) {
+        return "Heavy load. Focus on the highest urgency thread and anything due today.";
+    }
+    return "High pressure. The inbox and task queue both need attention now.";
+}
+
 function DashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -57,6 +75,8 @@ function DashboardContent() {
 
     const { briefing, stats, recent_threads, priority_tasks } = dashboardData;
     const firstName = userData?.name?.split(' ')[0] || 'there';
+    const focusScore = deriveFocusScore(stats);
+    const focusCopy = getFocusCopy(focusScore);
     const statStyles = {
         primary: {
             chip: 'bg-primary-fixed/30 text-primary',
@@ -126,17 +146,17 @@ function DashboardContent() {
                     <div className="flex flex-col gap-1">
                         <span className="text-[11px] font-bold text-outline uppercase tracking-[0.2em] mb-2">Focus Score</span>
                         <div className="flex items-end gap-2">
-                            <span className="text-3xl font-headline font-bold text-primary tracking-tighter">88</span>
+                            <span className="text-3xl font-headline font-bold text-primary tracking-tighter">{focusScore}</span>
                             <span className="text-base font-bold text-outline mb-1">/100</span>
                         </div>
                         <div className="w-full h-2 bg-surface-container-high rounded-full mt-3 overflow-hidden">
-                            <div className="w-[88%] h-full bg-primary rounded-full shadow-[0_0_8px_rgba(0,91,191,0.4)]" />
+                            <div className="h-full bg-primary rounded-full shadow-[0_0_8px_rgba(0,91,191,0.4)]" style={{ width: `${focusScore}%` }} />
                         </div>
                     </div>
                     
                     <div className="mt-4">
                         <p className="text-xs font-semibold text-on-surface-variant leading-relaxed">
-                            You&apos;re <span className="text-primary font-bold">12% more efficient</span> today. Your response time to urgent threads is under <span className="text-on-surface font-bold">4 mins</span>.
+                            {focusCopy} <span className="text-primary font-bold">Derived from current inbox load.</span>
                         </p>
                     </div>
 

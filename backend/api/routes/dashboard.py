@@ -31,6 +31,65 @@ from core.intelligence.dashboard_briefing import get_dashboard_briefing
 
 router = APIRouter()
 
+
+def _is_promotional_thread(thread: Thread) -> bool:
+    intel = thread.intel_json or {}
+    intent = (thread.intent or "").upper()
+    if intel.get("is_promotional") is True:
+        return True
+    if intent in {"NEWSLETTER", "SOCIAL"}:
+        return True
+    summary = (thread.summary or "").lower()
+    subject = (thread.subject or "").lower()
+    promo_markers = (
+        "newsletter",
+        "unsubscribe",
+        "promotion",
+        "promotional",
+        "marketing",
+        "deal",
+        "sale",
+        "digest",
+    )
+    return any(marker in summary or marker in subject for marker in promo_markers)
+
+
+def _score_thread_for_summary(thread: Thread) -> int:
+    intent = (thread.intent or "").upper()
+    score = int(thread.urgency_score or 0)
+    if intent == "ACTION_REQUIRED":
+        score += 18
+    elif intent == "URGENT":
+        score += 25
+    elif intent == "QUESTION":
+        score += 10
+    elif intent == "FYI":
+        score -= 8
+    elif intent in {"NEWSLETTER", "SOCIAL"}:
+        score -= 50
+    if thread.is_unread:
+        score += 5
+    if thread.has_attachments:
+        score += 3
+    return score
+
+
+def _describe_task_deadline(task: Task) -> str:
+    if not task.due_date:
+        return ""
+
+    today = datetime.now(timezone.utc).date()
+    due_date = task.due_date.date() if hasattr(task.due_date, "date") else task.due_date
+    days_diff = (due_date - today).days
+
+    if days_diff < 0:
+        return f"overdue by {abs(days_diff)} day{'s' if abs(days_diff) != 1 else ''}"
+    if days_diff == 0:
+        return "due today"
+    if days_diff == 1:
+        return "due tomorrow"
+    return f"due in {days_diff} days"
+
 @router.get("/stats", response_model=DashboardData)
 async def get_dashboard_stats(
     db: AsyncSession = Depends(get_db),
@@ -169,23 +228,35 @@ async def get_dashboard_stats(
     )
     emails_today_count = (await db.execute(emails_today_stmt)).scalar() or 0
     
-    # 4. Synthesize Intelligent Briefing Summary
+    # 4. Synthesize Intelligent Briefing Summary from existing dashboard data only.
     summary_sentences = [f"You received {emails_today_count} new emails today."]
-    
+
     if urgent_count > 0:
-        summary_sentences.append(f"{urgent_count} threads require immediate attention.")
-    
-    if recent_threads_db:
-        # Get the highest urgency top thread
-        top_thread = max(recent_threads_db, key=lambda t: t.urgency_score or 0)
-        summary_sentences.append(f"Top priority email: '{top_thread.subject or '(No Subject)'}'.")
+        summary_sentences.append(f"{urgent_count} thread{'s' if urgent_count != 1 else ''} need immediate attention.")
+
+    actionable_threads = [thread for thread in recent_threads_db if not _is_promotional_thread(thread)]
+    if actionable_threads:
+        top_thread = max(actionable_threads, key=_score_thread_for_summary)
+        top_thread_subject = top_thread.subject or "(No Subject)"
+        top_thread_intent = (top_thread.intent or "").replace("_", " ").lower()
+        if top_thread_intent and top_thread_intent != "fyi":
+            summary_sentences.append(f"Top thread: '{top_thread_subject}' ({top_thread_intent}).")
+        else:
+            summary_sentences.append(f"Top thread: '{top_thread_subject}'.")
+    elif recent_threads_db:
+        top_thread = max(recent_threads_db, key=_score_thread_for_summary)
+        summary_sentences.append(f"Top thread: '{top_thread.subject or '(No Subject)'}'.")
 
     if tasks_due_count > 0:
-        summary_sentences.append(f"You have {tasks_due_count} tasks due.")
+        summary_sentences.append(f"You have {tasks_due_count} task{'s' if tasks_due_count != 1 else ''} due.")
 
     if tasks_db:
-        # Give an example task
-        summary_sentences.append(f"Most urgent task: '{tasks_db[0].title}'.")
+        top_task = tasks_db[0]
+        deadline_note = _describe_task_deadline(top_task)
+        if deadline_note:
+            summary_sentences.append(f"Top task: '{top_task.title}' is {deadline_note}.")
+        else:
+            summary_sentences.append(f"Top task: '{top_task.title}'.")
 
     suggested_actions = []
     if urgent_count > 0:
