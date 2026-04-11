@@ -47,6 +47,7 @@ export const endpoints = {
     authMe: '/api/auth/me',
     updateProfile: '/api/auth/users/me',
     notifications: '/api/notifications',
+    notificationsUnreadCount: '/api/notifications/unread-count',
     notificationPrefs: '/api/notifications/preferences',
     settings: '/api/settings',
     settingsAIPreferences: '/api/settings/preferences/ai',

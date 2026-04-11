@@ -162,7 +162,9 @@ class IngestionService:
 
             # 8. Trigger publish SSE
             from api.routes.events import publish_event
-            await publish_event(user_id, {"type": "sync_complete", "provider": provider_val})
+            await publish_event(user_id, {"type": "sync_status", "status": "complete", "provider": provider_val})
+            if threads:
+                await publish_event(user_id, {"type": "new_emails", "count": len(threads), "provider": provider_val})
 
         except TokenRevokedError:
             logger.error(f"Token revoked for account {account_id}")

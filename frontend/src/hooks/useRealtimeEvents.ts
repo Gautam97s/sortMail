@@ -58,6 +58,25 @@ export function useRealtimeEvents() {
             queryClient.invalidateQueries({ queryKey: ['syncStatus'] });
         });
 
+        // notification_new: backend synthesized or emitted new notifications
+        es.addEventListener('notification_new', (e) => {
+            try {
+                const data = JSON.parse(e.data || '{}');
+                queryClient.invalidateQueries({ queryKey: ['notifications'] });
+                queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+
+                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                    const count = data?.count ?? 1;
+                    new Notification('SortMail notifications', {
+                        body: `${count} new notification${count > 1 ? 's' : ''} available.`,
+                    });
+                }
+            } catch {
+                queryClient.invalidateQueries({ queryKey: ['notifications'] });
+                queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+            }
+        });
+
         es.onerror = () => {
             // EventSource auto-reconnects — no need to handle manually
         };

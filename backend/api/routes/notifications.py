@@ -7,16 +7,200 @@ In-app notification endpoints.
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, desc
+from sqlalchemy import select, update, desc, and_, exists, func
 from pydantic import BaseModel
 from datetime import datetime, timezone
 
 from core.storage.database import get_db
 from api.dependencies import get_current_user
 from models.user import User
-from models.notification import Notification
+from models.notification import Notification, NotificationType, NotificationPriority, NotificationPreferences
+from models.thread import Thread
+from models.email import Email
+from models.contact import Contact
+from models.task import Task, TaskStatus
+from models.credits import UserCredits
 
 router = APIRouter()
+
+
+async def _synthesize_notifications_for_user(current_user: User, db: AsyncSession) -> int:
+    """Create in-app notifications from live data signals (urgent mail, due tasks, etc.)."""
+    # Respect in-app preference if present.
+    prefs_stmt = select(NotificationPreferences).where(NotificationPreferences.user_id == current_user.id)
+    prefs = (await db.execute(prefs_stmt)).scalar_one_or_none()
+    if prefs and prefs.in_app_enabled is False:
+        return 0
+
+    existing_stmt = select(
+        Notification.type,
+        Notification.related_entity_type,
+        Notification.related_entity_id,
+    ).where(
+        Notification.user_id == current_user.id,
+        Notification.is_dismissed == False,
+    )
+    existing_rows = (await db.execute(existing_stmt)).all()
+    existing_keys = {
+        (str(t.value if hasattr(t, "value") else t), et or "", eid or "")
+        for t, et, eid in existing_rows
+    }
+
+    created = 0
+    now = datetime.now(timezone.utc)
+
+    unsubscribed_thread_exists = exists(
+        select(Email.id)
+        .join(
+            Contact,
+            and_(
+                Contact.user_id == current_user.id,
+                Contact.is_unsubscribed == True,
+                Email.sender.ilike(func.concat('%', Contact.email_address, '%')),
+            ),
+        )
+        .where(Email.thread_id == Thread.id)
+        .correlate(Thread)
+    )
+
+    urgent_threads = (
+        await db.execute(
+            select(Thread)
+            .where(
+                Thread.user_id == current_user.id,
+                Thread.is_unread > 0,
+                Thread.urgency_score >= 80,
+                Thread.is_archived == False,
+                Thread.is_trash == False,
+                ~unsubscribed_thread_exists,
+            )
+            .order_by(desc(Thread.last_email_at))
+            .limit(10)
+        )
+    ).scalars().all()
+
+    for t in urgent_threads:
+        key = (NotificationType.EMAIL_URGENT.value, "thread", t.id)
+        if key in existing_keys:
+            continue
+        db.add(
+            Notification(
+                user_id=current_user.id,
+                type=NotificationType.EMAIL_URGENT,
+                title="Urgent email needs attention",
+                body=(t.subject or "A high-priority thread requires review")[:255],
+                action_url=f"/inbox/{t.id}",
+                action_text="Open thread",
+                related_entity_type="thread",
+                related_entity_id=t.id,
+                priority=NotificationPriority.HIGH,
+                created_at=now,
+            )
+        )
+        created += 1
+
+    due_tasks = (
+        await db.execute(
+            select(Task)
+            .where(
+                Task.user_id == current_user.id,
+                Task.status == TaskStatus.PENDING.value,
+                Task.deleted_at.is_(None),
+                Task.due_date.is_not(None),
+                Task.due_date <= now.date(),
+            )
+            .order_by(desc(Task.priority_score))
+            .limit(10)
+        )
+    ).scalars().all()
+
+    for task in due_tasks:
+        key = (NotificationType.TASK_DUE.value, "task", task.id)
+        if key in existing_keys:
+            continue
+        db.add(
+            Notification(
+                user_id=current_user.id,
+                type=NotificationType.TASK_DUE,
+                title="Task due",
+                body=(task.title or "A task is due")[:255],
+                action_url="/tasks?status=PENDING",
+                action_text="Open tasks",
+                related_entity_type="task",
+                related_entity_id=task.id,
+                priority=NotificationPriority.NORMAL,
+                created_at=now,
+            )
+        )
+        created += 1
+
+    waiting_threads = (
+        await db.execute(
+            select(Thread)
+            .where(
+                Thread.user_id == current_user.id,
+                Thread.is_archived == False,
+                Thread.is_trash == False,
+                ~unsubscribed_thread_exists,
+                Thread.intel_json['follow_up_needed'].astext == 'true',
+            )
+            .order_by(desc(Thread.last_email_at))
+            .limit(10)
+        )
+    ).scalars().all()
+
+    for t in waiting_threads:
+        key = (NotificationType.FOLLOW_UP_REMINDER.value, "thread", t.id)
+        if key in existing_keys:
+            continue
+        db.add(
+            Notification(
+                user_id=current_user.id,
+                type=NotificationType.FOLLOW_UP_REMINDER,
+                title="Follow-up recommended",
+                body=(t.subject or "A reply is pending")[:255],
+                action_url="/followups",
+                action_text="Review follow-ups",
+                related_entity_type="thread",
+                related_entity_id=t.id,
+                priority=NotificationPriority.NORMAL,
+                created_at=now,
+            )
+        )
+        created += 1
+
+    credits = (
+        await db.execute(
+            select(UserCredits).where(UserCredits.user_id == current_user.id)
+        )
+    ).scalar_one_or_none()
+    if credits and int(credits.credits_balance or 0) <= 10:
+        key = (NotificationType.CREDIT_LOW.value, "user", current_user.id)
+        if key not in existing_keys:
+            db.add(
+                Notification(
+                    user_id=current_user.id,
+                    type=NotificationType.CREDIT_LOW,
+                    title="Credits running low",
+                    body=f"You have {credits.credits_balance} credits remaining.",
+                    action_url="/credits",
+                    action_text="Manage credits",
+                    related_entity_type="user",
+                    related_entity_id=current_user.id,
+                    priority=NotificationPriority.HIGH,
+                    created_at=now,
+                )
+            )
+            created += 1
+
+    if created > 0:
+        await db.commit()
+        try:
+            from api.routes.events import publish_event
+            await publish_event(str(current_user.id), {"type": "notification_new", "count": created})
+        except Exception:
+            pass
+    return created
 
 
 class NotificationOut(BaseModel):
@@ -40,6 +224,7 @@ async def list_notifications(
     db: AsyncSession = Depends(get_db),
 ):
     """List recent notifications for the current user."""
+    await _synthesize_notifications_for_user(current_user, db)
     stmt = (
         select(Notification)
         .where(
@@ -52,6 +237,24 @@ async def list_notifications(
     result = await db.execute(stmt)
     notifications = result.scalars().all()
     return notifications
+
+
+@router.get("/unread-count")
+async def unread_notification_count(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _synthesize_notifications_for_user(current_user, db)
+    count = (
+        await db.execute(
+            select(func.count(Notification.id)).where(
+                Notification.user_id == current_user.id,
+                Notification.is_dismissed == False,
+                Notification.is_read == False,
+            )
+        )
+    ).scalar() or 0
+    return {"unread": int(count)}
 
 
 @router.post("/{notification_id}/read")
@@ -115,7 +318,6 @@ async def dismiss_notification(
 
 # ─── Notification Preferences ──────────────────────────────────────────────────
 
-from models.notification import NotificationPreferences
 import uuid as _uuid
 
 

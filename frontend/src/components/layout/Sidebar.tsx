@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useNavCounts } from "@/hooks/useThreads";
+import { useNotificationUnreadCount } from "@/hooks/useNotifications";
 import { useUser } from "@/hooks/useUser";
 import { RELEASE, isFeatureEnabled } from "@/lib/release";
 
@@ -26,6 +27,7 @@ const MaterialSymbol = ({ icon, filled = false, className = "" }: { icon: string
 export default function Sidebar({ collapsed = false, onToggle, isOpen = false, onClose }: SidebarProps) {
     const pathname = usePathname();
     const { data: counts } = useNavCounts();
+    const { data: notificationCount } = useNotificationUnreadCount();
     const { data: user } = useUser();
 
     const navItems = [
@@ -39,7 +41,7 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
 
     const utilityItems = [
         { label: "Bin", href: "/bin", icon: "delete_sweep" },
-        { label: "Notifications", href: "/notifications", icon: "notifications", enabled: isFeatureEnabled('notifications_center', user) },
+        { label: "Notifications", href: "/notifications", icon: "notifications", badge: notificationCount?.unread, enabled: isFeatureEnabled('notifications_center', user) },
         { label: "Settings", href: "/settings", icon: "settings" },
     ];
 
@@ -144,7 +146,12 @@ export default function Sidebar({ collapsed = false, onToggle, isOpen = false, o
                                     className="flex items-center gap-2.5 py-1.5 px-2.5 rounded-xl text-on-surface-variant hover:text-primary hover:bg-white/60 transition-colors group"
                                 >
                                     <MaterialSymbol icon={item.icon} className="text-[20px] group-hover:text-primary" />
-                                    <span className="text-xs font-semibold">{item.label}</span>
+                                    <span className="text-xs font-semibold flex-1">{item.label}</span>
+                                    {'badge' in item && item.badge && item.badge > 0 && (
+                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant">
+                                            {item.badge}
+                                        </span>
+                                    )}
                                 </Link>
                             ))}
                         </div>

@@ -31,6 +31,21 @@ export default function NotificationsPage() {
             const { data } = await api.get(endpoints.notifications);
             return data;
         },
+        staleTime: 1000 * 30,
+        refetchOnWindowFocus: true,
+    });
+
+    const { data: prefs } = useQuery({
+        queryKey: ["notification-preferences"],
+        queryFn: async () => {
+            const { data } = await api.get(endpoints.notificationPrefs);
+            return data as {
+                push_enabled: boolean;
+                email_enabled: boolean;
+                in_app_enabled: boolean;
+            };
+        },
+        staleTime: 1000 * 60,
     });
 
     const markRead = useMutation({
@@ -48,14 +63,27 @@ export default function NotificationsPage() {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
     });
 
+    const updatePrefs = useMutation({
+        mutationFn: (payload: { push_enabled?: boolean }) => api.patch(endpoints.notificationPrefs, payload),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notification-preferences"] }),
+    });
+
+    const enableBrowserPush = async () => {
+        if (typeof window === 'undefined' || !("Notification" in window)) return;
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            updatePrefs.mutate({ push_enabled: true });
+        }
+    };
+
     const unreadCount = notifications.filter((n) => !n.is_read).length;
 
     const getIcon = (type: string) => {
-        switch (type) {
-            case "email_urgent": return <Mail className="w-4 h-4 text-red-500" />;
-            case "task_due": return <CheckSquare className="w-4 h-4 text-amber-500" />;
-            case "follow_up_reminder": return <Clock className="w-4 h-4 text-blue-500" />;
-            case "credit_low": return <Sparkles className="w-4 h-4 text-purple-500" />;
+        switch (type.toUpperCase()) {
+            case "EMAIL_URGENT": return <Mail className="w-4 h-4 text-red-500" />;
+            case "TASK_DUE": return <CheckSquare className="w-4 h-4 text-amber-500" />;
+            case "FOLLOW_UP_REMINDER": return <Clock className="w-4 h-4 text-blue-500" />;
+            case "CREDIT_LOW": return <Sparkles className="w-4 h-4 text-purple-500" />;
             default: return <Bell className="w-4 h-4 text-muted-foreground" />;
         }
     };
@@ -100,6 +128,17 @@ export default function NotificationsPage() {
                                 Mark all read
                             </Button>
                         )}
+                        {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={enableBrowserPush}
+                                disabled={updatePrefs.isPending}
+                                className="rounded-xl border-outline-variant/20 bg-surface-container-lowest hover:bg-surface-container h-9 px-3 text-[12px]"
+                            >
+                                Enable push
+                            </Button>
+                        )}
                     </div>
 
                     <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -113,7 +152,7 @@ export default function NotificationsPage() {
                         </div>
                         <div className="rounded-xl bg-surface-container-low px-3 py-2.5">
                             <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-outline">Priority</div>
-                            <div className="text-xl font-headline font-bold text-on-surface mt-1">{notifications.filter((n) => n.priority === 'high').length}</div>
+                            <div className="text-xl font-headline font-bold text-on-surface mt-1">{notifications.filter((n) => n.priority.toUpperCase() === 'HIGH').length}</div>
                         </div>
                     </div>
                 </section>
